@@ -1,17 +1,18 @@
 package io.github.rayvader.hazemap
 
-import android.graphics.Color
-
 /**
  * Air-quality bands. PSI uses Singapore NEA's 24-hour PSI descriptor scale.
  * PM2.5 uses NEA's 1-hour PM2.5 concentration bands.
+ *
+ * Colors are plain ARGB Int literals (not Color.parseColor) so the class loads
+ * in a plain-JVM unit test without the stubbed android.graphics.Color throwing.
  */
 enum class Band(val label: String, val color: Int) {
-    GOOD("Good", Color.parseColor("#4CAF50")),
-    MODERATE("Moderate", Color.parseColor("#C9CC2E")),
-    UNHEALTHY("Unhealthy", Color.parseColor("#FF9800")),
-    VERY_UNHEALTHY("Very unhealthy", Color.parseColor("#F44336")),
-    HAZARDOUS("Hazardous", Color.parseColor("#7B1FA2"));
+    GOOD("Good", 0xFF4CAF50.toInt()),
+    MODERATE("Moderate", 0xFFC9CC2E.toInt()),
+    UNHEALTHY("Unhealthy", 0xFFFF9800.toInt()),
+    VERY_UNHEALTHY("Very unhealthy", 0xFFF44336.toInt()),
+    HAZARDOUS("Hazardous", 0xFF7B1FA2.toInt());
 
     companion object {
         /** NEA 24-hour PSI: 0-50 good, 51-100 moderate, 101-200 unhealthy, 201-300 very unhealthy, 300+ hazardous. */
