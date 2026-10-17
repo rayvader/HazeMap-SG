@@ -1,0 +1,12 @@
+<resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="teal_700">#FF00796B</color>
+
+    <!-- PSI / PM2.5 band colors (Singapore NEA bands). -->
+    <color name="band_good">#FF4CAF50</color>
+    <color name="band_moderate">#FFC9CC2E</color>
+    <color name="band_unhealthy">#FFFF9800</color>
+    <color name="band_very_unhealthy">#FFF44336</color>
+    <color name="band_hazardous">#FF7B1FA2</color>
+</resources>

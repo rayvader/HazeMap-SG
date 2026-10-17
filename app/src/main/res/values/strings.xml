@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Haze Map SG</string>
+    <string name="toggle_zones">Zones</string>
+    <string name="toggle_dots">Dots</string>
+    <string name="reading_psi">PSI</string>
+    <string name="reading_pm25">PM2.5</string>
+    <string name="history_title">Readings history</string>
+    <string name="refresh">Refresh</string>
+    <string name="updated_prefix">Updated: </string>
+    <string name="error_fetch">Could not load readings. Pull to retry.</string>
+    <string name="no_history">No history yet. Open the app over time to build it.</string>
+</resources>

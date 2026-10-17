@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple haze/cloud mark. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,58h36a10,10 0 0 0 0,-20a14,14 0 0 0 -27,-4a9,9 0 0 0 -9,14a8,8 0 0 0 0,10z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,66h32v4h-32z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,74h24v4h-24z" />
+</vector>
