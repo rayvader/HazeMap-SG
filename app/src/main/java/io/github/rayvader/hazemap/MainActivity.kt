@@ -1,6 +1,11 @@
 package io.github.rayvader.hazemap
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -24,6 +29,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
 import java.text.SimpleDateFormat
@@ -118,8 +124,50 @@ class MainActivity : AppCompatActivity() {
                 dotOverlay(region, band, value)
             }
             binding.map.overlays.add(overlay)
+            // Always-on number label on top of the zone/dot.
+            binding.map.overlays.add(labelOverlay(region, value))
         }
         binding.map.invalidate()
+    }
+
+    /** A non-tappable text marker showing the reading number at the region point. */
+    private fun labelOverlay(region: Region, value: Int): Overlay {
+        val marker = Marker(binding.map).apply {
+            position = GeoPoint(region.lat, region.lon)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            icon = BitmapDrawable(resources, numberBitmap(value.toString()))
+            setInfoWindow(null)
+            isDraggable = false
+            // Let taps fall through to the polygon (history) underneath.
+            setOnMarkerClickListener { _, _ -> false }
+        }
+        return marker
+    }
+
+    /** Draws the number as white text with a dark outline, on a transparent bitmap. */
+    private fun numberBitmap(text: String): Bitmap {
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = 42f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+        }
+        val strokePaint = Paint(textPaint).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+            color = Color.parseColor("#CC000000")
+        }
+        val pad = 8
+        val w = (textPaint.measureText(text) + pad * 2).toInt().coerceAtLeast(1)
+        val fm = textPaint.fontMetrics
+        val h = ((fm.bottom - fm.top) + pad * 2).toInt().coerceAtLeast(1)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val x = w / 2f
+        val y = h / 2f - (fm.ascent + fm.descent) / 2f
+        canvas.drawText(text, x, y, strokePaint)
+        canvas.drawText(text, x, y, textPaint)
+        return bmp
     }
 
     /** A translucent square zone centered on the region label point. */
