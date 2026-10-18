@@ -133,6 +133,54 @@ adb exec-out screencap -p > "$OUT/19-landscape-now.png"
 adb shell settings put system user_rotation 0
 sleep 3
 
+# ---- Theme toggle: the phone stays in light mode, so only the button and the saved choice can make it dark ----
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+sleep 25
+say "theme before: button='$(attr btnTheme content-desc)'"
+adb exec-out screencap -p > "$OUT/30-theme-light-start.png"
+tap btnTheme
+sleep 8
+say "theme after 1st tap: button='$(attr btnTheme content-desc)'"
+adb exec-out screencap -p > "$OUT/31-theme-now-dark.png"
+tap "Rain"
+sleep 30
+adb exec-out screencap -p > "$OUT/32-theme-rain-dark.png"
+tap "Gauges"
+sleep 12
+adb exec-out screencap -p > "$OUT/33-theme-gauges-dark.png"
+tap "Haze"
+sleep 20
+adb exec-out screencap -p > "$OUT/34-theme-haze-dark.png"
+say "theme on Haze tab: button='$(attr btnTheme content-desc)'"
+tap "West"
+sleep 3
+adb exec-out screencap -p > "$OUT/35-theme-history-dark.png"
+tap "OK"
+tap areaName
+sleep 1
+adb exec-out screencap -p > "$OUT/36-theme-area-picker-dark.png"
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+# Close the app fully and open it again: the dark theme should come back by itself.
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab haze
+sleep 25
+say "theme after restart: button='$(attr btnTheme content-desc)'"
+adb exec-out screencap -p > "$OUT/37-theme-restart-dark.png"
+# Tapping once more on the Haze tab, then the other tabs, should show light mode as before.
+tap btnTheme
+sleep 8
+say "theme after 2nd tap: button='$(attr btnTheme content-desc)'"
+adb exec-out screencap -p > "$OUT/38-theme-haze-light-again.png"
+tap "Rain"
+sleep 25
+adb exec-out screencap -p > "$OUT/39-theme-rain-light-again.png"
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+sleep 20
+say "theme after 2nd restart: button='$(attr btnTheme content-desc)'"
+
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
 adb shell svc data disable

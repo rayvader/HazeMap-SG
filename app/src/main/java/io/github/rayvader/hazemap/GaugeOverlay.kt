@@ -15,6 +15,7 @@ import org.osmdroid.views.overlay.Overlay
  */
 class GaugeOverlay(
     private val density: Float,
+    night: Boolean,
     private val onTap: (Station, Double) -> Unit
 ) : Overlay() {
 
@@ -29,7 +30,7 @@ class GaugeOverlay(
     }
     private val dryRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = 0xFF6B6B72.toInt()
+        color = if (night) 0xFFB8BCC4.toInt() else 0xFF6B6B72.toInt()
         strokeWidth = 1f * density
     }
     private val point = Point()

@@ -4,8 +4,10 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
@@ -40,10 +42,12 @@ enum class RainSource(val key: String) { RADAR("radar"), GAUGES("gauges") }
 class RainScreen(
     private val activity: AppCompatActivity,
     private val b: ScreenRainBinding,
-    private val prefs: SharedPreferences
+    private val prefs: SharedPreferences,
+    state: Bundle?
 ) {
     private val repo = WeatherRepository.get(activity)
     private val density = activity.resources.displayMetrics.density
+    private val night = activity.isNightMode()
     private val scope get() = activity.lifecycleScope
 
     private var source = RainSource.RADAR
@@ -61,7 +65,7 @@ class RainScreen(
     private val statuses = HashMap<RainSource, String?>()
 
     private val radarOverlay = RadarOverlay()
-    private val gaugeOverlay = GaugeOverlay(density) { station, mm ->
+    private val gaugeOverlay = GaugeOverlay(density, night) { station, mm ->
         val text = activity.getString(R.string.gauge_reading, station.name, String.format(Locale.US, "%.1f", mm))
         Toast.makeText(activity, text, Toast.LENGTH_SHORT).show()
     }
@@ -69,7 +73,9 @@ class RainScreen(
     init {
         val wanted = activity.intent?.getStringExtra(MainActivity.EXTRA_SOURCE) ?: prefs.getString(KEY_SOURCE, null)
         source = RainSource.entries.firstOrNull { it.key == wanted } ?: RainSource.RADAR
-        setupMap()
+        // After a recreation (theme switch) the animation has already been seen; do not replay it.
+        if (state != null) autoplayed.addAll(RainSource.entries)
+        setupMap(state)
         setupControls()
         applySource()
     }
@@ -96,6 +102,14 @@ class RainScreen(
         ensureLoaded(force = true)
     }
 
+    /** Keeps where the user has panned and zoomed, for when the activity is recreated. */
+    fun saveMap(out: Bundle) {
+        val map = b.rainMap
+        if (map.width == 0) return // never shown, so the user has not moved it
+        val centre = map.mapCenter
+        out.putDoubleArray(KEY_VIEW, doubleArrayOf(map.zoomLevelDouble, centre.latitude, centre.longitude))
+    }
+
     fun mapResume() = b.rainMap.onResume()
 
     fun mapPause() = b.rainMap.onPause()
@@ -109,7 +123,7 @@ class RainScreen(
 
     // ---- Setup ----
 
-    private fun setupMap() {
+    private fun setupMap(state: Bundle?) {
         val map = b.rainMap
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
@@ -118,12 +132,23 @@ class RainScreen(
         // Singapore still sits inside that strip; zooming out further would show the tiles' hard edge.
         map.setMinZoomLevel(8.5)
         map.setMaxZoomLevel(14.0)
-        val wanted = activity.intent?.getFloatExtra(MainActivity.EXTRA_ZOOM, 0f) ?: 0f
-        map.controller.setZoom(if (wanted > 0f) wanted.toDouble() else DEFAULT_ZOOM)
-        map.controller.setCenter(GeoPoint(1.3521, 103.8198))
+        map.styleForTheme(night)
+        val view = state?.getDoubleArray(KEY_VIEW)
+        if (view != null && view.size == 3) {
+            // Back from a theme switch: the map stays where the user left it.
+            map.controller.setZoom(view[0])
+            map.controller.setCenter(GeoPoint(view[1], view[2]))
+        } else {
+            val wanted = activity.intent?.getFloatExtra(MainActivity.EXTRA_ZOOM, 0f) ?: 0f
+            map.controller.setZoom(if (wanted > 0f) wanted.toDouble() else DEFAULT_ZOOM)
+            map.controller.setCenter(GeoPoint(1.3521, 103.8198))
+        }
         map.overlays.add(radarOverlay)
         map.overlays.add(gaugeOverlay)
-        map.overlays.add(CopyrightOverlay(activity).apply { setTextSize(10) })
+        map.overlays.add(CopyrightOverlay(activity).apply {
+            setTextSize(10)
+            if (night) setTextColor(Color.WHITE)
+        })
     }
 
     private fun setupControls() {
@@ -402,6 +427,7 @@ class RainScreen(
         private const val TAG = "RainScreen"
         private const val DEFAULT_ZOOM = 10.0
         private const val KEY_SOURCE = "rain_source"
+        private const val KEY_VIEW = "rain_view"
         private const val MAX_RADAR_FRAMES = 13
         private const val GAUGE_FRAMES = 25
         private const val DAY_MS = 86_400_000L
