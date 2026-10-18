@@ -86,4 +86,11 @@
     <string name="place_remove">Remove place</string>
     <string name="place_hilo">H %1$d° · L %2$d°</string>
     <string name="attribution_open_meteo">Weather data: Open-Meteo.com (CC BY 4.0).</string>
+
+    <!-- Update banner -->
+    <string name="update_title">Update available</string>
+    <string name="update_sub">Version %1$s</string>
+    <string name="update_download">Download</string>
+    <string name="update_close">Dismiss</string>
+    <string name="update_no_browser">No app can open the download link.</string>
 </resources>

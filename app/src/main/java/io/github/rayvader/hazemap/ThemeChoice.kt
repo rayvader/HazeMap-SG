@@ -9,6 +9,10 @@ object Prefs {
     const val KEY_THEME = "theme"
     const val KEY_AREA = "area"
     const val KEY_PLACES = "places"
+    const val KEY_UPDATE_CHECKED = "update_checked_at"
+    const val KEY_UPDATE_VERSION = "update_version"
+    const val KEY_UPDATE_URL = "update_url"
+    const val KEY_UPDATE_DISMISSED = "update_dismissed"
 }
 
 /**

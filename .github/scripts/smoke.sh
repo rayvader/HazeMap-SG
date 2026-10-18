@@ -261,6 +261,27 @@ adb shell settings put global animator_duration_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global window_animation_scale 0
 
+# ---- Update banner: pretend to be an old version so the real GitHub check finds a newer release ----
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 0.0.1
+sleep 25
+say "update banner: '$(attr updateTitle text)' / '$(attr updateSub text)'"
+adb exec-out screencap -p > "$OUT/70-update-banner.png"
+tap btnTheme
+sleep 8
+say "update banner in dark: '$(attr updateTitle text)'"
+adb exec-out screencap -p > "$OUT/71-update-banner-dark.png"
+tap btnTheme
+sleep 6
+tap "Dismiss"
+sleep 2
+say "update banner after dismiss: '$(attr updateTitle text)'"
+adb exec-out screencap -p > "$OUT/72-update-banner-dismissed.png"
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 0.0.1
+sleep 20
+say "update banner after reopening: '$(attr updateTitle text)'"
+
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
 adb shell svc data disable

@@ -1,13 +1,16 @@
 package io.github.rayvader.hazemap
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.DialogInterface
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -37,6 +40,8 @@ class MainActivity : AppCompatActivity() {
     private var rain: RainScreen? = null
     private var haze: HazeScreen? = null
     private var activeLocationListener: LocationListener? = null
+    private lateinit var updates: UpdateChecker
+    private var shownUpdate: UpdateInfo? = null
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -72,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnTheme.setOnClickListener { toggleTheme() }
         binding.btnPlaces.setOnClickListener { PlacesSheet(this) { area }.show() }
         showThemeButton()
+        setupUpdateBanner()
 
         // After a recreation (dark mode switch, low memory) reopen the tab the user was on.
         val restored = savedInstanceState?.getInt(KEY_TAB, NO_TAB) ?: NO_TAB
@@ -123,6 +129,41 @@ class MainActivity : AppCompatActivity() {
             R.id.nav_now -> now.load(force = true)
             R.id.nav_rain -> rain?.refresh()
             R.id.nav_haze -> haze?.load(force = true)
+        }
+    }
+
+    // ---- Update banner ----
+
+    /** The version the update check compares with. The smoke test can pretend to be an old one. */
+    private fun installedVersion(): String? =
+        intent.getStringExtra(EXTRA_INSTALLED_VERSION) ?: updates.installedVersion()
+
+    private fun setupUpdateBanner() {
+        updates = UpdateChecker(this)
+        binding.updateDownload.setOnClickListener { openDownload() }
+        binding.updateClose.setOnClickListener {
+            shownUpdate?.let { updates.dismiss(it.version) }
+            showUpdate(null)
+        }
+        showUpdate(updates.cached())
+        // The smoke test's pretend version also skips the six-hour wait, so the real request is tested.
+        val force = intent.hasExtra(EXTRA_INSTALLED_VERSION)
+        lifecycleScope.launch { showUpdate(updates.refreshIfDue(force)) }
+    }
+
+    private fun showUpdate(latest: UpdateInfo?) {
+        val show = UpdateLogic.shouldShow(installedVersion(), latest, updates.dismissedVersion())
+        shownUpdate = if (show) latest else null
+        binding.updateBanner.visibility = if (show) View.VISIBLE else View.GONE
+        if (show && latest != null) binding.updateSub.text = getString(R.string.update_sub, latest.version)
+    }
+
+    private fun openDownload() {
+        val url = shownUpdate?.downloadUrl ?: return
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.update_no_browser, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -282,6 +323,9 @@ class MainActivity : AppCompatActivity() {
 
         /** Asks the home screen to add a widget: "small", "wide" or "strip". Used by the emulator smoke test. */
         const val EXTRA_PIN_WIDGET = "pin_widget"
+
+        /** Pretends the installed app has this version, to see the update banner. Used by the emulator smoke test. */
+        const val EXTRA_INSTALLED_VERSION = "installed_version"
 
         private const val LOCATION_TIMEOUT_MS = 10_000L
         private const val KEY_AREA = Prefs.KEY_AREA
