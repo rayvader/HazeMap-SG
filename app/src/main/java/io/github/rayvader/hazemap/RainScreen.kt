@@ -61,7 +61,8 @@ class RainScreen(
     private var playJob: Job? = null
     private var radarJob: Job? = null
     private var gaugeJob: Job? = null
-    private val autoplayed = HashSet<RainSource>()
+    /** True after the user paused or scrubbed; the loop then stays still until they press Play or refresh. */
+    private var userPaused = false
     private val statuses = HashMap<RainSource, String?>()
 
     private val radarOverlay = RadarOverlay()
@@ -73,8 +74,6 @@ class RainScreen(
     init {
         val wanted = activity.intent?.getStringExtra(MainActivity.EXTRA_SOURCE) ?: prefs.getString(KEY_SOURCE, null)
         source = RainSource.entries.firstOrNull { it.key == wanted } ?: RainSource.RADAR
-        // After a recreation (theme switch) the animation has already been seen; do not replay it.
-        if (state != null) autoplayed.addAll(RainSource.entries)
         setupMap(state)
         setupControls()
         applySource()
@@ -98,6 +97,7 @@ class RainScreen(
     }
 
     fun refresh() {
+        userPaused = false
         stopPlay()
         ensureLoaded(force = true)
     }
@@ -158,17 +158,26 @@ class RainScreen(
         }
         b.btnPlay.setOnClickListener {
             Log.d(TAG, "play button tapped: playing=$playing, frames=${frameCount()}")
-            if (playing) stopPlay() else startPlay()
+            if (playing) {
+                userPaused = true
+                stopPlay()
+            } else {
+                startPlay()
+            }
         }
         b.rainScrub.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
+                    userPaused = true
                     stopPlay()
                     showFrame(progress)
                 }
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) = stopPlay()
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                userPaused = true
+                stopPlay()
+            }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
@@ -186,6 +195,7 @@ class RainScreen(
         if (next == source) return
         source = next
         prefs.edit().putString(KEY_SOURCE, next.key).apply()
+        userPaused = false
         stopPlay()
         applySource()
         if (visible) {
@@ -382,18 +392,21 @@ class RainScreen(
         b.rainMap.invalidate()
     }
 
-    /** Plays the past two hours once, on the first visit to each source. Skipped when the phone has animations off. */
+    /**
+     * Starts the loop by itself whenever the Rain tab is on screen, unless the user paused it.
+     * Skipped when the phone has animations off, which is the setting for people who want less motion.
+     */
     private fun maybeAutoplay() {
-        if (!visible || frameCount() < 2 || source in autoplayed) return
-        autoplayed.add(source)
+        if (!visible || playing || userPaused || frameCount() < 2) return
         if (!ValueAnimator.areAnimatorsEnabled()) return
-        showFrame(0)
         startPlay()
     }
 
+    /** Plays the past two hours, waits a moment on the newest picture, then starts over until stopped. */
     private fun startPlay() {
         val n = frameCount()
         if (n < 2) return
+        userPaused = false
         if (index >= n - 1) showFrame(0)
         playing = true
         updatePlayButton()
@@ -401,14 +414,17 @@ class RainScreen(
         val step = if (source == RainSource.RADAR) RADAR_STEP_MS else GAUGE_STEP_MS
         playJob?.cancel()
         playJob = scope.launch {
-            while (isActive && index < n - 1) {
-                delay(step)
-                showFrame(index + 1)
+            var loops = 0
+            while (isActive) {
+                while (isActive && index < n - 1) {
+                    delay(step)
+                    showFrame(index + 1)
+                }
+                delay(LOOP_PAUSE_MS)
+                loops++
+                Log.d(TAG, "play loop $loops: $source")
+                showFrame(0)
             }
-            delay(LINGER_MS)
-            playing = false
-            updatePlayButton()
-            Log.d(TAG, "play end")
         }
     }
 
@@ -433,6 +449,6 @@ class RainScreen(
         private const val DAY_MS = 86_400_000L
         private const val RADAR_STEP_MS = 450L
         private const val GAUGE_STEP_MS = 220L
-        private const val LINGER_MS = 900L
+        private const val LOOP_PAUSE_MS = 1500L
     }
 }

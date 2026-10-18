@@ -87,7 +87,7 @@ say "after tapping Gauges, source label: $(attr rainSource text)"
 adb exec-out screencap -p > "$OUT/12-gauges-by-tap.png"
 
 # Play: a dump takes seconds and the whole playback is about 6 s, so find the button first, then tap and
-# screenshot straight away (no dump in between). The app also logs "play start" and "play end".
+# screenshot straight away (no dump in between). The app also logs "play start" and one "play loop N" line each time the loop starts over.
 say "before play: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
 PLAY_XY=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" btnPlay)
 adb shell log -t SMOKE "tapping play at $PLAY_XY"
@@ -98,7 +98,11 @@ sleep 1.5
 adb exec-out screencap -p > "$OUT/13b-playing-later.png"
 sleep 9
 adb exec-out screencap -p > "$OUT/13c-after-play.png"
-say "after play: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
+say "still looping: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
+PLAY_XY=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" btnPlay)
+adb shell input tap $PLAY_XY
+sleep 2
+say "after pausing: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
 
 tap "Radar"
 sleep 5
@@ -238,6 +242,24 @@ sleep 2
 tap btnTheme
 sleep 6
 say "places run theme button after: $(attr btnTheme content-desc)"
+
+# ---- Rain replay: with animations on, the map plays by itself and starts over ----
+adb shell settings put global animator_duration_scale 1
+adb shell settings put global transition_animation_scale 1
+adb shell settings put global window_animation_scale 1
+STARTS_BEFORE=$(adb logcat -d | grep -c 'play start')
+LOOPS_BEFORE=$(adb logcat -d | grep -c 'play loop')
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab rain --es source radar
+sleep 45
+adb exec-out screencap -p > "$OUT/60-rain-auto-a.png"
+sleep 3
+adb exec-out screencap -p > "$OUT/61-rain-auto-b.png"
+say "rain started by itself: $(( $(adb logcat -d | grep -c 'play start') - STARTS_BEFORE ))"
+say "rain loops by itself: $(( $(adb logcat -d | grep -c 'play loop') - LOOPS_BEFORE ))"
+adb shell settings put global animator_duration_scale 0
+adb shell settings put global transition_animation_scale 0
+adb shell settings put global window_animation_scale 0
 
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
