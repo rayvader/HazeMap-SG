@@ -1,9 +1,21 @@
 package io.github.rayvader.hazemap
 
+import android.Manifest
+import android.content.Context
+import android.content.DialogInterface
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.rayvader.hazemap.databinding.ActivityMainBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
@@ -22,6 +34,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var now: NowScreen
     private var rain: RainScreen? = null
     private var haze: HazeScreen? = null
+    private var activeLocationListener: LocationListener? = null
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            findMyLocation()
+        } else {
+            Toast.makeText(this, R.string.location_permission_denied, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private var area: Area = Areas.default
     private var currentTab = NO_TAB
@@ -118,17 +141,93 @@ class MainActivity : AppCompatActivity() {
 
     private fun pickArea() {
         val names = Areas.all.map { it.name }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
+        val choices = arrayOf(getString(R.string.use_my_location), *names)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.choose_area)
-            .setSingleChoiceItems(names, names.indexOf(area.name)) { dialog, which ->
-                area = Areas.all[which]
-                prefs.edit().putString(KEY_AREA, area.name).apply()
-                showAreaName()
-                now.onAreaChanged()
-                dialog.dismiss()
+            .setSingleChoiceItems(choices, names.indexOf(area.name) + 1) { dialog, which ->
+                if (which == 0) {
+                    requestMyLocation(dialog)
+                } else {
+                    selectArea(Areas.all[which - 1])
+                    dialog.dismiss()
+                }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+        // Keep the new location row visible even when the current area is selected.
+        dialog.listView?.setSelection(0)
+    }
+
+    private fun requestMyLocation(dialog: DialogInterface) {
+        dialog.dismiss()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        } else {
+            findMyLocation()
+        }
+    }
+
+    private fun findMyLocation() {
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val providers = manager.getProviders(true).filter {
+            it == LocationManager.NETWORK_PROVIDER || it == LocationManager.GPS_PROVIDER
+        }
+        val last = providers.mapNotNull { provider ->
+            runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
+        }.maxByOrNull { it.time }
+        if (last != null) {
+            setAreaFromLocation(last)
+            return
+        }
+
+        lateinit var listener: LocationListener
+        listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                stopLocationUpdates(listener)
+                setAreaFromLocation(location)
+            }
+        }
+        activeLocationListener = listener
+        var requested = false
+        for (provider in providers) {
+            try {
+                manager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
+                requested = true
+            } catch (_: SecurityException) {
+                // The permission can change while the request is running.
+            }
+        }
+        if (!requested) {
+            stopLocationUpdates(listener)
+            Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (activeLocationListener === listener) {
+                stopLocationUpdates(listener)
+                Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
+            }
+        }, LOCATION_TIMEOUT_MS)
+    }
+
+    private fun stopLocationUpdates(listener: LocationListener) {
+        if (activeLocationListener !== listener) return
+        activeLocationListener = null
+        val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        runCatching { manager.removeUpdates(listener) }
+    }
+
+    private fun setAreaFromLocation(location: Location) {
+        selectArea(Areas.nearest(location.latitude, location.longitude))
+    }
+
+    private fun selectArea(selected: Area) {
+        area = selected
+        prefs.edit().putString(KEY_AREA, area.name).apply()
+        showAreaName()
+        now.onAreaChanged()
     }
 
     // ---- Lifecycle ----
@@ -156,9 +255,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        activeLocationListener?.let { stopLocationUpdates(it) }
         rain?.destroy()
         haze?.destroy()
+        super.onDestroy()
     }
 
     companion object {
@@ -171,6 +271,7 @@ class MainActivity : AppCompatActivity() {
         /** Starts the Rain map at this zoom, to look beyond Singapore. Used by the emulator smoke test. */
         const val EXTRA_ZOOM = "zoom"
 
+        private const val LOCATION_TIMEOUT_MS = 10_000L
         private const val KEY_AREA = "area"
         private const val KEY_TAB = "tab"
         private const val NO_TAB = -1

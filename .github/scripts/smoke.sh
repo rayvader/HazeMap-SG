@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Emulator smoke test: install the APK, open every tab with live data and keep a screenshot of each,
-# then tap through the real UI (tabs, area picker, toggle, play) the way a person would.
+# then tap through the real UI (tabs, area picker, theme, play) the way a person would.
 # The emulator has animations off, so the Rain tab shows its newest frame instead of autoplaying;
 # pressing Play still runs the playback loop, which is what the interaction part checks.
 set -euo pipefail
@@ -70,6 +70,8 @@ sleep 25
 say "area before: $(attr areaName text)"
 tap areaName
 sleep 1
+dump
+say "location row: $(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "Use my location")"
 adb exec-out screencap -p > "$OUT/9-area-picker.png"
 tap "Bedok"
 sleep 3

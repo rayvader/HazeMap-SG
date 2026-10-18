@@ -66,6 +66,12 @@ class RateLimiterAndAreasTest {
     }
 
     @Test
+    fun nearestAreaUsesTheClosestForecastPoint() {
+        assertEquals("Bedok", Areas.nearest(1.3211, 103.9239).name)
+        assertEquals("Tuas", Areas.nearest(1.295, 103.636).name)
+    }
+
+    @Test
     fun areasMapToTheNearestNeaRegion() {
         fun region(name: String) = Areas.byName(name)!!.region
         assertEquals(Region.CENTRAL, region("Ang Mo Kio"))

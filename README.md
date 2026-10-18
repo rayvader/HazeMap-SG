@@ -2,7 +2,7 @@
 
 A Singapore weather app for Android: today's forecast, a rain map you can play back
 over the past two hours, and haze (PSI and PM2.5) with a history chart.
-It uses free public data. No account, no API key, no location permission.
+It uses free public data. No account or API key. Location is optional and asked only when you tap “Use my location”.
 
 | Now | Rain (playing back) | Haze |
 |---|---|---|
@@ -15,6 +15,7 @@ It uses free public data. No account, no API key, no location permission.
 **Now** — for the area you pick (47 NEA forecast areas, default Ang Mo Kio; tap the name at the top):
 temperature, condition and when that forecast ends, high and low, humidity, wind, UV,
 the next 24 hours by period, a haze summary for your region, and the next four days.
+Tap the area name, then “Use my location”, to choose the nearest forecast area.
 
 **Rain** — a map of where it is raining, with a play button and a slider for the past two hours.
 A switch at the top right picks the picture:

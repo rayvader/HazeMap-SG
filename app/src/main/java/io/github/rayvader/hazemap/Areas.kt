@@ -64,4 +64,8 @@ object Areas {
         get() = byName(DEFAULT_NAME) ?: all.first()
 
     fun byName(name: String?): Area? = all.firstOrNull { it.name.equals(name, ignoreCase = true) }
+
+    /** Picks the forecast area nearest to one location fix. */
+    fun nearest(latitude: Double, longitude: Double): Area =
+        all.minBy { sq(it.lat - latitude) + sq(it.lon - longitude) }
 }
