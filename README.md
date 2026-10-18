@@ -27,7 +27,8 @@ A switch at the top right picks the picture:
 | Source | [RainViewer](https://www.rainviewer.com/) | NEA via data.gov.sg |
 | Detail | coarse (about 1.2 km per pixel) | exact readings; tap a dot for its value |
 
-It plays once when you first open each picture, unless the phone has animations turned off.
+It plays by itself and starts over when it reaches the newest picture. Press Pause or drag the slider to stop it;
+it stays still until you press Play. It does not start by itself when the phone has animations turned off.
 Zoom out to watch rain coming across the Strait.
 
 **Haze** — NEA's five regions as dots coloured by PSI,
