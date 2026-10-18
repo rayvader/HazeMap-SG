@@ -104,12 +104,6 @@ say "after tapping Radar, source label: $(attr rainSource text)"
 tap "Haze"
 sleep 20
 adb exec-out screencap -p > "$OUT/14-haze-by-tap.png"
-tap "PM2.5"
-sleep 2
-adb exec-out screencap -p > "$OUT/15-haze-pm25.png"
-tap "Dots"
-sleep 2
-adb exec-out screencap -p > "$OUT/16-haze-dots.png"
 tap "West"
 sleep 3
 adb exec-out screencap -p > "$OUT/16b-haze-history.png"

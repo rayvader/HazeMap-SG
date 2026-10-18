@@ -29,8 +29,8 @@ A switch at the top right picks the picture:
 It plays once when you first open each picture, unless the phone has animations turned off.
 Zoom out to watch rain coming across the Strait.
 
-**Haze** — NEA's five regions as zones or dots, coloured by PSI or PM2.5 (switch at the top),
-both numbers shown on each region, a ranked list, and a line chart of each region's readings.
+**Haze** — NEA's five regions as dots coloured by PSI,
+both PSI and PM2.5 shown on each dot, a ranked list, and a line chart of each region's readings.
 The chart is built from readings the app saves on your phone each time it fetches, so it grows
 the more you open the app. Nothing is sent anywhere.
 

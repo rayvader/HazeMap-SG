@@ -47,10 +47,6 @@
     <string name="gauge_reading">%1$s: %2$s mm in 5 min</string>
 
     <!-- Haze -->
-    <string name="toggle_zones">Zones</string>
-    <string name="toggle_dots">Dots</string>
-    <string name="reading_psi">PSI</string>
-    <string name="reading_pm25">PM2.5</string>
     <string name="haze_list_title">PSI 24 h · PM2.5 1 h</string>
     <string name="pm_value">PM %1$d</string>
     <string name="history_title">Readings history</string>

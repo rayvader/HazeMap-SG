@@ -34,7 +34,7 @@ fun TextView.setBadge(color: Int, textColor: Int, density: Float) {
 fun Context.isNightMode(): Boolean =
     (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-/** Darkens the base map for the dark theme. Radar, gauges and zones are drawn above it and keep their colours. */
+/** Darkens the base map for the dark theme. Radar, gauges and dots are drawn above it and keep their colours. */
 fun MapView.styleForTheme(night: Boolean) {
     if (night) overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(ColorMatrix(MapTheme.DARK_TILES)))
 }
