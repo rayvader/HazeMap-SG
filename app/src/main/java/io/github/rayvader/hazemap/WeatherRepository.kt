@@ -40,6 +40,32 @@ object Endpoints {
         parse = NeaParsers::radarIndex
     )
 
+    private const val OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
+    private const val OPEN_METEO_CURRENT = "current=temperature_2m,weather_code,is_day&timezone=auto"
+
+    /** Current weather and the next days for one place. Open-Meteo is not rate limited like data.gov.sg. */
+    fun placeForecast(p: Place): Endpoint<PlaceWeather> = Endpoint(
+        url = "$OPEN_METEO?latitude=${coord(p.lat)}&longitude=${coord(p.lon)}" +
+            "&$OPEN_METEO_CURRENT&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5",
+        cacheKey = "place-forecast-${p.id}",
+        ttlMs = 15 * MIN,
+        limited = false,
+        parse = PlaceParsers::forecast
+    )
+
+    /** Temperature and weather of every saved place in one request. */
+    fun placeGlance(places: List<Place>): Endpoint<List<PlaceGlance>> = Endpoint(
+        url = "$OPEN_METEO?latitude=${places.joinToString(",") { coord(it.lat) }}" +
+            "&longitude=${places.joinToString(",") { coord(it.lon) }}&$OPEN_METEO_CURRENT",
+        cacheKey = "place-glance-${places.joinToString(",") { it.id.toString() }.hashCode()}",
+        ttlMs = 10 * MIN,
+        limited = false,
+        parse = PlaceParsers::glance
+    )
+
+    /** Two decimals is about 1 km, plenty for a city forecast. */
+    private fun coord(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
+
     fun haze(metric: Metric): Endpoint<ReadingSet> =
         nea(metric.apiPath, 15 * MIN) { NeaApi.parse(metric, it) }
 

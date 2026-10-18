@@ -201,6 +201,44 @@ adb exec-out screencap -p > "$OUT/44-widgets-home-dark.png"
 adb shell cmd uimode night no
 sleep 5
 
+# ---- Saved places: open the list, search a city, save it, open its page, remove it ----
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+sleep 20
+adb exec-out screencap -p > "$OUT/49-places-light-home.png"
+tap "My places"
+sleep 3
+adb exec-out screencap -p > "$OUT/50-places-empty.png"
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+tap btnTheme
+sleep 8
+say "places run theme button: $(attr btnTheme content-desc)"
+tap "My places"
+sleep 3
+adb exec-out screencap -p > "$OUT/50b-places-empty-dark.png"
+tap "＋ Add a place"
+sleep 3
+adb shell input text "tokyo"
+adb shell input keyevent KEYCODE_ENTER
+sleep 6
+adb exec-out screencap -p > "$OUT/51-places-search.png"
+tap "Tokyo"
+sleep 8
+adb exec-out screencap -p > "$OUT/52-places-list.png"
+tap "Tokyo"
+sleep 10
+say "place page title: $(attr placeTitle text)"
+say "place page star: $(attr btnStar content-desc)"
+adb exec-out screencap -p > "$OUT/53-place-page.png"
+tap btnStar
+say "place page star after tap: $(attr btnStar content-desc)"
+tap btnBack
+sleep 2
+tap btnTheme
+sleep 6
+say "places run theme button after: $(attr btnTheme content-desc)"
+
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
 adb shell svc data disable

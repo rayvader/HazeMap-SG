@@ -49,6 +49,15 @@
             android:layout_weight="1" />
 
         <ImageButton
+            android:id="@+id/btnPlaces"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/places_title"
+            android:src="@drawable/ic_globe"
+            android:tint="@color/white" />
+
+        <ImageButton
             android:id="@+id/btnTheme"
             android:layout_width="48dp"
             android:layout_height="48dp"
