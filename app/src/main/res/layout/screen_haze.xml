@@ -36,6 +36,8 @@
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:text="@string/toggle_zones" />
 
                     <com.google.android.material.button.MaterialButton
@@ -43,6 +45,8 @@
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:text="@string/toggle_dots" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -63,6 +67,8 @@
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:text="@string/reading_psi" />
 
                     <com.google.android.material.button.MaterialButton
@@ -70,6 +76,8 @@
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:text="@string/reading_pm25" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
             </LinearLayout>
@@ -87,7 +95,7 @@
             <org.osmdroid.views.MapView
                 android:id="@+id/hazeMap"
                 android:layout_width="match_parent"
-                android:layout_height="340dp" />
+                android:layout_height="280dp" />
 
             <LinearLayout
                 android:id="@+id/legend"

@@ -67,6 +67,10 @@ class HazeScreen(
         b.metricToggle.check(b.btnPsi.id)
     }
 
+    fun setVisible(show: Boolean) {
+        b.root.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
     fun onShown() {
         if (!loadedOnce) {
             loadedOnce = true
@@ -87,7 +91,10 @@ class HazeScreen(
         val map = b.hazeMap
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
-        map.controller.setZoom(11.0)
+        map.setTilesScaledToDpi(true)
+        map.setMinZoomLevel(8.0)
+        map.setMaxZoomLevel(15.0)
+        map.controller.setZoom(10.0)
         map.controller.setCenter(GeoPoint(1.3521, 103.8198)) // Singapore
         // The map sits inside a scrolling page: while a finger is on it, the map pans and the page stays put.
         map.setOnTouchListener { v, event ->
@@ -217,16 +224,16 @@ class HazeScreen(
     private fun numberBitmap(lines: List<String>): Bitmap {
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = 34f
+            textSize = 13f * density // sized in dp so it reads the same on every screen
             typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
         }
         val strokePaint = Paint(textPaint).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 5f
+            strokeWidth = 2f * density
             color = Color.parseColor("#CC000000")
         }
-        val pad = 8
+        val pad = (3 * density).toInt()
         val fm = textPaint.fontMetrics
         val lineHeight = fm.bottom - fm.top
         val w = (lines.maxOf { textPaint.measureText(it) } + pad * 2).toInt().coerceAtLeast(1)
@@ -244,13 +251,15 @@ class HazeScreen(
 
     /** A translucent square zone centred on the region label point. */
     private fun zoneOverlay(region: Region, band: Band, titleText: String): Overlay {
-        val d = 0.045 // ~5km half-side in degrees
+        // North, Central and South are only 0.061 degrees apart, so the zones are wide rather than tall.
+        val dLat = 0.029
+        val dLon = 0.05
         val poly = Polygon().apply {
             points = listOf(
-                GeoPoint(region.lat + d, region.lon - d),
-                GeoPoint(region.lat + d, region.lon + d),
-                GeoPoint(region.lat - d, region.lon + d),
-                GeoPoint(region.lat - d, region.lon - d)
+                GeoPoint(region.lat + dLat, region.lon - dLon),
+                GeoPoint(region.lat + dLat, region.lon + dLon),
+                GeoPoint(region.lat - dLat, region.lon + dLon),
+                GeoPoint(region.lat - dLat, region.lon - dLon)
             )
             fillPaint.color = (0x66 shl 24) or (band.color and 0x00FFFFFF)
             outlinePaint.color = band.color
@@ -268,7 +277,7 @@ class HazeScreen(
     private fun dotOverlay(region: Region, band: Band, titleText: String): Overlay {
         val center = GeoPoint(region.lat, region.lon)
         val circle = Polygon().apply {
-            points = Polygon.pointsAsCircle(center, 2500.0) // 2.5km radius
+            points = Polygon.pointsAsCircle(center, 3000.0) // 3 km radius
             fillPaint.color = (0xCC shl 24) or (band.color and 0x00FFFFFF)
             outlinePaint.color = Color.WHITE
             outlinePaint.strokeWidth = 3f

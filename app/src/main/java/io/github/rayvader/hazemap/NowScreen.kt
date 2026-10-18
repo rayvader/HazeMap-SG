@@ -1,5 +1,6 @@
 package io.github.rayvader.hazemap
 
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -29,6 +30,7 @@ class NowScreen(
 ) {
     private val repo = WeatherRepository.get(activity)
     private val density = activity.resources.displayMetrics.density
+    private val tag = "NowScreen"
 
     private var f2h: Loaded<Forecast2h>? = null
     private var f24: Loaded<Forecast24>? = null
@@ -87,6 +89,7 @@ class NowScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            Log.w(tag, "load failed: ${endpoint.cacheKey}", e)
             failures++
         }
     }

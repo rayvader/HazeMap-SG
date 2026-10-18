@@ -86,7 +86,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp">
+                android:paddingEnd="16dp"
+                app:chipSpacingVertical="4dp">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipHumidity"
@@ -94,6 +95,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:clickable="false"
+                    app:ensureMinTouchTargetSize="false"
                     android:visibility="gone" />
 
                 <com.google.android.material.chip.Chip
@@ -102,6 +104,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:clickable="false"
+                    app:ensureMinTouchTargetSize="false"
                     android:visibility="gone" />
 
                 <com.google.android.material.chip.Chip
@@ -110,6 +113,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:clickable="false"
+                    app:ensureMinTouchTargetSize="false"
                     android:visibility="gone" />
             </com.google.android.material.chip.ChipGroup>
 

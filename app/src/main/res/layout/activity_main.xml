@@ -67,15 +67,18 @@
             android:id="@+id/nowScreen"
             layout="@layout/screen_now" />
 
-        <include
-            android:id="@+id/rainScreen"
-            layout="@layout/screen_rain"
-            android:visibility="gone" />
+        <!-- Inflated on first visit: each holds an osmdroid map, which is slow to build. -->
+        <ViewStub
+            android:id="@+id/rainStub"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/screen_rain" />
 
-        <include
-            android:id="@+id/hazeScreen"
-            layout="@layout/screen_haze"
-            android:visibility="gone" />
+        <ViewStub
+            android:id="@+id/hazeStub"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/screen_haze" />
     </FrameLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView

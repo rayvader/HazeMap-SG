@@ -4,7 +4,9 @@ import android.animation.ValueAnimator
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
+import android.graphics.Paint
 import android.net.Uri
+import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -74,6 +76,10 @@ class RainScreen(
 
     // ---- Lifecycle ----
 
+    fun setVisible(show: Boolean) {
+        b.root.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
     fun onShown() {
         visible = true
         ensureLoaded(force = false)
@@ -107,10 +113,13 @@ class RainScreen(
         val map = b.rainMap
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
-        // The radar tiles cover about 300 km around Singapore; past zoom 15 the weather has no more detail.
-        map.setMinZoomLevel(10.0)
-        map.setMaxZoomLevel(15.0)
-        map.controller.setZoom(11.0)
+        map.setTilesScaledToDpi(true)
+        // The radar tiles cover lon 101.25 to 106.9 and lat 0 to 2.8. Zoom 8 shows the whole of that
+        // strip's width, enough to watch rain coming across the Strait; past 14 there is no more detail.
+        map.setMinZoomLevel(8.0)
+        map.setMaxZoomLevel(14.0)
+        val wanted = activity.intent?.getFloatExtra(MainActivity.EXTRA_ZOOM, 0f) ?: 0f
+        map.controller.setZoom(if (wanted > 0f) wanted.toDouble() else DEFAULT_ZOOM)
         map.controller.setCenter(GeoPoint(1.3521, 103.8198))
         map.overlays.add(radarOverlay)
         map.overlays.add(gaugeOverlay)
@@ -176,7 +185,14 @@ class RainScreen(
             swatch.setBackgroundColor(c)
             b.legendSwatches.addView(swatch, LinearLayout.LayoutParams(w, h).apply { setMargins(gap, 0, gap, 0) })
         }
+        b.legendDry.visibility = if (source == RainSource.GAUGES) View.VISIBLE else View.GONE
         b.rainSource.setText(if (source == RainSource.RADAR) R.string.source_radar_label else R.string.source_gauges_label)
+        // The radar credit is a link to RainViewer, as its terms ask.
+        b.rainSource.paintFlags = if (source == RainSource.RADAR) {
+            b.rainSource.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+        } else {
+            b.rainSource.paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
+        }
     }
 
     private fun setStatus(src: RainSource, text: String?) {
@@ -234,6 +250,7 @@ class RainScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            Log.w(TAG, "radar load failed", e)
             setStatus(RainSource.RADAR, activity.getString(R.string.error_radar))
         }
     }
@@ -249,6 +266,7 @@ class RainScreen(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
+                    Log.w(TAG, "radar tile $x failed", e)
                     null
                 }
             }
@@ -281,6 +299,7 @@ class RainScreen(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            Log.w(TAG, "gauge load failed", e)
             setStatus(RainSource.GAUGES, activity.getString(R.string.error_gauges))
         }
     }
@@ -375,6 +394,8 @@ class RainScreen(
     }
 
     companion object {
+        private const val TAG = "RainScreen"
+        private const val DEFAULT_ZOOM = 9.5
         private const val KEY_SOURCE = "rain_source"
         private const val MAX_RADAR_FRAMES = 13
         private const val GAUGE_FRAMES = 25

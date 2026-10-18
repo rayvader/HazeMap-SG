@@ -24,11 +24,14 @@ shot() {
 # data.gov.sg allows 5 quick calls per 10 s, so the Now tab needs a little over 10 s to fill in.
 shot 1-now 30 --es tab now
 shot 2-rain-radar 35 --es tab rain --es source radar
-shot 3-rain-gauges 25 --es tab rain --es source gauges
-shot 4-haze 25 --es tab haze
+# Zoom 8 looks well beyond Singapore, where there is usually some rain to prove the radar draws.
+shot 3-rain-radar-wide 35 --es tab rain --es source radar --ef zoom 8
+shot 4-rain-gauges 25 --es tab rain --es source gauges
+shot 5-haze 25 --es tab haze
 adb shell cmd uimode night yes
-shot 5-now-dark 20 --es tab now
-shot 6-rain-dark 25 --es tab rain --es source radar
+shot 6-now-dark 20 --es tab now
+shot 7-rain-dark 25 --es tab rain --es source radar
+shot 8-haze-dark 20 --es tab haze
 adb shell cmd uimode night no
 
 adb logcat -d > "$OUT/logcat.txt" || true

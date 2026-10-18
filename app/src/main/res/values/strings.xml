@@ -31,7 +31,8 @@
     <string name="source_radar">Radar</string>
     <string name="source_gauges">Gauges</string>
     <string name="source_radar_label">Radar by RainViewer</string>
-    <string name="source_gauges_label">NEA rain gauges · tap a dot</string>
+    <string name="source_gauges_label">NEA gauges · tap a dot</string>
+    <string name="legend_dry">Dry</string>
     <string name="legend_light">Light</string>
     <string name="legend_heavy">Heavy</string>
     <string name="play">Play</string>
