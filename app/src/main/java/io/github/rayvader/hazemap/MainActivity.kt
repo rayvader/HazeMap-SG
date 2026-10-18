@@ -45,7 +45,8 @@ class MainActivity : AppCompatActivity() {
 
     private var metric: Metric = Metric.PSI
     private var viewMode: ViewMode = ViewMode.ZONES
-    private var latest: ReadingSet? = null
+    // Both metrics are fetched each refresh; the toggle only picks which colors the map.
+    private var sets: Map<Metric, ReadingSet> = emptyMap()
 
     private val timeFmt = SimpleDateFormat("d MMM, HH:mm", Locale.getDefault())
 
@@ -89,7 +90,8 @@ class MainActivity : AppCompatActivity() {
             if (!isChecked) return@addOnButtonCheckedListener
             metric = if (checkedId == binding.btnPsi.id) Metric.PSI else Metric.PM25
             buildLegend()
-            refresh()
+            // Both numbers are already loaded; just recolor the map.
+            drawMap()
         }
     }
 
@@ -97,10 +99,13 @@ class MainActivity : AppCompatActivity() {
         binding.swipe.isRefreshing = true
         lifecycleScope.launch {
             try {
-                val set = withContext(Dispatchers.IO) { repo.refresh(metric) }
-                latest = set
-                binding.updatedLabel.text =
-                    getString(R.string.updated_prefix) + timeFmt.format(Date(set.timestampMillis))
+                val loaded = withContext(Dispatchers.IO) { repo.refreshBoth() }
+                sets = loaded
+                val stamp = loaded[metric]?.timestampMillis ?: loaded.values.firstOrNull()?.timestampMillis
+                if (stamp != null) {
+                    binding.updatedLabel.text =
+                        getString(R.string.updated_prefix) + timeFmt.format(Date(stamp))
+                }
                 drawMap()
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, R.string.error_fetch, Toast.LENGTH_SHORT).show()
@@ -113,29 +118,37 @@ class MainActivity : AppCompatActivity() {
     // ---- Map drawing ----
 
     private fun drawMap() {
-        val set = latest ?: return
+        if (sets.isEmpty()) return
+        val colorSet = sets[metric] ?: return
         binding.map.overlays.clear()
         for (region in Region.entries) {
-            val value = set.values[region.key] ?: continue
-            val band = Band.forMetric(metric, value)
+            // The toggled metric drives the color/band.
+            val colorValue = colorSet.values[region.key] ?: continue
+            val band = Band.forMetric(metric, colorValue)
+
+            val psi = sets[Metric.PSI]?.values?.get(region.key)
+            val pm25 = sets[Metric.PM25]?.values?.get(region.key)
+            val titleText = "${region.label} — PSI ${psi ?: "-"}, PM2.5 ${pm25 ?: "-"} (${band.label})"
+
             val overlay: Overlay = if (viewMode == ViewMode.ZONES) {
-                zoneOverlay(region, band, value)
+                zoneOverlay(region, band, titleText)
             } else {
-                dotOverlay(region, band, value)
+                dotOverlay(region, band, titleText)
             }
             binding.map.overlays.add(overlay)
-            // Always-on number label on top of the zone/dot.
-            binding.map.overlays.add(labelOverlay(region, value))
+            // Always-on label showing BOTH numbers on top of the zone/dot.
+            binding.map.overlays.add(labelOverlay(region, psi, pm25))
         }
         binding.map.invalidate()
     }
 
-    /** A non-tappable text marker showing the reading number at the region point. */
-    private fun labelOverlay(region: Region, value: Int): Overlay {
+    /** A non-tappable text marker showing both readings at the region point. */
+    private fun labelOverlay(region: Region, psi: Int?, pm25: Int?): Overlay {
+        val lines = listOf("PSI ${psi ?: "-"}", "PM ${pm25 ?: "-"}")
         val marker = Marker(binding.map).apply {
             position = GeoPoint(region.lat, region.lon)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            icon = BitmapDrawable(resources, numberBitmap(value.toString()))
+            icon = BitmapDrawable(resources, numberBitmap(lines))
             setInfoWindow(null)
             isDraggable = false
             // Let taps fall through to the polygon (history) underneath.
@@ -144,34 +157,37 @@ class MainActivity : AppCompatActivity() {
         return marker
     }
 
-    /** Draws the number as white text with a dark outline, on a transparent bitmap. */
-    private fun numberBitmap(text: String): Bitmap {
+    /** Draws the text lines as white text with a dark outline, on a transparent bitmap. */
+    private fun numberBitmap(lines: List<String>): Bitmap {
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = 42f
+            textSize = 34f
             typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
         }
         val strokePaint = Paint(textPaint).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 5f
             color = Color.parseColor("#CC000000")
         }
         val pad = 8
-        val w = (textPaint.measureText(text) + pad * 2).toInt().coerceAtLeast(1)
         val fm = textPaint.fontMetrics
-        val h = ((fm.bottom - fm.top) + pad * 2).toInt().coerceAtLeast(1)
+        val lineHeight = fm.bottom - fm.top
+        val w = (lines.maxOf { textPaint.measureText(it) } + pad * 2).toInt().coerceAtLeast(1)
+        val h = (lineHeight * lines.size + pad * 2).toInt().coerceAtLeast(1)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val x = w / 2f
-        val y = h / 2f - (fm.ascent + fm.descent) / 2f
-        canvas.drawText(text, x, y, strokePaint)
-        canvas.drawText(text, x, y, textPaint)
+        lines.forEachIndexed { i, line ->
+            val y = pad - fm.top + i * lineHeight
+            canvas.drawText(line, x, y, strokePaint)
+            canvas.drawText(line, x, y, textPaint)
+        }
         return bmp
     }
 
     /** A translucent square zone centered on the region label point. */
-    private fun zoneOverlay(region: Region, band: Band, value: Int): Overlay {
+    private fun zoneOverlay(region: Region, band: Band, titleText: String): Overlay {
         val d = 0.045 // ~5km half-side in degrees
         val poly = Polygon().apply {
             points = listOf(
@@ -183,7 +199,7 @@ class MainActivity : AppCompatActivity() {
             fillPaint.color = (0x66 shl 24) or (band.color and 0x00FFFFFF)
             outlinePaint.color = band.color
             outlinePaint.strokeWidth = 3f
-            title = "${region.label}: $value (${band.label})"
+            title = titleText
         }
         poly.setOnClickListener { _, _, _ ->
             showHistory(region)
@@ -193,14 +209,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** A filled circle marker on the region point. */
-    private fun dotOverlay(region: Region, band: Band, value: Int): Overlay {
+    private fun dotOverlay(region: Region, band: Band, titleText: String): Overlay {
         val center = GeoPoint(region.lat, region.lon)
         val circle = Polygon().apply {
             points = Polygon.pointsAsCircle(center, 2500.0) // 2.5km radius
             fillPaint.color = (0xCC shl 24) or (band.color and 0x00FFFFFF)
             outlinePaint.color = Color.WHITE
             outlinePaint.strokeWidth = 3f
-            title = "${region.label}: $value (${band.label})"
+            title = titleText
         }
         circle.setOnClickListener { _, _, _ ->
             showHistory(region)

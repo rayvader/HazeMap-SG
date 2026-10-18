@@ -22,6 +22,18 @@ class HazeRepository(context: Context) {
         return set
     }
 
+    /** Both metrics for one refresh: PSI and PM2.5, each fetched, stored and returned. Blocking. */
+    fun refreshBoth(): Map<Metric, ReadingSet> {
+        val result = HashMap<Metric, ReadingSet>()
+        for (metric in Metric.entries) {
+            val set = NeaApi.fetch(metric)
+            store(set)
+            result[metric] = set
+        }
+        dao.pruneOlderThan(System.currentTimeMillis() - retentionMillis)
+        return result
+    }
+
     private fun store(set: ReadingSet) {
         val rows = set.values.map { (region, value) ->
             ReadingEntity(
