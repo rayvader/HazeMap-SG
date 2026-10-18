@@ -177,6 +177,30 @@ adb shell am start -W -n "$PKG/.MainActivity" --es tab now
 sleep 20
 say "theme after 2nd restart: button='$(attr btnTheme content-desc)'"
 
+# ---- Home screen widgets: ask the launcher to add each shape, confirm, then look at the home screen ----
+adb shell input keyevent KEYCODE_HOME
+sleep 2
+add_widget() {
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es pin_widget "$1"
+  sleep 5
+  adb exec-out screencap -p > "$OUT/40-widget-pin-$1.png"
+  tap "Add to home screen" || tap "Add automatically" || tap "Add"
+  sleep 4
+}
+add_widget small
+add_widget wide
+add_widget strip
+adb shell input keyevent KEYCODE_HOME
+sleep 25
+adb exec-out screencap -p > "$OUT/43-widgets-home-light.png"
+say "widgets bound: $(adb shell dumpsys appwidget | grep -c 'io.github.rayvader.hazemap')"
+adb shell cmd uimode night yes
+sleep 10
+adb exec-out screencap -p > "$OUT/44-widgets-home-dark.png"
+adb shell cmd uimode night no
+sleep 5
+
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
 adb shell svc data disable

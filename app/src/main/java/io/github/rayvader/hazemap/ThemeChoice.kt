@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatDelegate
 object Prefs {
     const val NAME = "hazemap"
     const val KEY_THEME = "theme"
+    const val KEY_AREA = "area"
 }
 
 /**

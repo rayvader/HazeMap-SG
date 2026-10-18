@@ -23,6 +23,42 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".HazeWidgetSmall"
+            android:exported="false"
+            android:label="@string/widget_label_small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HazeWidgetWide"
+            android:exported="false"
+            android:label="@string/widget_label_wide">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_wide_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HazeWidgetStrip"
+            android:exported="false"
+            android:label="@string/widget_label_strip">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_strip_info" />
+        </receiver>
     </application>
 
 </manifest>
