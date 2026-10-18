@@ -205,9 +205,18 @@ sleep 5
 adb shell am force-stop "$PKG"
 adb shell am start -W -n "$PKG/.MainActivity" --es tab now
 sleep 20
+adb exec-out screencap -p > "$OUT/49-places-light-home.png"
 tap "My places"
 sleep 3
 adb exec-out screencap -p > "$OUT/50-places-empty.png"
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+tap btnTheme
+sleep 8
+say "places run theme button: $(attr btnTheme content-desc)"
+tap "My places"
+sleep 3
+adb exec-out screencap -p > "$OUT/50b-places-empty-dark.png"
 tap "＋ Add a place"
 sleep 3
 adb shell input text "tokyo"
@@ -222,15 +231,13 @@ sleep 10
 say "place page title: $(attr placeTitle text)"
 say "place page star: $(attr btnStar content-desc)"
 adb exec-out screencap -p > "$OUT/53-place-page.png"
-adb shell cmd uimode night yes
-sleep 6
-adb exec-out screencap -p > "$OUT/54-place-page-dark.png"
-adb shell cmd uimode night no
-sleep 4
 tap btnStar
 say "place page star after tap: $(attr btnStar content-desc)"
 tap btnBack
 sleep 2
+tap btnTheme
+sleep 6
+say "places run theme button after: $(attr btnTheme content-desc)"
 
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
