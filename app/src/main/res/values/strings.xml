@@ -7,6 +7,8 @@
     <string name="tab_haze">Haze</string>
     <string name="choose_area">Choose your area</string>
     <string name="refresh">Refresh</string>
+    <string name="switch_to_dark">Switch to dark theme</string>
+    <string name="switch_to_light">Switch to light theme</string>
 
     <!-- Now -->
     <string name="no_temp">--°</string>

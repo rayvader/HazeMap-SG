@@ -1,7 +1,12 @@
 package io.github.rayvader.hazemap
 
+import android.content.Context
+import android.content.res.Configuration
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
+import org.osmdroid.views.MapView
 
 object Icons {
     fun forCondition(c: Condition): Int = when (c) {
@@ -23,4 +28,13 @@ fun TextView.setBadge(color: Int, textColor: Int, density: Float) {
         setColor(color)
     }
     setTextColor(textColor)
+}
+
+/** True when the screen is showing the dark theme (the user's pick, or the phone's setting). */
+fun Context.isNightMode(): Boolean =
+    (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+/** Darkens the base map for the dark theme. Radar, gauges and zones are drawn above it and keep their colours. */
+fun MapView.styleForTheme(night: Boolean) {
+    if (night) overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(ColorMatrix(MapTheme.DARK_TILES)))
 }

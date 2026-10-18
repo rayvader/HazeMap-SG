@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: SharedPreferences
+    private var restored: Bundle? = null
     private lateinit var now: NowScreen
     private var rain: RainScreen? = null
     private var haze: HazeScreen? = null
@@ -29,7 +30,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        restored = savedInstanceState
+        prefs = getSharedPreferences(Prefs.NAME, MODE_PRIVATE)
 
         area = Areas.byName(prefs.getString(KEY_AREA, null)) ?: Areas.default
         showAreaName()
@@ -42,6 +44,8 @@ class MainActivity : AppCompatActivity() {
         }
         binding.areaBar.setOnClickListener { pickArea() }
         binding.btnRefresh.setOnClickListener { refreshCurrent() }
+        binding.btnTheme.setOnClickListener { toggleTheme() }
+        showThemeButton()
 
         // After a recreation (dark mode switch, low memory) reopen the tab the user was on.
         val restored = savedInstanceState?.getInt(KEY_TAB, NO_TAB) ?: NO_TAB
@@ -59,13 +63,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun rainScreen(): RainScreen = rain
-        ?: RainScreen(this, ScreenRainBinding.bind(binding.rainStub.inflate()), prefs).also {
+        ?: RainScreen(this, ScreenRainBinding.bind(binding.rainStub.inflate()), prefs, restored).also {
             rain = it
             it.mapResume()
         }
 
     private fun hazeScreen(): HazeScreen = haze
-        ?: HazeScreen(this, ScreenHazeBinding.bind(binding.hazeStub.inflate())).also {
+        ?: HazeScreen(this, ScreenHazeBinding.bind(binding.hazeStub.inflate()), restored).also {
             haze = it
             it.mapResume()
         }
@@ -90,6 +94,20 @@ class MainActivity : AppCompatActivity() {
             R.id.nav_rain -> rain?.refresh()
             R.id.nav_haze -> haze?.load(force = true)
         }
+    }
+
+    // ---- Theme ----
+
+    /** The sun or moon in the top bar shows what a tap switches to. */
+    private fun showThemeButton() {
+        val dark = isNightMode()
+        binding.btnTheme.setImageResource(if (dark) R.drawable.ic_theme_to_light else R.drawable.ic_theme_to_dark)
+        binding.btnTheme.contentDescription = getString(if (dark) R.string.switch_to_light else R.string.switch_to_dark)
+    }
+
+    private fun toggleTheme() {
+        // This recreates the activity; onSaveInstanceState keeps the open tab and the map views.
+        ThemeStore.choose(this, ThemeChoice.afterTap(isNightMode()))
     }
 
     // ---- Area ----
@@ -118,6 +136,8 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(KEY_TAB, currentTab)
+        rain?.saveMap(outState)
+        haze?.saveMap(outState)
     }
 
     override fun onResume() {
@@ -151,7 +171,6 @@ class MainActivity : AppCompatActivity() {
         /** Starts the Rain map at this zoom, to look beyond Singapore. Used by the emulator smoke test. */
         const val EXTRA_ZOOM = "zoom"
 
-        private const val PREFS = "hazemap"
         private const val KEY_AREA = "area"
         private const val KEY_TAB = "tab"
         private const val NO_TAB = -1

@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
+import android.os.Bundle
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -22,6 +23,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.google.android.material.color.MaterialColors
 import io.github.rayvader.hazemap.databinding.ItemHazeRowBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
 import kotlinx.coroutines.CancellationException
@@ -46,20 +48,25 @@ enum class ViewMode { ZONES, DOTS }
  */
 class HazeScreen(
     private val activity: AppCompatActivity,
-    private val b: ScreenHazeBinding
+    private val b: ScreenHazeBinding,
+    state: Bundle?
 ) {
     private val repo = HazeRepository(activity)
     private val density = activity.resources.displayMetrics.density
+    private val night = activity.isNightMode()
 
     private var metric: Metric = Metric.PSI
     private var viewMode: ViewMode = ViewMode.ZONES
     // Both metrics are loaded together; the toggle only picks which one colours the map.
     private var sets: Map<Metric, ReadingSet> = emptyMap()
     private var loadedOnce = false
-    private val copyright = CopyrightOverlay(activity).apply { setTextSize(10) }
+    private val copyright = CopyrightOverlay(activity).apply {
+        setTextSize(10)
+        if (night) setTextColor(Color.WHITE)
+    }
 
     init {
-        setupMap()
+        setupMap(state)
         setupToggles()
         buildLegend()
         b.hazeSwipe.setOnRefreshListener { load(force = true) }
@@ -78,6 +85,14 @@ class HazeScreen(
         }
     }
 
+    /** Keeps where the user has panned and zoomed, for when the activity is recreated. */
+    fun saveMap(out: Bundle) {
+        val map = b.hazeMap
+        if (map.width == 0) return // never shown, so the user has not moved it
+        val centre = map.mapCenter
+        out.putDoubleArray(KEY_VIEW, doubleArrayOf(map.zoomLevelDouble, centre.latitude, centre.longitude))
+    }
+
     fun mapResume() = b.hazeMap.onResume()
 
     fun mapPause() = b.hazeMap.onPause()
@@ -87,15 +102,23 @@ class HazeScreen(
     // ---- Setup ----
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun setupMap() {
+    private fun setupMap(state: Bundle?) {
         val map = b.hazeMap
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
         map.setTilesScaledToDpi(true)
         map.setMinZoomLevel(8.0)
         map.setMaxZoomLevel(15.0)
-        map.controller.setZoom(10.0)
-        map.controller.setCenter(GeoPoint(1.3521, 103.8198)) // Singapore
+        map.styleForTheme(night)
+        val view = state?.getDoubleArray(KEY_VIEW)
+        if (view != null && view.size == 3) {
+            // Back from a theme switch: the map stays where the user left it.
+            map.controller.setZoom(view[0])
+            map.controller.setCenter(GeoPoint(view[1], view[2]))
+        } else {
+            map.controller.setZoom(10.0)
+            map.controller.setCenter(GeoPoint(1.3521, 103.8198)) // Singapore
+        }
         // The map sits inside a scrolling page: while a finger is on it, the map pans and the page stays put.
         map.setOnTouchListener { v, event ->
             when (event.actionMasked) {
@@ -341,9 +364,12 @@ class HazeScreen(
 
     private fun renderChart(chart: LineChart, rows: List<ReadingEntity>) {
         val entries = rows.mapIndexed { i, r -> Entry(i.toFloat(), r.value.toFloat()) }
+        val textColor = MaterialColors.getColor(chart, com.google.android.material.R.attr.colorOnSurface)
+        val lineColor = MaterialColors.getColor(chart, com.google.android.material.R.attr.colorPrimary)
+        val gridColor = (textColor and 0x00FFFFFF) or 0x33000000
         val set = LineDataSet(entries, metric.display).apply {
-            color = Color.parseColor("#00796B")
-            setCircleColor(Color.parseColor("#00796B"))
+            color = lineColor
+            setCircleColor(lineColor)
             lineWidth = 2f
             circleRadius = 3f
             setDrawValues(false)
@@ -359,8 +385,17 @@ class HazeScreen(
                 return labelFmt.format(Date(rows[idx].timestampMillis))
             }
         }
+        chart.xAxis.textColor = textColor
+        chart.axisLeft.textColor = textColor
+        chart.legend.textColor = textColor
+        chart.xAxis.gridColor = gridColor
+        chart.axisLeft.gridColor = gridColor
         chart.xAxis.granularity = 1f
         chart.xAxis.labelRotationAngle = -45f
         chart.invalidate()
+    }
+
+    private companion object {
+        const val KEY_VIEW = "haze_view"
     }
 }
