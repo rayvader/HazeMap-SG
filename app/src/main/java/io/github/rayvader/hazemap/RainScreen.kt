@@ -131,7 +131,10 @@ class RainScreen(
         b.sourceToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) switchSource(if (checkedId == b.btnGauges.id) RainSource.GAUGES else RainSource.RADAR)
         }
-        b.btnPlay.setOnClickListener { if (playing) stopPlay() else startPlay() }
+        b.btnPlay.setOnClickListener {
+            Log.d(TAG, "play button tapped: playing=$playing, frames=${frameCount()}")
+            if (playing) stopPlay() else startPlay()
+        }
         b.rainScrub.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -369,6 +372,7 @@ class RainScreen(
         if (index >= n - 1) showFrame(0)
         playing = true
         updatePlayButton()
+        Log.d(TAG, "play start: $source, $n frames")
         val step = if (source == RainSource.RADAR) RADAR_STEP_MS else GAUGE_STEP_MS
         playJob?.cancel()
         playJob = scope.launch {
@@ -379,6 +383,7 @@ class RainScreen(
             delay(LINGER_MS)
             playing = false
             updatePlayButton()
+            Log.d(TAG, "play end")
         }
     }
 

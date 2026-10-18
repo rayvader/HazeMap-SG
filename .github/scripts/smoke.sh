@@ -84,15 +84,18 @@ sleep 15
 say "after tapping Gauges, source label: $(attr rainSource text)"
 adb exec-out screencap -p > "$OUT/12-gauges-by-tap.png"
 
-# Play runs the whole loop: Pause shows while it plays, the clock moves, then it returns to Play.
+# Play: a dump takes seconds and the whole playback is about 6 s, so find the button first, then tap and
+# screenshot straight away (no dump in between). The app also logs "play start" and "play end".
 say "before play: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
-tap btnPlay
-sleep 1
-say "during play: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
-sleep 2
-say "during play +2s: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
-adb exec-out screencap -p > "$OUT/13-playing.png"
-sleep 10
+PLAY_XY=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" btnPlay)
+adb shell log -t SMOKE "tapping play at $PLAY_XY"
+adb shell input tap $PLAY_XY
+sleep 1.5
+adb exec-out screencap -p > "$OUT/13a-playing.png"
+sleep 1.5
+adb exec-out screencap -p > "$OUT/13b-playing-later.png"
+sleep 9
+adb exec-out screencap -p > "$OUT/13c-after-play.png"
 say "after play: button='$(attr btnPlay content-desc)' clock='$(attr rainClock text)'"
 
 tap "Radar"
@@ -107,9 +110,29 @@ adb exec-out screencap -p > "$OUT/15-haze-pm25.png"
 tap "Dots"
 sleep 2
 adb exec-out screencap -p > "$OUT/16-haze-dots.png"
+
+# ---- Robustness: switch dark mode while the app is open, then rotate it ----
+adb shell cmd uimode night yes
+sleep 10
+adb exec-out screencap -p > "$OUT/17-live-dark.png"
+adb shell cmd uimode night no
+sleep 8
+tap "Rain"
+sleep 8
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 1
+sleep 5
+adb exec-out screencap -p > "$OUT/18-landscape-rain.png"
+tap "Now"
+sleep 3
+adb exec-out screencap -p > "$OUT/19-landscape-now.png"
+adb shell settings put system user_rotation 0
+sleep 3
 set -e
 
 adb logcat -d > "$OUT/logcat.txt" || true
+say "--- app log lines for playback ---"
+grep -E "SMOKE|RainScreen" "$OUT/logcat.txt" | sed -E 's/^[0-9-]+ //' | tee -a "$LOG" || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
   echo "The app crashed:"
   grep -A 14 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -60
