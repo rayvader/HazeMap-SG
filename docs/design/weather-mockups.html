@@ -1,0 +1,127 @@
+<div id="wx">
+<style>
+#wx{--app:#00796B;--app-fg:#fff;--sea:color-mix(in srgb,var(--info,#2b7bd6) 15%,var(--bg,#fff));font:13px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text,#1d1d1f)}
+#wx *{box-sizing:border-box}
+#wx button{font:inherit}
+#wx .bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 0 12px}
+#wx .mut{color:var(--muted,#6b6b72)}
+#wx .seg{display:inline-flex;border:1px solid var(--border,#d9d9de);border-radius:8px;overflow:hidden}
+#wx .seg button{all:unset;cursor:pointer;padding:5px 12px;font-size:12px;background:var(--card,#fff);color:var(--card-fg,#1d1d1f)}
+#wx .seg button.on,#wx .lay.on{background:var(--app);color:var(--app-fg);border-color:transparent}
+#wx .row{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+#wx figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+#wx figcaption{font-size:12px;text-align:center;color:var(--muted,#6b6b72)}
+#wx figcaption b{color:var(--text,#1d1d1f)}
+#wx .ph{width:236px;height:488px;border:7px solid var(--border-strong,#5a5a62);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--bg,#f7f7f8);color:var(--text,#1d1d1f)}
+#wx .sb{flex:none;height:18px;display:flex;justify-content:space-between;padding:3px 14px 0;font-size:10px;background:var(--bg,#f7f7f8);color:var(--muted,#6b6b72)}
+#wx .ab{flex:none;display:flex;align-items:center;gap:6px;padding:8px 12px;font-weight:600;background:var(--app);color:var(--app-fg)}
+#wx .ab button{all:unset;cursor:pointer;display:grid}
+#wx .scr{flex:1;min-height:0;overflow:auto;position:relative}
+#wx .fill{position:absolute;inset:0;display:flex;flex-direction:column}
+#wx .nav{flex:none;display:flex;border-top:1px solid var(--border,#e2e2e6);background:var(--card,#fff);color:var(--muted,#6b6b72)}
+#wx .nav button{all:unset;cursor:pointer;flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0 8px;font-size:10px}
+#wx .nav button.on{color:var(--accent,#2563eb);font-weight:600}
+#wx .card{margin:8px;padding:8px 10px;border-radius:12px;border:1px solid var(--border,#e2e2e6);background:var(--card,#fff);color:var(--card-fg,#1d1d1f)}
+#wx .cap{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#6b6b72);margin-bottom:5px}
+#wx .big{font-size:46px;font-weight:300;line-height:1}
+#wx .chips{display:flex;flex-wrap:wrap;gap:4px}
+#wx .chip{all:unset;font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--border,#e2e2e6);background:var(--bg-elevated,#eef0f3);color:var(--text,#1d1d1f)}
+#wx button.chip{cursor:pointer}
+#wx .bd{font-size:10.5px;padding:1px 7px;border-radius:999px;color:#fff;white-space:nowrap}
+#wx .three{display:flex;justify-content:space-between;text-align:center;font-size:11px}
+#wx .three div{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+#wx .day{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0}
+#wx .day span:first-child{width:30px}
+#wx .day span:last-child{margin-left:auto}
+#wx svg.map{display:block;width:100%;height:auto}
+#wx .sea{background:var(--sea);color:var(--text,#1d1d1f)}
+#wx .scrub{flex:none;display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card,#fff);color:var(--card-fg,#1d1d1f)}
+#wx .scrub input{flex:1;min-width:0;accent-color:var(--app)}
+#wx .pb{all:unset;cursor:pointer;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--app);color:var(--app-fg)}
+#wx .tm{font-size:11px;font-variant-numeric:tabular-nums;width:50px;text-align:right}
+#wx .lg{flex:none;display:flex;align-items:center;gap:3px;padding:0 10px 8px;font-size:9.5px;background:var(--card,#fff);color:var(--muted,#6b6b72)}
+#wx .lg i{width:14px;height:6px;border-radius:2px}
+#wx .badge{position:absolute;top:8px;left:8px;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--card,#fff);color:var(--card-fg,#1d1d1f);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+#wx .sheet{position:absolute;left:0;right:0;bottom:0;height:92px;overflow:hidden;cursor:pointer;border-radius:16px 16px 0 0;box-shadow:0 -3px 14px rgba(0,0,0,.2);transition:height .25s ease;background:var(--card,#fff);color:var(--card-fg,#1d1d1f)}
+#wx .sheet.open{height:372px}
+#wx .grab{width:36px;height:4px;border-radius:2px;margin:7px auto 6px;background:var(--border-strong,#9a9aa3)}
+#wx .over{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg,#f7f7f8);color:var(--text,#1d1d1f)}
+#wx .over.show{display:flex}
+#wx .hero{padding:12px 14px;background:var(--app);color:var(--app-fg)}
+@media (prefers-reduced-motion:reduce){#wx .sheet{transition:none}}
+</style>
+<div class="bar">
+ <div><b>Weather app: 3 layouts</b> <span class="mut">· tap inside each phone</span></div>
+ <div style="display:flex;align-items:center;gap:8px"><span class="mut" style="font-size:12px">Rain look</span><div class="seg"><button class="on" data-look="radar">Radar</button><button data-look="gauge">Gauges</button></div></div>
+</div>
+<div class="row">
+ <figure><div class="ph" id="pA"></div><figcaption><b>A · Tabs</b><br>Now · Rain · Haze</figcaption></figure>
+ <figure><div class="ph" id="pB"></div><figcaption><b>B · Map first</b><br>Layers + pull-up sheet</figcaption></figure>
+ <figure><div class="ph" id="pC"></div><figcaption><b>C · Cards</b><br>One scrolling page</figcaption></figure>
+</div>
+<p class="mut" id="wxnote" style="font-size:11px;text-align:center;margin:10px 0 0">Real NEA numbers from 10:45 am, Sun 18 Oct. Rain is a sample storm. It is dry now.</p>
+</div>
+<script>
+(()=>{
+const root=document.getElementById('wx');
+const SG="M218,4L205,5L208,9L205,5L177,24L171,26L169,23L168,32L166,34L165,31L163,37L137,36L130,25L123,27L119,24L74,50L73,61L62,69L62,86L38,125L34,126L36,132L33,132L35,134L17,181L20,191L12,198L6,212L14,207L14,219L8,223L9,229L13,230L5,231L18,243L18,248L9,255L6,250L7,255L10,255L19,248L18,239L22,237L15,221L29,214L22,217L22,213L39,205L39,209L40,196L47,196L50,192L35,164L38,159L43,164L45,160L52,159L46,166L49,171L50,173L53,172L51,175L54,174L55,179L65,183L64,188L74,180L69,169L73,168L73,173L78,178L78,175L82,177L84,176L94,174L95,167L102,173L109,173L108,167L111,167L111,178L112,175L122,176L113,166L128,175L145,174L144,177L149,179L158,175L163,180L161,184L172,191L169,197L156,189L150,194L171,207L178,194L181,195L187,201L179,216L186,220L195,203L205,213L207,209L216,211L218,208L220,213L240,207L251,214L252,202L262,210L260,207L272,198L271,194L278,194L294,181L363,160L383,158L384,163L391,161L401,165L411,160L422,160L423,155L434,158L432,150L421,148L422,140L432,121L433,124L430,126L433,117L443,121L428,111L406,105L409,101L399,86L382,82L374,85L377,89L372,88L367,95L349,92L338,85L330,76L331,71L314,59L313,54L303,55L297,60L297,54L277,43L270,46L270,50L257,50L263,40L255,27L246,27L246,21L248,26L252,24L250,20L236,11L232,15L234,10L228,6L225,12L222,8L218,11L222,6ZM456,43L452,47L443,44L437,50L429,50L431,62L427,62L425,56L421,54L416,46L410,51L409,56L414,66L423,66L430,63L428,67L429,72L416,73L424,89L427,91L420,83L416,74L420,77L432,71L435,72L435,69L438,79L453,99L479,88L483,69L487,69L488,78L480,92L474,112L475,119L484,136L481,137L480,137L483,137L484,135L475,120L475,113L479,96L488,79L488,70L484,68L486,65L480,56L469,48ZM112,183L111,178L111,183L104,185L108,195L111,197L108,200L100,190L95,195L96,197L92,198L88,203L84,199L96,185L88,184L56,204L69,230L65,232L69,240L73,241L76,247L72,251L70,247L72,252L90,235L86,217L80,212L85,207L94,214L96,224L114,216L105,210L107,206L109,207L110,205L111,208L122,214L129,210L129,208L123,206L126,203L133,206L140,202L126,191L125,186ZM335,48L326,51L328,56L349,65L358,76L371,73L379,67L392,67L390,57L379,58L370,55L359,58ZM209,215L207,216L210,219L233,237L240,235L241,227L242,233L248,224L246,222L241,225L242,221L227,220L218,215ZM162,264L159,257L158,269L160,279L160,278L166,273L175,278L171,284L165,284L170,286L181,275L181,266L177,264L169,267ZM122,261L114,264L107,271L134,272L128,267L129,265L131,267L129,264L125,265L123,263L125,262ZM148,238L140,240L140,242L152,245L160,250L169,250L171,248L160,244L157,238L154,241Z";
+const RS="151,110;276,95;253,115;255,125;283,176;282,156;210,151;220,50;309,72;183,68;344,131;118,138;82,129;252,133;288,134;304,118;149,58;291,118;224,185;227,105;234,133;201,152;298,88;299,92;403,161;340,149;170,183;278,169;167,152;219,156;189,191;245,54;176,143;349,107;169,35;157,46;95,137;262,180;74,221;18,181;154,193;311,170;138,93;228,225;161,93;136,36;382,107;112,89;205,105;258,154;218,166;122,101;270,195;122,123;186,124;263,64;250,96;442,64;367,58;204,36;362,162;101,128;81,53;185,31;364,104;63,137;204,200;58,91;166,285;203,175;320,132;384,131;129,60;274,85;301,169;274,82;181,183;184,159;205,144;208,73;231,60;167,138;110,167;213,181;155,143;237,175;291,168;237,164;102,36;164,173".split(';').map(s=>s.split(',').map(Number));
+const TS="250,96,31.1;367,58,31.4;74,221,31.4;362,162,29.7;185,31,30;18,181,29.7;154,193,30.1;166,285,30.2;220,50,31;228,225,30.4;176,143,30.8;82,129,29.6;288,134,31;382,107,31;112,89,30.2;304,118,30.9;237,164,31.7;122,101,30.8".split(';').map(s=>s.split(',').map(Number));
+const REG=[['North',220,57,130,72],['South',220,179,173,82],['East',340,118,175,71],['West',100,118,230,139],['Central',220,118,187,117]];
+const RC=['#8fd0ff','#3b9cff','#1e40af','#7c3aed'];
+const P={
+ cloud:'<path d="M7 18h10a4 4 0 0 0 .4-7.98A6 6 0 0 0 6 10.6 3.7 3.7 0 0 0 7 18z"/>',
+ storm:'<path d="M7 15h10a4 4 0 0 0 .4-7.98A6 6 0 0 0 6 7.6 3.7 3.7 0 0 0 7 15z"/><path d="M12 15l-2 4h3l-1.5 3"/>',
+ drop:'<path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z"/>',
+ haze:'<path d="M4 8h16M3 12h18M5 16h14M8 20h8"/>',
+ pin:'<path d="M12 21s7-6.4 7-12a7 7 0 0 0-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+ back:'<path d="M15 5l-7 7 7 7"/>',
+ up:'<path d="M6 15l6-6 6 6"/>',
+ play:'<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>',
+ pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor" stroke="none"/>'
+};
+const ic=(n,s=16)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const band=v=>v<=50?['Good','#4CAF50']:v<=100?['Moderate','#C9CC2E']:v<=200?['Unhealthy','#FF9800']:v<=300?['Very unhealthy','#F44336']:['Hazardous','#7B1FA2'];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t=24,look='radar',playing=false,last=0,acc=0;
+const map=(id,o={})=>`<svg class="map${o.rain===0?'':' rmap'}" id="${id}" viewBox="${o.vb||'0 0 490 290'}"${o.full?' style="position:absolute;inset:0;width:100%;height:100%"':''} role="img" aria-label="Map of Singapore"><defs><filter id="${id}f" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter></defs><rect x="-500" y="-500" width="1500" height="1300" style="fill:var(--sea)"/><path d="${SG}" stroke-width="1.2" style="fill:var(--card,#fff);stroke:var(--border-strong,#9a9aa3)"/><g class="rn" filter="url(#${id}f)" opacity=".9"></g><g class="gg"></g><g class="lb"></g></svg>`;
+const scrub=()=>`<div class="scrub"><button class="pb" data-play aria-label="Play past rain">${ic('play',14)}</button><input type="range" min="0" max="24" value="24" data-scrub aria-label="Time"><span class="tm" data-clock>10:45 am</span></div>`;
+const legend=()=>`<div class="lg">Light${RC.map(c=>`<i style="background:${c}"></i>`).join('')}Heavy<span data-src style="margin-left:auto;white-space:nowrap">RainViewer</span></div>`;
+const rainView=id=>`<div class="fill"><div class="sea" style="flex:1;position:relative;overflow:hidden">${map(id,{full:1})}<span class="badge" data-clock>10:45 am</span></div>${scrub()}${legend()}</div>`;
+const nowTop=()=>`<div style="padding:12px 14px 6px"><div style="display:flex;align-items:center;gap:10px"><span class="big">31°</span><span class="mut">${ic('cloud',38)}</span></div><div style="font-weight:600;margin-top:4px">Cloudy <span class="mut" style="font-weight:400">till 12:30 pm</span></div><div class="mut" style="font-size:12px">H 34° · L 25° · showers later</div></div><div class="chips" style="padding:0 14px 4px"><span class="chip">Humid 67%</span><span class="chip">Wind SSE 7 km/h</span><span class="chip">UV 2</span></div>`;
+const today=()=>`<div class="card"><div class="cap">Today</div><div class="three"><div>Morning<span class="mut">${ic('cloud',20)}</span>Cloudy</div><div>Afternoon<span class="mut">${ic('storm',20)}</span>Showers N, W</div><div>Night<span class="mut">${ic('cloud',20)}</span>Cloudy</div></div></div>`;
+const hazeMini=()=>{const [l,c]=band(187);return `<div class="card"><div class="cap">Haze now</div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="bd" style="background:${c}">PSI 187</span><b style="font-size:12px">${l}</b><span class="mut" style="font-size:11px">Central · West 230</span></div></div>`};
+const byPsi=()=>[...REG].sort((a,b)=>b[3]-a[3]);
+const hazeChips=()=>`<div class="card"><div class="cap">Haze · PSI 24 h</div><div class="chips">${byPsi().map(([n,,,p])=>`<span class="bd" style="background:${band(p)[1]}">${n} ${p}</span>`).join('')}</div><div class="mut" style="font-size:11px;margin-top:5px">Unhealthy · West very unhealthy</div></div>`;
+const hazeList=()=>`<div class="card"><div class="cap">PSI 24 h · PM2.5 1 h</div>${byPsi().map(([n,,,p,m])=>{const [l,c]=band(p);return `<div class="day"><span class="bd" style="background:${c};width:38px;text-align:center;font-weight:700">${p}</span><div style="line-height:1.15"><div style="font-weight:600">${n}</div><div class="mut" style="font-size:10.5px">${l}</div></div><span class="mut" style="white-space:nowrap">PM ${m}</span></div>`}).join('')}</div>`;
+const days=()=>`<div class="card"><div class="cap">Next 4 days</div>${[['Mon',34],['Tue',33],['Wed',33],['Thu',34]].map(([d,h])=>`<div class="day"><span>${d}</span><span class="mut">${ic('storm',16)}</span><span>Showers</span><span>25–${h}°</span></div>`).join('')}</div>`;
+const hazeLayer=s=>{s.querySelector('.lb').innerHTML=REG.map(([,x,y,p,m])=>`<circle cx="${x}" cy="${y}" r="28" opacity=".92" style="fill:${band(p)[1]}"/><text x="${x}" y="${y+3}" text-anchor="middle" style="fill:#fff;font:700 21px system-ui,sans-serif">${p}</text><text x="${x}" y="${y+18}" text-anchor="middle" style="fill:#fff;font:600 12px system-ui,sans-serif">PM ${m}</text>`).join('')};
+const tempLayer=s=>{s.querySelector('.lb').innerHTML=TS.map(([x,y,v])=>`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" stroke-width="4" paint-order="stroke" style="fill:var(--text,#1d1d1f);stroke:var(--card,#fff);font:700 17px system-ui,sans-serif">${Math.round(v)}°</text>`).join('')};
+const cells=f=>{const x0=-60+f*20.5,a=3+4*Math.sin(Math.PI*f/24),c=[];[[0,30,22],[12,74,27],[3,118,24],[16,162,28],[7,206,23],[19,250,19]].forEach(([dx,y,r],i)=>{const x=x0+dx+(140-y)*.22,I=a*(.78+.22*Math.sin(i*1.9+f*.45));c.push([x,y,r,I],[x-36-(i%2)*14,y+8,r*1.25,I*.32])});if(f>12)c.push([228,62,12+(f-12)*1.5,(f-12)*.55]);return c};
+const drawRain=s=>{const R=s.querySelector('.rn'),G=s.querySelector('.gg');R.innerHTML='';G.innerHTML='';if(s.dataset.layer&&s.dataset.layer!=='rain')return;
+ if(look==='radar'){const cs=cells(Math.floor(t/2)*2);R.innerHTML=[[1.8,0,0,.75],[1.2,1.6,1,.85],[.72,3.4,2,.9],[.38,6,3,.9]].map(([k,min,ci,op])=>`<g opacity="${op}" style="fill:${RC[ci]}">${cs.filter(c=>c[3]>min).map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r*k}"/>`).join('')}</g>`).join('')}
+ else{const cs=cells(t);G.innerHTML=RS.map(([x,y])=>{let v=0;cs.forEach(([cx,cy,r,I])=>{v+=I*Math.exp(-((x-cx)**2+(y-cy)**2)/(2*r*r))});const k=v<.2?-1:v<1?0:v<3?1:v<6?2:3;return k<0?`<circle cx="${x}" cy="${y}" r="3" stroke-width="1" style="fill:none;stroke:var(--muted,#6b6b72)"/>`:`<circle cx="${x}" cy="${y}" r="6.5" stroke-width="1.2" style="fill:${RC[k]};stroke:var(--card,#fff)"/>`}).join('')}};
+const clock=()=>{const f=look==='radar'?Math.floor(t/2)*2:t,m=525+5*f;return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} am`};
+const render=()=>{root.querySelectorAll('svg.rmap').forEach(drawRain);const c=clock();root.querySelectorAll('[data-clock]').forEach(e=>{e.textContent=c});root.querySelectorAll('[data-scrub]').forEach(e=>{e.value=t});root.querySelectorAll('[data-play]').forEach(e=>{e.innerHTML=ic(playing?'pause':'play',14);e.setAttribute('aria-label',playing?'Pause':'Play past rain')});root.querySelectorAll('[data-src]').forEach(e=>{e.textContent=look==='radar'?'RainViewer':'NEA gauges'})};
+const tick=ts=>{if(!playing)return;if(!last)last=ts;acc+=ts-last;last=ts;if(acc>=(look==='radar'?420:230)){acc=0;t=Math.min(24,t+(look==='radar'?2:1));if(t>=24)playing=false;render()}if(playing)requestAnimationFrame(tick)};
+const play=()=>{if(playing){playing=false;render();return}if(t>=24)t=0;playing=true;last=0;acc=0;render();requestAnimationFrame(tick)};
+const setLayer=el=>{const L=el.dataset.layer,s=document.getElementById('mB');s.dataset.layer=L;root.querySelectorAll('[data-layer]').forEach(x=>x.classList.toggle('on',x===el));s.querySelector('.lb').innerHTML='';if(L==='haze')hazeLayer(s);if(L==='temp')tempLayer(s);root.querySelectorAll('#pB [data-bx]').forEach(x=>{x.hidden=L!=='rain'});render()};
+const sb='<div class="sb"><span>10:45</span><span>5G 80%</span></div>';
+document.getElementById('pA').innerHTML=`${sb}<div class="ab">${ic('pin',14)} Ang Mo Kio</div><div class="scr" data-tab="now">${nowTop()}${today()}${hazeMini()}${days()}</div><div class="scr" data-tab="rain" hidden>${rainView('mA')}</div><div class="scr" data-tab="haze" hidden><div class="sea" style="padding:6px 0">${map('hA',{rain:0})}</div>${hazeList()}</div><div class="nav"><button class="on" data-go="now">${ic('cloud',18)}Now</button><button data-go="rain">${ic('drop',18)}Rain</button><button data-go="haze">${ic('haze',18)}Haze</button></div>`;
+document.getElementById('pB').innerHTML=`${sb}<div class="sea" style="flex:1;position:relative;overflow:hidden"><div class="chips" style="position:absolute;top:8px;left:8px;right:8px;z-index:2"><button class="chip lay on" data-layer="rain">Rain</button><button class="chip lay" data-layer="haze">Haze</button><button class="chip lay" data-layer="temp">Temp</button></div><div style="position:absolute;left:0;right:0;top:0;bottom:92px">${map('mB',{vb:'30 0 400 290',full:1})}</div><span class="badge" data-clock data-bx style="top:40px">10:45 am</span><div data-bx style="position:absolute;left:8px;right:8px;bottom:100px;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.2)">${scrub()}${legend()}</div><div class="sheet" data-sheet><div class="grab"></div><div style="display:flex;align-items:center;gap:8px;padding:0 12px"><span style="font-size:30px;font-weight:300">31°</span><div><div style="font-weight:600">Cloudy</div><div class="mut" style="font-size:11px;white-space:nowrap">Ang Mo Kio · 25–34°</div></div><span class="mut" style="margin-left:auto">${ic('up',18)}</span></div><div style="margin-top:6px">${today()}${hazeMini()}${days()}</div></div></div>`;
+document.getElementById('pC').innerHTML=`${sb}<div class="scr"><div class="hero"><div style="display:flex;align-items:center;gap:4px;font-size:12px">${ic('pin',12)} Ang Mo Kio</div><div style="display:flex;align-items:center;gap:10px;margin-top:4px"><span class="big">31°</span>${ic('cloud',38)}</div><div style="font-weight:600;margin-top:4px">Cloudy · till 12:30 pm</div><div style="font-size:12px">H 34° · L 25° · showers later</div></div><div class="card" data-open style="cursor:pointer"><div class="cap" style="display:flex">Rain · past 2 h<span data-clock style="margin-left:auto;text-transform:none;letter-spacing:0">10:45 am</span></div><div class="sea" style="border-radius:8px;overflow:hidden">${map('mC')}</div><div class="mut" style="font-size:11px;margin-top:5px;display:flex">Tap to open<span data-src style="margin-left:auto">Radar · RainViewer</span></div></div>${hazeChips()}${today()}${days()}</div><div class="over" data-over><div class="ab"><button data-close aria-label="Back">${ic('back',18)}</button> Rain · past 2 h</div><div style="flex:1;min-height:0;position:relative">${rainView('mC2')}</div></div>`;
+hazeLayer(document.getElementById('hA'));
+document.getElementById('mB').dataset.layer='rain';
+root.addEventListener('click',e=>{const el=e.target.closest('[data-look],[data-play],[data-go],[data-layer],[data-close],[data-open],[data-sheet]');if(!el||!root.contains(el))return;const d=el.dataset;
+ if(d.look){look=d.look;root.querySelectorAll('[data-look]').forEach(x=>x.classList.toggle('on',x===el));render()}
+ else if('play' in d)play();
+ else if(d.go){const ph=el.closest('.ph');ph.querySelectorAll('[data-tab]').forEach(s=>{s.hidden=s.dataset.tab!==d.go});ph.querySelectorAll('[data-go]').forEach(x=>x.classList.toggle('on',x===el))}
+ else if(d.layer)setLayer(el);
+ else if('close' in d)el.closest('[data-over]').classList.remove('show');
+ else if('open' in d)el.closest('.ph').querySelector('[data-over]').classList.add('show');
+ else if('sheet' in d)el.classList.toggle('open')});
+root.addEventListener('input',e=>{if(e.target.matches('[data-scrub]')){playing=false;t=+e.target.value;render()}});
+if(RM){root.querySelectorAll('[data-play]').forEach(b=>b.remove());document.getElementById('wxnote').textContent+=' Drag the bar to look back.';render()}
+else{t=0;render();setTimeout(play,800)}
+})();
+</script>

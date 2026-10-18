@@ -1,87 +1,116 @@
 # Haze Map SG
 
-An Android app that shows Singapore's air quality on an interactive map, with
-a per-region readings history. Data comes from Singapore NEA's free
-[data.gov.sg real-time API](https://data.gov.sg/) — no API key needed.
+A Singapore weather app for Android: today's forecast, a rain map you can play back
+over the past two hours, and haze (PSI and PM2.5) with a history chart.
+It uses free public data. No account, no API key, no location permission.
+
+| Now | Rain (playing back) | Haze |
+|---|---|---|
+| <img src="docs/screenshots/now.jpg" width="240"> | <img src="docs/screenshots/rain-playback.jpg" width="240"> | <img src="docs/screenshots/haze.jpg" width="240"> |
+
+*Screenshots are from the CI emulator with live data. Dark mode: [Now](docs/screenshots/now-dark.jpg).*
 
 ## What it does
 
-- **Map of the 5 NEA regions** (North, South, East, West, Central), colored by
-  air-quality band.
-- **Two map views, with a toggle:**
-  - **Zones** — each region is a translucent colored square.
-  - **Dots** — each region is a colored circle on the map.
-- **Two readings, with a toggle:**
-  - **PSI** (24-hour) — the default.
-  - **PM2.5** (1-hour fine dust).
-- **History on the phone.** Every time you open the app and it fetches, each
-  region's reading is saved to an on-device database. Tap a region to see its
-  line chart over time. Nothing is sent to any server; history lives only on
-  your phone.
-- **Fetch only when open.** The app pulls fresh data when you launch it, pull
-  to refresh, or tap the refresh button. It does **no** background work, so it
-  uses no battery while closed.
+**Now** — for the area you pick (47 NEA forecast areas, default Ang Mo Kio; tap the name at the top):
+temperature, condition and when that forecast ends, high and low, humidity, wind, UV,
+the next 24 hours by period, a haze summary for your region, and the next four days.
 
-History fills over time: the more often you open the app, the more points the
-chart has. Readings older than about a month are pruned to bound storage.
+**Rain** — a map of where it is raining, with a play button and a slider for the past two hours.
+A switch at the top right picks the picture:
 
-## Air-quality bands
-
-| Band | PSI (24h) | PM2.5 (1h, µg/m³) |
+| | Radar | Gauges |
 |---|---|---|
-| Good | 0–50 | 0–55 |
-| Moderate | 51–100 | 56–150 |
-| Unhealthy | 101–200 | 151–250 |
-| Very unhealthy | 201–300 | 251–350 |
-| Hazardous | 300+ | 350+ |
+| Shows | rain clouds, as a radar picture | one dot per NEA rain gauge (90), coloured by how hard it rained |
+| Steps | 10 minutes (13 frames) | 5 minutes (24 frames) |
+| Source | [RainViewer](https://www.rainviewer.com/) | NEA via data.gov.sg |
+| Detail | coarse (about 1.2 km per pixel) | exact readings; tap a dot for its value |
 
-## Tech
+It plays once when you first open each picture, unless the phone has animations turned off.
+Zoom out to watch rain coming across the Strait.
 
-- **Native Kotlin**, min SDK 26, target SDK 34.
-- **[osmdroid](https://github.com/osmdroid/osmdroid)** for the map — free
-  OpenStreetMap tiles, no API key or token.
-- **Room** for the on-device history store.
-- **[MPAndroidChart](https://github.com/PhilJay/MPAndroidChart)** for the
-  history line chart.
-- No Google Play Services, no account, no login.
+**Haze** — NEA's five regions as zones or dots, coloured by PSI or PM2.5 (switch at the top),
+both numbers shown on each region, a ranked list, and a line chart of each region's readings.
+The chart is built from readings the app saves on your phone each time it fetches, so it grows
+the more you open the app. Nothing is sent anywhere.
 
-## Build
+## Data, and what to expect
 
-Builds run on **GitHub Actions** (`.github/workflows/android.yml`). Every push
-to `main`, `feat/**` or `fix/**` runs the unit tests, builds a release APK, and
-publishes it as a GitHub release. Pull requests build and keep the APK as a
-workflow artifact without releasing.
+| Data | Source | Terms |
+|---|---|---|
+| Forecasts, temperature, humidity, wind, UV, rain gauges, PSI, PM2.5 | [NEA via data.gov.sg](https://data.gov.sg/) | Singapore Open Data Licence 1.0 |
+| Rain radar pictures | [RainViewer](https://www.rainviewer.com/api.html) free API | personal use, credit required |
+| Base map | OpenStreetMap, through osmdroid | © OpenStreetMap contributors |
 
-To get the app:
+- **NEA allows 6 calls per 10 seconds without a key.** The app keeps to 5. A cold start of the Now tab
+  needs 9 calls, so it takes 10 to 15 seconds to fill in completely. The last saved copy of everything
+  is shown at once, and each card updates as its data arrives.
+- Offline, the app shows the last saved forecast, haze and rain-gauge readings, and map tiles you
+  have already viewed. Radar pictures are not saved: the radar shows "Couldn't load the radar. Tap to retry."
+- The app fetches only while it is open. There is no background work.
+- Times are always Singapore time.
+- The area picker sets the forecast region by the nearest NEA region label, which is an approximation
+  of NEA's actual region borders.
 
-1. Open the **Actions** tab (or **Releases**) in this repository.
-2. Download the latest `HazeMapSG-1.0.N.apk`.
-3. Copy it to your Android phone and open it to install (allow installing from
-   this source if prompted).
+## Install
 
-Branch builds are published as **pre-releases**; builds from `main` are full
-releases.
+1. Open the latest entry under **Releases**, on your phone.
+2. Download `HazeMapSG-1.0.N.apk` and open it. Allow installing from your browser if asked.
 
-### Signing (optional)
+Builds from `main` are releases; builds from other branches are pre-releases.
 
-Without a signing key the APK is signed with the debug key, which still
-installs. To sign with your own key, add two repository secrets:
+**If Android says "App not installed":** the APKs are signed with a temporary key that changes
+with every build (no signing key is configured), and Android will not update an app with a
+different key. Uninstall the old Haze Map SG first. Its saved haze history is lost.
+To make updates install over the top, add the two secrets below.
 
-- `SIGNING_KEYSTORE_B64` — your PKCS#12 keystore, base64-encoded.
+### Fixed signing key (optional)
+
+Add two repository secrets and every build is signed with your key:
+
+- `SIGNING_KEYSTORE_B64` — your PKCS#12 keystore, base64-encoded (key alias `hazemap`).
 - `SIGNING_STORE_PASSWORD` — its password.
 
-The key alias is `hazemap`.
+Keep a backup of the keystore. If you lose it, installed copies cannot be updated.
 
-### Build locally
+## Build and test
 
-```bash
-./gradlew testDebugUnitTest assembleRelease
-```
+Builds run on GitHub Actions (`.github/workflows/android.yml`):
 
-The APK lands in `app/build/outputs/apk/release/`.
+1. **build** runs the unit tests, builds the release APK and publishes it as a GitHub release.
+2. **smoke** installs the APK on an Android 14 emulator (Pixel 5), opens every tab with live data,
+   taps through the area picker, the Radar/Gauges switch and Play, switches dark mode and rotation
+   while open, and goes offline. Screenshots and a log are kept as the `smoke-screenshots` artifact.
+   It never blocks a release.
 
-## Data source and attribution
+Locally: `./gradlew testDebugUnitTest assembleRelease`; the APK lands in `app/build/outputs/apk/release/`.
 
-Air-quality data © Singapore National Environment Agency (NEA), served via
-[data.gov.sg](https://data.gov.sg/). Map tiles ©
-[OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+The 37 unit tests include the parsers, run against real NEA and RainViewer responses saved in
+`app/src/test/resources/fixtures`. The app reads three launch extras so the smoke test can reach a
+screen directly: `tab` (`now`, `rain`, `haze`), `source` (`radar`, `gauges`) and `zoom`.
+
+## Code map
+
+| File | Job |
+|---|---|
+| `MainActivity.kt` | tabs, area picker; builds the map tabs on first visit |
+| `NowScreen.kt`, `RainScreen.kt`, `HazeScreen.kt` | one per tab |
+| `RadarOverlay.kt`, `GaugeOverlay.kt` | draw radar tiles and gauge dots on the osmdroid map |
+| `Http.kt` | HTTP, and the rate limiter for the data.gov.sg limit |
+| `WeatherRepository.kt`, `JsonCache.kt` | fetch with a disk cache; saved copies for instant paint |
+| `NeaParsers.kt`, `NeaApi.kt` | parse the responses (pure, no Android) |
+| `WeatherLogic.kt` | condition icons, forecast sentences, wind, rain levels, tile maths |
+| `HistoryDb.kt`, `HazeRepository.kt` | on-device haze history (Room) |
+| `Areas.kt` | the 47 forecast areas and their regions |
+
+The layouts were chosen from three mockups; the one that was built is option A (tabs).
+See [docs/design](docs/design/weather-mockups.html).
+
+## Credits
+
+Contains information from NEA's real-time weather datasets, accessed from
+[data.gov.sg](https://data.gov.sg/), made available under the
+[Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
+Radar images by [RainViewer](https://www.rainviewer.com/). Map data © OpenStreetMap contributors.
+Built with [osmdroid](https://github.com/osmdroid/osmdroid) and
+[MPAndroidChart](https://github.com/PhilJay/MPAndroidChart).
