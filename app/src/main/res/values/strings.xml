@@ -55,4 +55,16 @@
     <string name="history_title">Readings history</string>
     <string name="error_fetch">Could not load readings. Pull to retry.</string>
     <string name="no_history">No history yet. Open the app over time to build it.</string>
+
+    <!-- Home screen widgets -->
+    <string name="widget_label_small">Haze Map SG · Square</string>
+    <string name="widget_label_wide">Haze Map SG · Wide</string>
+    <string name="widget_label_strip">Haze Map SG · Strip</string>
+    <string name="widget_desc_small">Temperature, weather and PSI for your area. Square.</string>
+    <string name="widget_desc_wide">Temperature, weather, PSI and time recorded. Wide.</string>
+    <string name="widget_desc_strip">Temperature, weather and PSI in one line.</string>
+    <string name="widget_recorded">Recorded %1$s</string>
+    <string name="widget_average_note">Average of all stations</string>
+    <string name="widget_psi_none">PSI --</string>
+    <string name="widget_summary">%1$s. Average %2$s. %3$s. PSI %4$s. Recorded %5$s.</string>
 </resources>

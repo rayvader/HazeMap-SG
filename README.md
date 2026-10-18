@@ -35,6 +35,19 @@ both PSI and PM2.5 shown on each dot, a ranked list, and a line chart of each re
 The chart is built from readings the app saves on your phone each time it fetches, so it grows
 the more you open the app. Nothing is sent anywhere.
 
+**Widgets** — three home screen widgets, each showing the average temperature of all NEA stations,
+the weather now for your area, the PSI for your region, the time NEA recorded it, and the area name:
+
+| Widget | Size | Notes |
+|---|---|---|
+| Square | 2x2 | location, temperature, weather, PSI, time |
+| Wide | 4x2 | adds the PSI band name and "Recorded" label |
+| Strip | 4x1 | one line |
+
+Long-press the home screen, pick Widgets, then Haze Map SG. They refresh about every 30 minutes
+(the fastest Android allows), even when the app is closed, and when you change area in the app.
+Tap a widget to open the app. They follow the phone's dark mode setting.
+
 ## Data, and what to expect
 
 | Data | Source | Terms |

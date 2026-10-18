@@ -16,10 +16,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.rayvader.hazemap.databinding.ActivityMainBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
 import io.github.rayvader.hazemap.databinding.ScreenRainBinding
+import kotlinx.coroutines.launch
 
 /**
  * Three tabs on one screen: Now (forecast), Rain (map with the past two hours) and Haze (PSI/PM2.5).
@@ -83,6 +85,10 @@ class MainActivity : AppCompatActivity() {
         }
         binding.bottomNav.selectedItemId = start
         select(start)
+
+        if (savedInstanceState == null) {
+            WidgetShape.fromKey(intent.getStringExtra(EXTRA_PIN_WIDGET))?.let { WidgetUpdater.requestPin(this, it) }
+        }
     }
 
     private fun rainScreen(): RainScreen = rain
@@ -228,6 +234,8 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putString(KEY_AREA, area.name).apply()
         showAreaName()
         now.onAreaChanged()
+        // Home screen widgets show the chosen area too.
+        lifecycleScope.launch { WidgetUpdater.update(this@MainActivity) }
     }
 
     // ---- Lifecycle ----
@@ -271,8 +279,11 @@ class MainActivity : AppCompatActivity() {
         /** Starts the Rain map at this zoom, to look beyond Singapore. Used by the emulator smoke test. */
         const val EXTRA_ZOOM = "zoom"
 
+        /** Asks the home screen to add a widget: "small", "wide" or "strip". Used by the emulator smoke test. */
+        const val EXTRA_PIN_WIDGET = "pin_widget"
+
         private const val LOCATION_TIMEOUT_MS = 10_000L
-        private const val KEY_AREA = "area"
+        private const val KEY_AREA = Prefs.KEY_AREA
         private const val KEY_TAB = "tab"
         private const val NO_TAB = -1
     }
