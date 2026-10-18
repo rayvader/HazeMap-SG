@@ -1,8 +1,6 @@
 package io.github.rayvader.hazemap
 
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 /** One snapshot of readings for all regions for a single metric. */
 data class ReadingSet(
@@ -13,20 +11,8 @@ data class ReadingSet(
     val timestampMillis: Long
 )
 
-/**
- * Pulls PSI (24-hour) or PM2.5 (1-hour) from the free data.gov.sg real-time API.
- * No API key required.
- */
+/** Parses the haze (PSI and PM2.5) endpoints of the data.gov.sg real-time API. */
 object NeaApi {
-    private const val PSI_URL = "https://api-open.data.gov.sg/v2/real-time/api/psi"
-    private const val PM25_URL = "https://api-open.data.gov.sg/v2/real-time/api/pm25"
-
-    /** Blocking network call. Run off the main thread. */
-    fun fetch(metric: Metric): ReadingSet {
-        val url = if (metric == Metric.PSI) PSI_URL else PM25_URL
-        val body = get(url)
-        return parse(metric, body)
-    }
 
     internal fun parse(metric: Metric, body: String): ReadingSet {
         val root = JSONObject(body)
@@ -54,25 +40,8 @@ object NeaApi {
 
     /** NEA timestamps look like 2026-09-02T16:00:00+08:00. */
     internal fun parseIsoMillis(iso: String): Long = try {
-        java.time.OffsetDateTime.parse(iso).toInstant().toEpochMilli()
+        TimeFmt.parseIso(iso)
     } catch (e: Exception) {
         System.currentTimeMillis()
-    }
-
-    private fun get(urlStr: String): String {
-        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("Accept", "application/json")
-        }
-        try {
-            if (conn.responseCode !in 200..299) {
-                throw IllegalStateException("HTTP ${conn.responseCode}")
-            }
-            return conn.inputStream.bufferedReader().use { it.readText() }
-        } finally {
-            conn.disconnect()
-        }
     }
 }

@@ -7,9 +7,9 @@ package io.github.rayvader.hazemap
  * Colors are plain ARGB Int literals (not Color.parseColor) so the class loads
  * in a plain-JVM unit test without the stubbed android.graphics.Color throwing.
  */
-enum class Band(val label: String, val color: Int) {
+enum class Band(val label: String, val color: Int, val textColor: Int = 0xFFFFFFFF.toInt()) {
     GOOD("Good", 0xFF4CAF50.toInt()),
-    MODERATE("Moderate", 0xFFC9CC2E.toInt()),
+    MODERATE("Moderate", 0xFFC9CC2E.toInt(), 0xDE000000.toInt()),
     UNHEALTHY("Unhealthy", 0xFFFF9800.toInt()),
     VERY_UNHEALTHY("Very unhealthy", 0xFFF44336.toInt()),
     HAZARDOUS("Hazardous", 0xFF7B1FA2.toInt());
