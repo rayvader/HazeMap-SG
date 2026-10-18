@@ -73,7 +73,8 @@ class WeatherLogicTest {
 
     @Test
     fun rainElsewhereNamesTheWetRegions() {
-        assertEquals("Thundery Showers N, W", ForecastText.rainElsewhere(periods[1], "central"))
+        // The space inside "N, W" is non-breaking so the two letters never split across lines.
+        assertEquals("Thundery Showers N,\u00A0W", ForecastText.rainElsewhere(periods[1], "central"))
         assertNull(ForecastText.rainElsewhere(periods[1], "north")) // north is wet itself
         assertNull(ForecastText.rainElsewhere(periods[0], "central")) // nowhere is wet
     }

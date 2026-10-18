@@ -63,7 +63,7 @@ object ForecastText {
         if (wet.isEmpty()) return null
         val text = wet.values.first()
         val letters = wet.filter { it.value == text }.keys.map { it.first().uppercaseChar().toString() }.sorted()
-        return "$text ${letters.joinToString(", ")}"
+        return "$text ${letters.joinToString(",\u00A0")}"
     }
 }
 

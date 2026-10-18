@@ -149,7 +149,7 @@ class HazeScreen(
         } else if (loaded.values.any { it.stale }) {
             activity.getString(R.string.saved_data, TimeFmt.clock(stamp))
         } else {
-            activity.getString(R.string.updated_prefix) + TimeFmt.clock(stamp)
+            activity.getString(R.string.updated_at, TimeFmt.clock(stamp))
         }
         drawMap()
         drawList()

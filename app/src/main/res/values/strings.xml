@@ -52,7 +52,6 @@
     <string name="haze_list_title">PSI 24 h · PM2.5 1 h</string>
     <string name="pm_value">PM %1$d</string>
     <string name="history_title">Readings history</string>
-    <string name="updated_prefix">Updated: </string>
     <string name="error_fetch">Could not load readings. Pull to retry.</string>
     <string name="no_history">No history yet. Open the app over time to build it.</string>
 </resources>

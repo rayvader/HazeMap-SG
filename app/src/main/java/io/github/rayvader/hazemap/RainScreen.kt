@@ -114,9 +114,9 @@ class RainScreen(
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
         map.setTilesScaledToDpi(true)
-        // The radar tiles cover lon 101.25 to 106.9 and lat 0 to 2.8. Zoom 8 shows the whole of that
-        // strip's width, enough to watch rain coming across the Strait; past 14 there is no more detail.
-        map.setMinZoomLevel(8.0)
+        // The radar tiles cover lon 101.25 to 106.9 and lat 0 to 2.8. At zoom 8.5 a phone screen centred on
+        // Singapore still sits inside that strip; zooming out further would show the tiles' hard edge.
+        map.setMinZoomLevel(8.5)
         map.setMaxZoomLevel(14.0)
         val wanted = activity.intent?.getFloatExtra(MainActivity.EXTRA_ZOOM, 0f) ?: 0f
         map.controller.setZoom(if (wanted > 0f) wanted.toDouble() else DEFAULT_ZOOM)
@@ -395,7 +395,7 @@ class RainScreen(
 
     companion object {
         private const val TAG = "RainScreen"
-        private const val DEFAULT_ZOOM = 9.5
+        private const val DEFAULT_ZOOM = 10.0
         private const val KEY_SOURCE = "rain_source"
         private const val MAX_RADAR_FRAMES = 13
         private const val GAUGE_FRAMES = 25
