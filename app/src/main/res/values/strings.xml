@@ -6,6 +6,9 @@
     <string name="tab_rain">Rain</string>
     <string name="tab_haze">Haze</string>
     <string name="choose_area">Choose your area</string>
+    <string name="use_my_location">Use my location</string>
+    <string name="location_permission_denied">Location permission was not allowed.</string>
+    <string name="location_unavailable">Your location is not available yet. Try again.</string>
     <string name="refresh">Refresh</string>
     <string name="switch_to_dark">Switch to dark theme</string>
     <string name="switch_to_light">Switch to light theme</string>
