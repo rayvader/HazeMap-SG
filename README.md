@@ -35,6 +35,11 @@ both PSI and PM2.5 shown on each dot, a ranked list, and a line chart of each re
 The chart is built from readings the app saves on your phone each time it fetches, so it grows
 the more you open the app. Nothing is sent anywhere.
 
+**My places** — Singapore is home and has every feature. Tap the globe at the top to open a list of
+other cities you saved. Each shows its temperature and weather; tap one for its page with the next four
+days. The star on a page saves or removes it. Use "Add a place" to search any city in the world.
+City weather is from [Open-Meteo](https://open-meteo.com/) (free for apps without ads or subscriptions).
+
 **Widgets** — three home screen widgets, each showing the average temperature of all NEA stations,
 the weather now for your area, the PSI for your region, the time NEA recorded it, and the area name:
 

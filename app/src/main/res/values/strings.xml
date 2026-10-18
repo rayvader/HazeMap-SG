@@ -67,4 +67,23 @@
     <string name="widget_average_note">Average of all stations</string>
     <string name="widget_psi_none">PSI --</string>
     <string name="widget_summary">%1$s. Average %2$s. %3$s. PSI %4$s. Recorded %5$s.</string>
+
+    <!-- Saved places -->
+    <string name="places_title">My places</string>
+    <string name="places_home_sub">Home · all features</string>
+    <string name="places_empty">No places yet. Add a city to see its weather.</string>
+    <string name="places_add">＋ Add a place</string>
+    <string name="add_title">Add a place</string>
+    <string name="places_full">Your list is full. Remove a place first.</string>
+    <string name="add_search_hint">Search a city</string>
+    <string name="add_searching">Searching…</string>
+    <string name="add_none">No city found.</string>
+    <string name="add_failed">Search failed. Check your connection.</string>
+    <string name="add_saved_toast">%1$s added</string>
+    <string name="add_already_saved">Saved</string>
+    <string name="place_back">Back</string>
+    <string name="place_save">Save place</string>
+    <string name="place_remove">Remove place</string>
+    <string name="place_hilo">H %1$d° · L %2$d°</string>
+    <string name="attribution_open_meteo">Weather data: Open-Meteo.com (CC BY 4.0).</string>
 </resources>

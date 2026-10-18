@@ -20,6 +20,16 @@ object TimeFmt {
     fun clock(millis: Long): String =
         clockFmt.format(Instant.ofEpochMilli(millis).atZone(SGT)).lowercase(Locale.ENGLISH)
 
+    /** The clock at a place, "9:15 pm". An unknown zone id falls back to the phone's zone. */
+    fun clockIn(millis: Long, zoneId: String): String {
+        val zone = try {
+            ZoneId.of(zoneId)
+        } catch (e: Exception) {
+            ZoneId.systemDefault()
+        }
+        return clockFmt.format(Instant.ofEpochMilli(millis).atZone(zone)).lowercase(Locale.ENGLISH)
+    }
+
     /** "Mon" */
     fun dayShort(millis: Long): String =
         Instant.ofEpochMilli(millis).atZone(SGT).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)

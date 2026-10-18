@@ -18,6 +18,7 @@ object Icons {
         Condition.STORM -> R.drawable.cond_storm
         Condition.HAZE -> R.drawable.cond_haze
         Condition.WIND -> R.drawable.cond_wind
+        Condition.SNOW -> R.drawable.cond_snow
     }
 }
 

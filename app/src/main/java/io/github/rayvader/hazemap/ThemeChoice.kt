@@ -8,6 +8,7 @@ object Prefs {
     const val NAME = "hazemap"
     const val KEY_THEME = "theme"
     const val KEY_AREA = "area"
+    const val KEY_PLACES = "places"
 }
 
 /**

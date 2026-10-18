@@ -4,7 +4,7 @@ import kotlin.math.roundToInt
 
 /** What a forecast line looks like, for picking an icon. */
 enum class Condition {
-    SUN, MOON, PARTLY, CLOUD, RAIN, STORM, HAZE, WIND;
+    SUN, MOON, PARTLY, CLOUD, RAIN, STORM, HAZE, WIND, SNOW;
 
     val isWet: Boolean get() = this == RAIN || this == STORM
 

@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         binding.areaBar.setOnClickListener { pickArea() }
         binding.btnRefresh.setOnClickListener { refreshCurrent() }
         binding.btnTheme.setOnClickListener { toggleTheme() }
+        binding.btnPlaces.setOnClickListener { PlacesSheet(this) { area }.show() }
         showThemeButton()
 
         // After a recreation (dark mode switch, low memory) reopen the tab the user was on.

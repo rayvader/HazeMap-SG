@@ -201,6 +201,37 @@ adb exec-out screencap -p > "$OUT/44-widgets-home-dark.png"
 adb shell cmd uimode night no
 sleep 5
 
+# ---- Saved places: open the list, search a city, save it, open its page, remove it ----
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+sleep 20
+tap "My places"
+sleep 3
+adb exec-out screencap -p > "$OUT/50-places-empty.png"
+tap "＋ Add a place"
+sleep 3
+adb shell input text "tokyo"
+adb shell input keyevent KEYCODE_ENTER
+sleep 6
+adb exec-out screencap -p > "$OUT/51-places-search.png"
+tap "Tokyo"
+sleep 8
+adb exec-out screencap -p > "$OUT/52-places-list.png"
+tap "Tokyo"
+sleep 10
+say "place page title: $(attr placeTitle text)"
+say "place page star: $(attr btnStar content-desc)"
+adb exec-out screencap -p > "$OUT/53-place-page.png"
+adb shell cmd uimode night yes
+sleep 6
+adb exec-out screencap -p > "$OUT/54-place-page-dark.png"
+adb shell cmd uimode night no
+sleep 4
+tap btnStar
+say "place page star after tap: $(attr btnStar content-desc)"
+tap btnBack
+sleep 2
+
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable
 adb shell svc data disable
