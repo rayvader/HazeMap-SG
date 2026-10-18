@@ -40,10 +40,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class ViewMode { ZONES, DOTS }
-
 /**
- * The "Haze" tab: PSI and PM2.5 for NEA's five regions as zones or dots on a map, a ranked list,
+ * The "Haze" tab: PSI and PM2.5 for NEA's five regions as dots on a map, a ranked list,
  * and a stored history chart for each region.
  */
 class HazeScreen(
@@ -55,9 +53,8 @@ class HazeScreen(
     private val density = activity.resources.displayMetrics.density
     private val night = activity.isNightMode()
 
-    private var metric: Metric = Metric.PSI
-    private var viewMode: ViewMode = ViewMode.ZONES
-    // Both metrics are loaded together; the toggle only picks which one colours the map.
+    // Both metrics are loaded and shown as numbers; PSI colours the dots and drives the history chart.
+    private val metric = Metric.PSI
     private var sets: Map<Metric, ReadingSet> = emptyMap()
     private var loadedOnce = false
     private val copyright = CopyrightOverlay(activity).apply {
@@ -67,11 +64,8 @@ class HazeScreen(
 
     init {
         setupMap(state)
-        setupToggles()
         buildLegend()
         b.hazeSwipe.setOnRefreshListener { load(force = true) }
-        b.viewToggle.check(b.btnZones.id)
-        b.metricToggle.check(b.btnPsi.id)
     }
 
     fun setVisible(show: Boolean) {
@@ -126,20 +120,6 @@ class HazeScreen(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.parent.requestDisallowInterceptTouchEvent(false)
             }
             false
-        }
-    }
-
-    private fun setupToggles() {
-        b.viewToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            viewMode = if (checkedId == b.btnZones.id) ViewMode.ZONES else ViewMode.DOTS
-            drawMap()
-        }
-        b.metricToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) return@addOnButtonCheckedListener
-            metric = if (checkedId == b.btnPsi.id) Metric.PSI else Metric.PM25
-            // Both numbers are already loaded; just recolour.
-            drawMap()
         }
     }
 
@@ -208,7 +188,7 @@ class HazeScreen(
         val colorSet = sets[metric] ?: return
         b.hazeMap.overlays.clear()
         for (region in Region.entries) {
-            // The toggled metric drives the colour/band.
+            // PSI drives the colour/band.
             val colorValue = colorSet.values[region.key] ?: continue
             val band = Band.forMetric(metric, colorValue)
 
@@ -216,13 +196,8 @@ class HazeScreen(
             val pm25 = sets[Metric.PM25]?.values?.get(region.key)
             val titleText = "${region.label} — PSI ${psi ?: "-"}, PM2.5 ${pm25 ?: "-"} (${band.label})"
 
-            val overlay: Overlay = if (viewMode == ViewMode.ZONES) {
-                zoneOverlay(region, band, titleText)
-            } else {
-                dotOverlay(region, band, titleText)
-            }
-            b.hazeMap.overlays.add(overlay)
-            // Always-on label showing BOTH numbers on top of the zone/dot.
+            b.hazeMap.overlays.add(dotOverlay(region, band, titleText))
+            // Always-on label showing BOTH numbers on top of the dot.
             b.hazeMap.overlays.add(labelOverlay(region, psi, pm25))
         }
         b.hazeMap.overlays.add(copyright)
@@ -238,7 +213,7 @@ class HazeScreen(
             icon = BitmapDrawable(activity.resources, numberBitmap(lines))
             setInfoWindow(null)
             isDraggable = false
-            // Let taps fall through to the polygon (history) underneath.
+            // Let taps fall through to the dot (history) underneath.
             setOnMarkerClickListener { _, _ -> false }
         }
     }
@@ -270,30 +245,6 @@ class HazeScreen(
             canvas.drawText(line, x, y, textPaint)
         }
         return bmp
-    }
-
-    /** A translucent square zone centred on the region label point. */
-    private fun zoneOverlay(region: Region, band: Band, titleText: String): Overlay {
-        // North, Central and South are only 0.061 degrees apart, so the zones are wide rather than tall.
-        val dLat = 0.029
-        val dLon = 0.05
-        val poly = Polygon().apply {
-            points = listOf(
-                GeoPoint(region.lat + dLat, region.lon - dLon),
-                GeoPoint(region.lat + dLat, region.lon + dLon),
-                GeoPoint(region.lat - dLat, region.lon + dLon),
-                GeoPoint(region.lat - dLat, region.lon - dLon)
-            )
-            fillPaint.color = (0x66 shl 24) or (band.color and 0x00FFFFFF)
-            outlinePaint.color = band.color
-            outlinePaint.strokeWidth = 3f
-            title = titleText
-        }
-        poly.setOnClickListener { _, _, _ ->
-            showHistory(region)
-            true
-        }
-        return poly
     }
 
     /** A filled circle on the region point. */
