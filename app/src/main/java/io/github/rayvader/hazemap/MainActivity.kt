@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
     private fun pickArea() {
         val names = Areas.all.map { it.name }.toTypedArray()
         val choices = arrayOf(getString(R.string.use_my_location), *names)
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.choose_area)
             .setSingleChoiceItems(choices, names.indexOf(area.name) + 1) { dialog, which ->
                 if (which == 0) {
@@ -154,6 +154,8 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+        // Keep the new location row visible even when the current area is selected.
+        dialog.listView?.setSelection(0)
     }
 
     private fun requestMyLocation(dialog: DialogInterface) {

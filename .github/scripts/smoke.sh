@@ -70,6 +70,7 @@ sleep 25
 say "area before: $(attr areaName text)"
 tap areaName
 sleep 1
+dump
 say "location row: $(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "Use my location")"
 adb exec-out screencap -p > "$OUT/9-area-picker.png"
 tap "Bedok"
