@@ -131,7 +131,7 @@ object WidgetUpdater {
         }
         v.setTextViewText(R.id.wPsi, badgeText)
         v.setTextColor(R.id.wPsi, band?.textColor ?: NO_DATA_TEXT)
-        v.setInt(R.id.wBadgeBg, "setColorFilter", band?.color ?: NO_DATA_FILL)
+        v.setInt(R.id.wPsi, "setBackgroundResource", badgeBackground(band))
         v.setTextViewText(R.id.wBand, band?.label ?: "")
 
         val summary = context.getString(
@@ -154,6 +154,15 @@ object WidgetUpdater {
         return v
     }
 
-    private const val NO_DATA_FILL = 0xFF9E9E9E.toInt()
+    /** A RemoteViews cannot tint a drawable on every Android version, so each band has its own rounded fill. */
+    private fun badgeBackground(band: Band?): Int = when (band) {
+        Band.GOOD -> R.drawable.widget_badge_good
+        Band.MODERATE -> R.drawable.widget_badge_moderate
+        Band.UNHEALTHY -> R.drawable.widget_badge_unhealthy
+        Band.VERY_UNHEALTHY -> R.drawable.widget_badge_very_unhealthy
+        Band.HAZARDOUS -> R.drawable.widget_badge_hazardous
+        null -> R.drawable.widget_badge_none
+    }
+
     private const val NO_DATA_TEXT = 0xFFFFFFFF.toInt()
 }

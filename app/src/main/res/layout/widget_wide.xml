@@ -78,29 +78,19 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical">
-            <FrameLayout
+            <TextView
+                android:id="@+id/wPsi"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-                <ImageView
-                    android:id="@+id/wBadgeBg"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:importantForAccessibility="no"
-                    android:scaleType="fitXY"
-                    android:src="@drawable/widget_badge" />
-                <TextView
-                    android:id="@+id/wPsi"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="6dp"
-                    android:text="PSI --"
-                    android:textColor="@color/white"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
+                android:layout_height="wrap_content"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="PSI --"
+                android:background="@drawable/widget_badge_none"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
             <TextView
                 android:id="@+id/wBand"
                 android:layout_width="wrap_content"

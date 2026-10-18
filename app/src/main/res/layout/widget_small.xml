@@ -57,29 +57,19 @@
         android:layout_marginTop="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-        <FrameLayout
+        <TextView
+            android:id="@+id/wPsi"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-            <ImageView
-                android:id="@+id/wBadgeBg"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="no"
-                android:scaleType="fitXY"
-                android:src="@drawable/widget_badge" />
-            <TextView
-                android:id="@+id/wPsi"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:text="PSI --"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </FrameLayout>
+            android:layout_height="wrap_content"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="PSI --"
+            android:background="@drawable/widget_badge_none"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
         <TextView
             android:id="@+id/wTime"
             android:layout_width="wrap_content"

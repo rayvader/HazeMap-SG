@@ -52,30 +52,20 @@
         android:textColor="@color/widget_text"
         android:textSize="24sp"
         android:fontFamily="sans-serif-light" />
-    <FrameLayout
+    <TextView
+        android:id="@+id/wPsi"
+        android:layout_marginStart="10dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp">
-        <ImageView
-            android:id="@+id/wBadgeBg"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:importantForAccessibility="no"
-            android:scaleType="fitXY"
-            android:src="@drawable/widget_badge" />
-        <TextView
-            android:id="@+id/wPsi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:text="PSI --"
-            android:textColor="@color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </FrameLayout>
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:text="PSI --"
+        android:background="@drawable/widget_badge_none"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold" />
     <TextView
         android:id="@+id/wCondition"
         android:layout_width="wrap_content"
