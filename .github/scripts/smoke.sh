@@ -110,6 +110,10 @@ adb exec-out screencap -p > "$OUT/15-haze-pm25.png"
 tap "Dots"
 sleep 2
 adb exec-out screencap -p > "$OUT/16-haze-dots.png"
+tap "West"
+sleep 3
+adb exec-out screencap -p > "$OUT/16b-haze-history.png"
+tap "OK"
 
 # ---- Robustness: switch dark mode while the app is open, then rotate it ----
 adb shell cmd uimode night yes
@@ -128,6 +132,17 @@ sleep 3
 adb exec-out screencap -p > "$OUT/19-landscape-now.png"
 adb shell settings put system user_rotation 0
 sleep 3
+
+# ---- Offline: with no network the app should fall back to what it saved ----
+adb shell svc wifi disable
+adb shell svc data disable
+sleep 5
+shot 20-offline-now 25 --es tab now
+dump && say "offline footer: $(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" nowFooter text | tr '\n' ' ')"
+shot 21-offline-gauges 25 --es tab rain --es source gauges
+shot 22-offline-radar 25 --es tab rain --es source radar
+adb shell svc wifi enable
+adb shell svc data enable
 set -e
 
 adb logcat -d > "$OUT/logcat.txt" || true

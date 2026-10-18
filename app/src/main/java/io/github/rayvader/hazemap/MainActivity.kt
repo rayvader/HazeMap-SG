@@ -43,10 +43,16 @@ class MainActivity : AppCompatActivity() {
         binding.areaBar.setOnClickListener { pickArea() }
         binding.btnRefresh.setOnClickListener { refreshCurrent() }
 
-        val start = when (intent.getStringExtra(EXTRA_TAB)) {
-            "rain" -> R.id.nav_rain
-            "haze" -> R.id.nav_haze
-            else -> R.id.nav_now
+        // After a recreation (dark mode switch, low memory) reopen the tab the user was on.
+        val restored = savedInstanceState?.getInt(KEY_TAB, NO_TAB) ?: NO_TAB
+        val start = if (restored != NO_TAB) {
+            restored
+        } else {
+            when (intent.getStringExtra(EXTRA_TAB)) {
+                "rain" -> R.id.nav_rain
+                "haze" -> R.id.nav_haze
+                else -> R.id.nav_now
+            }
         }
         binding.bottomNav.selectedItemId = start
         select(start)
@@ -109,6 +115,11 @@ class MainActivity : AppCompatActivity() {
 
     // ---- Lifecycle ----
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_TAB, currentTab)
+    }
+
     override fun onResume() {
         super.onResume()
         rain?.mapResume()
@@ -142,6 +153,7 @@ class MainActivity : AppCompatActivity() {
 
         private const val PREFS = "hazemap"
         private const val KEY_AREA = "area"
+        private const val KEY_TAB = "tab"
         private const val NO_TAB = -1
     }
 }

@@ -15,7 +15,7 @@
     <string name="chip_wind">Wind %1$s %2$d km/h</string>
     <string name="chip_wind_only">Wind %1$d km/h</string>
     <string name="chip_uv">UV %1$d</string>
-    <string name="today">Today</string>
+    <string name="today">Next 24 hours</string>
     <string name="haze_now">Haze now</string>
     <string name="next_days">Next 4 days</string>
     <string name="psi_value">PSI %1$d</string>
