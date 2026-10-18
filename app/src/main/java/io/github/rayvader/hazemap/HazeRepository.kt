@@ -1,37 +1,53 @@
 package io.github.rayvader.hazemap
 
 import android.content.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * Fetches the current readings from NEA, saves each one into on-device history,
- * and reads history back for the chart. Fetch happens only when the app asks
- * (no background work).
+ * Reads PSI and PM2.5 from NEA, saves each reading into on-device history,
+ * and reads history back for the chart.
  */
 class HazeRepository(context: Context) {
 
     private val dao = HistoryDb.get(context).readingDao()
+    private val weather = WeatherRepository.get(context)
 
     /** Keep roughly a month of history to bound the DB. */
     private val retentionMillis = 31L * 24 * 60 * 60 * 1000
 
-    /** Blocking. Call off the main thread. Returns the fresh snapshot after storing it. */
-    fun refresh(metric: Metric): ReadingSet {
-        val set = NeaApi.fetch(metric)
-        store(set)
-        dao.pruneOlderThan(System.currentTimeMillis() - retentionMillis)
-        return set
+    /**
+     * Loads both metrics and stores them in history. One metric failing does not hide the other;
+     * if both fail, the first error is thrown.
+     */
+    suspend fun refreshBoth(force: Boolean = false): Map<Metric, Loaded<ReadingSet>> {
+        val out = LinkedHashMap<Metric, Loaded<ReadingSet>>()
+        var firstError: Exception? = null
+        for (metric in Metric.entries) {
+            try {
+                out[metric] = weather.load(Endpoints.haze(metric), force)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (firstError == null) firstError = e
+            }
+        }
+        if (out.isEmpty()) throw firstError ?: IllegalStateException("no haze data")
+        withContext(Dispatchers.IO) {
+            out.values.forEach { store(it.value) }
+            dao.pruneOlderThan(System.currentTimeMillis() - retentionMillis)
+        }
+        return out
     }
 
-    /** Both metrics for one refresh: PSI and PM2.5, each fetched, stored and returned. Blocking. */
-    fun refreshBoth(): Map<Metric, ReadingSet> {
-        val result = HashMap<Metric, ReadingSet>()
+    /** The saved copy of both metrics for an instant first paint, or null if either is missing. */
+    fun peekBoth(): Map<Metric, Loaded<ReadingSet>>? {
+        val out = LinkedHashMap<Metric, Loaded<ReadingSet>>()
         for (metric in Metric.entries) {
-            val set = NeaApi.fetch(metric)
-            store(set)
-            result[metric] = set
+            out[metric] = weather.peek(Endpoints.haze(metric)) ?: return null
         }
-        dao.pruneOlderThan(System.currentTimeMillis() - retentionMillis)
-        return result
+        return out
     }
 
     private fun store(set: ReadingSet) {
@@ -46,9 +62,7 @@ class HazeRepository(context: Context) {
         if (rows.isNotEmpty()) dao.insertAll(rows)
     }
 
-    /** Stored history for one region+metric, oldest first. Blocking. */
-    fun history(region: Region, metric: Metric): List<ReadingEntity> =
-        dao.history(region.key, metric.apiPath)
-
-    fun hasAnyHistory(): Boolean = dao.count() > 0
+    /** Stored history for one region+metric, oldest first. */
+    suspend fun history(region: Region, metric: Metric): List<ReadingEntity> =
+        withContext(Dispatchers.IO) { dao.history(region.key, metric.apiPath) }
 }
