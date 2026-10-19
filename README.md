@@ -30,6 +30,9 @@ A switch at the top right picks the picture:
 It plays by itself and starts over when it reaches the newest picture. Press Pause or drag the slider to stop it;
 it stays still until you press Play. It does not start by itself when the phone has animations turned off.
 Zoom out to watch rain coming across the Strait.
+Radar pictures are saved on the phone (about 1 MB). The app downloads only the pictures it does not have yet,
+and with no network it plays the last two hours it saved, with a note saying how old they are.
+Pictures older than two hours are deleted when new ones arrive.
 
 **Haze** — NEA's five regions as dots coloured by PSI,
 both PSI and PM2.5 shown on each dot, a ranked list, and a line chart of each region's readings.
