@@ -290,6 +290,7 @@ shot 20-offline-now 25 --es tab now
 dump && say "offline footer: $(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" nowFooter text | tr '\n' ' ')"
 shot 21-offline-gauges 25 --es tab rain --es source gauges
 shot 22-offline-radar 25 --es tab rain --es source radar
+dump && say "offline radar: status='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" rainStatus text)' clock='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" rainClock text)'"
 adb shell svc wifi enable
 adb shell svc data enable
 set -e

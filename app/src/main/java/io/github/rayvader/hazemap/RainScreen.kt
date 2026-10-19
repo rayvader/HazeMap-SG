@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.CopyrightOverlay
+import java.io.File
 import java.util.Locale
 
 enum class RainSource(val key: String) { RADAR("radar"), GAUGES("gauges") }
@@ -64,6 +65,8 @@ class RainScreen(
     /** True after the user paused or scrubbed; the loop then stays still until they press Play or refresh. */
     private var userPaused = false
     private val statuses = HashMap<RainSource, String?>()
+
+    private val tileCache = RadarCache(File(activity.filesDir, "radar"))
 
     private val radarOverlay = RadarOverlay()
     private val gaugeOverlay = GaugeOverlay(density, night) { station, mm ->
@@ -262,7 +265,8 @@ class RainScreen(
     private suspend fun loadRadar(force: Boolean) {
         setStatus(RainSource.RADAR, activity.getString(R.string.loading_radar))
         try {
-            val radarIndex = repo.load(Endpoints.RADAR_INDEX, force).value
+            val loaded = repo.load(Endpoints.RADAR_INDEX, force)
+            val radarIndex = loaded.value
             val frames = radarIndex.frames.takeLast(MAX_RADAR_FRAMES)
             check(frames.isNotEmpty()) { "no radar frames" }
             var done = 0
@@ -277,10 +281,21 @@ class RainScreen(
                     }
                 }.awaitAll()
             }
-            check(tiles.any { it.isNotEmpty() }) { "no radar tiles" }
-            radarFrames = frames
-            radarTiles = tiles
-            setStatus(RainSource.RADAR, null)
+            // Play only the frames that have a picture, whether it came from the network or from the phone.
+            val shown = frames.zip(tiles).filter { it.second.isNotEmpty() }
+            check(shown.isNotEmpty()) { "no radar tiles" }
+            radarFrames = shown.map { it.first }
+            radarTiles = shown.map { it.second }
+            if (!loaded.stale) {
+                // Online: pictures older than the last two hours are no longer needed.
+                tileCache.keepOnly(frames.flatMap { f -> TileMath.SINGAPORE_X.map { x -> TileMath.radarUrl(radarIndex, f, x, TileMath.SINGAPORE_Y) } })
+            }
+            Log.d(TAG, "radar ready: ${shown.size} frames, saved copy=${loaded.stale}")
+            // A stale index means the request failed: say the pictures are saved ones, and let a tap retry.
+            setStatus(
+                RainSource.RADAR,
+                if (loaded.stale) activity.getString(R.string.radar_saved, TimeFmt.clock(radarFrames.last().timeMillis)) else null
+            )
             if (source == RainSource.RADAR) {
                 showCurrentData()
                 maybeAutoplay()
@@ -293,23 +308,35 @@ class RainScreen(
         }
     }
 
-    /** Both Singapore tiles of one radar frame. A tile that fails to load is left out. */
+    /** Both Singapore tiles of one radar frame. A tile that cannot be had, saved or fetched, is left out. */
     private suspend fun loadTiles(index: RadarIndex, frame: RadarFrame): List<RadarOverlay.Tile> = coroutineScope {
-        TileMath.SINGAPORE_X.map { x ->
-            async {
-                try {
-                    val bytes = Http.getBytes(TileMath.radarUrl(index, frame, x, TileMath.SINGAPORE_Y))
-                    val bitmap = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
-                    bitmap?.let { RadarOverlay.Tile(x, TileMath.SINGAPORE_Y, it) }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.w(TAG, "radar tile $x failed", e)
-                    null
-                }
-            }
-        }.awaitAll().filterNotNull()
+        TileMath.SINGAPORE_X.map { x -> async { loadTile(index, frame, x) } }.awaitAll().filterNotNull()
     }
+
+    /** The saved picture if there is one; otherwise download it and save it for next time. */
+    private suspend fun loadTile(index: RadarIndex, frame: RadarFrame, x: Int): RadarOverlay.Tile? {
+        val url = TileMath.radarUrl(index, frame, x, TileMath.SINGAPORE_Y)
+        try {
+            val saved = withContext(Dispatchers.IO) { tileCache.read(url) }
+            if (saved != null) {
+                decode(saved)?.let { return RadarOverlay.Tile(x, TileMath.SINGAPORE_Y, it) }
+                // A damaged file: forget it and download again.
+                withContext(Dispatchers.IO) { tileCache.delete(url) }
+            }
+            val bytes = Http.getBytes(url)
+            val bitmap = decode(bytes) ?: return null
+            withContext(Dispatchers.IO) { tileCache.write(url, bytes) }
+            return RadarOverlay.Tile(x, TileMath.SINGAPORE_Y, bitmap)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "radar tile $x failed", e)
+            return null
+        }
+    }
+
+    private suspend fun decode(bytes: ByteArray) =
+        withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
 
     private suspend fun loadGauges(force: Boolean) {
         setStatus(RainSource.GAUGES, activity.getString(R.string.loading_gauges))

@@ -45,6 +45,7 @@
     <string name="loading_radar">Loading radar…</string>
     <string name="loading_radar_progress">Loading radar… %1$d of %2$d</string>
     <string name="loading_gauges">Loading rain gauges…</string>
+    <string name="radar_saved">Saved radar from %1$s. Tap to try again.</string>
     <string name="error_radar">Couldn\'t load the radar. Tap to retry.</string>
     <string name="error_gauges">Couldn\'t load the rain gauges. Tap to retry.</string>
     <string name="gauge_reading">%1$s: %2$s mm in 5 min</string>
