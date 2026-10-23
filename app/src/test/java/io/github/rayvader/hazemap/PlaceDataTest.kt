@@ -101,11 +101,33 @@ class PlaceDataTest {
         assertTrue("temp ${w.tempC}", w.tempC!! in -60.0..60.0)
         assertNotNull(w.code)
         assertEquals(5, w.days.size)
-        assertEquals(LocalDate.parse("2026-10-18"), w.days.first().date)
+        // Days come in order, one after the other, starting today at the place.
+        for (i in 1 until w.days.size) assertEquals(w.days[i - 1].date.plusDays(1), w.days[i].date)
         for (d in w.days) {
             assertNotNull(d.code)
             assertTrue("low ${d.low} high ${d.high}", d.low!! <= d.high!!)
         }
+    }
+
+    @Test
+    fun humidityIsReadFromTheForecast() {
+        val w = PlaceParsers.forecast(fixture("om-forecast.json"))
+        assertNotNull(w.humidity)
+        assertTrue("humidity ${w.humidity}", w.humidity!! in 0..100)
+    }
+
+    @Test
+    fun humidityIsRoundedToAWholePercent() {
+        val body = """{"timezone":"UTC","current":{"temperature_2m":20.5,"relative_humidity_2m":72.4,"weather_code":0,"is_day":1}}"""
+        assertEquals(72, PlaceParsers.forecast(body).humidity)
+    }
+
+    @Test
+    fun missingHumidityIsNullNotZero() {
+        val without = """{"timezone":"UTC","current":{"temperature_2m":20.5,"weather_code":0,"is_day":1}}"""
+        val empty = """{"timezone":"UTC","current":{"temperature_2m":20.5,"relative_humidity_2m":null,"weather_code":0,"is_day":1}}"""
+        assertNull(PlaceParsers.forecast(without).humidity)
+        assertNull(PlaceParsers.forecast(empty).humidity)
     }
 
     @Test

@@ -29,6 +29,8 @@ data class PlaceDay(val date: LocalDate, val code: Int?, val low: Int?, val high
 /** Current weather and the days ahead for one place. [days] starts with today. */
 data class PlaceWeather(
     val tempC: Double?,
+    /** Relative humidity in percent, or null when the service did not report it. */
+    val humidity: Int?,
     val code: Int?,
     val isDay: Boolean,
     val timezone: String,
@@ -157,6 +159,7 @@ object PlaceParsers {
         }
         return PlaceWeather(
             tempC = current?.numberOrNull("temperature_2m"),
+            humidity = current?.numberOrNull("relative_humidity_2m")?.let { Math.round(it).toInt() },
             code = current?.intOrNull("weather_code"),
             isDay = current?.optInt("is_day", 1) != 0,
             timezone = root.optString("timezone").ifBlank { "UTC" },
