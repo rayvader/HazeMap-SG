@@ -179,20 +179,20 @@ class UpdateLogicTest {
     }
 
     @Test
-    fun noTapInstallsNeedAndroid12() {
+    fun noTapInstallsNeedAndroid12AndTheInstallAppsPermission() {
         assertFalse(UpdateLogic.installOnLeave(30, "1.0.41", true, null))
-        assertTrue(UpdateLogic.installOnLeave(31, "1.0.41", false, null))
+        // Before the person allows "Install unknown apps", Android asks first.
+        assertFalse(UpdateLogic.installOnLeave(34, "1.0.41", false, null))
+        assertTrue(UpdateLogic.installOnLeave(31, "1.0.41", true, null))
         assertTrue(UpdateLogic.installOnLeave(34, "1.0.41", true, null))
     }
 
     @Test
     fun aNoTapTryThatAndroidTurnedIntoAPromptIsNotRepeated() {
-        val asked = UpdateLogic.askRecord("1.0.41", false)
-        assertFalse(UpdateLogic.installOnLeave(34, "1.0.41", false, asked))
-        // The person has allowed "Install unknown apps" since: try again with no tap.
-        assertTrue(UpdateLogic.installOnLeave(34, "1.0.41", true, asked))
+        val asked = UpdateLogic.askRecord("1.0.41", true)
+        assertFalse(UpdateLogic.installOnLeave(34, "1.0.41", true, asked))
         // A newer version gets its own try.
-        assertTrue(UpdateLogic.installOnLeave(34, "1.0.42", false, asked))
+        assertTrue(UpdateLogic.installOnLeave(34, "1.0.42", true, asked))
     }
 
     @Test

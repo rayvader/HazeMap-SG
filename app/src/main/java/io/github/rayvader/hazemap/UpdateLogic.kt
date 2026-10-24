@@ -121,11 +121,12 @@ object UpdateLogic {
 
     /**
      * Whether to install with no tap when the person leaves the app. Android 12 (API 31) and newer can
-     * update an app with no tap. A try that Android turned into a prompt is not repeated for that
-     * version until the "Install unknown apps" setting changes.
+     * update an app with no tap once the person has allowed "Install unknown apps" for it; before that,
+     * Android asks first. A no-tap try that Android still turned into a prompt is not repeated for that
+     * version until that setting changes.
      */
     fun installOnLeave(sdk: Int, version: String, canInstallApps: Boolean, lastAsk: String?): Boolean =
-        sdk >= 31 && lastAsk != askRecord(version, canInstallApps)
+        sdk >= 31 && canInstallApps && lastAsk != askRecord(version, canInstallApps)
 
     fun failRecord(version: String, problem: UpdateProblem): String = "$version|${problem.name}"
 

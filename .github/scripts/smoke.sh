@@ -299,7 +299,8 @@ adb shell svc data enable
 # it and installs it when the app is left. Runs last: afterwards the phone has the newest release. ----
 version_code() { adb shell dumpsys package "$PKG" | grep -m1 -o 'versionCode=[0-9]*'; }
 logged() { adb logcat -d | grep -c "$1"; }
-self_update_try() {
+# self_update_open <name>: open the app and wait until the update is downloaded and checked
+self_update_open() {
   local ready_before start_before
   ready_before=$(logged 'update ready')
   start_before=$(logged 'update download start')
@@ -307,28 +308,39 @@ self_update_try() {
   for i in $(seq 1 45); do
     [ "$(logged 'update ready')" -gt "$ready_before" ] && break
     if [ "$i" = 10 ] && [ "$(logged 'update download start')" -le "$start_before" ]; then
-      say "self update ($1): no download by itself, tapping the banner button"
+      say "self update ($1): no download by itself, tapping Update"
       tap updateDownload
     fi
     sleep 2
   done
   say "self update banner ($1): '$(attr updateTitle text)' / '$(attr updateSub text)'"
   adb exec-out screencap -p > "$OUT/80-self-update-$1.png"
-  adb shell input keyevent KEYCODE_HOME
-  sleep 25
-  say "self update after leaving the app ($1): $(version_code)"
 }
 if [ -f update-test-old.apk ]; then
   sleep 5
   adb uninstall "$PKG" > /dev/null
   adb install update-test-old.apk > /dev/null
   say "self update before: $(version_code)"
-  self_update_try first
-  if version_code | grep -q 'versionCode=1$'; then
-    # Stands in for the one time a person allows "Install unknown apps" for the app.
-    adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow
-    self_update_try allowed
-  fi
+  # First time: Android has not been allowed to take installs from the app, so the banner asks for a
+  # tap, and the tap opens Android's own prompt. The test says no to it.
+  self_update_open first
+  tap updateDownload
+  sleep 6
+  adb exec-out screencap -p > "$OUT/81-self-update-android-asks.png"
+  say "self update prompt: $(adb shell dumpsys activity activities | grep -m1 -o 'topResumedActivity=.*' | cut -c1-150)"
+  adb shell input keyevent KEYCODE_BACK
+  sleep 3
+  adb shell input keyevent KEYCODE_HOME
+  sleep 10
+  say "self update after saying no: $(version_code)"
+  # Stands in for the person allowing "Install unknown apps" for the app, the one time Android asks.
+  # From then on the update installs by itself when the app is left.
+  adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow
+  adb shell am force-stop "$PKG"
+  self_update_open allowed
+  adb shell input keyevent KEYCODE_HOME
+  sleep 25
+  say "self update after leaving the app: $(version_code)"
   adb logcat -d | grep ' Updater' | sed -E 's/^[0-9-]+ //' | tee -a "$LOG"
 fi
 set -e
