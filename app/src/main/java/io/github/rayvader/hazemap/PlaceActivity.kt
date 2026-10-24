@@ -102,6 +102,10 @@ class PlaceActivity : AppCompatActivity() {
         if (w != null) parts.add(TimeFmt.clockIn(System.currentTimeMillis(), zone))
         b.placeDetail.text = parts.joinToString(" · ")
 
+        val humidity = w?.humidity
+        b.placeChipHumidity.visibility = if (humidity == null) android.view.View.GONE else android.view.View.VISIBLE
+        if (humidity != null) b.placeChipHumidity.text = getString(R.string.chip_humid, humidity)
+
         b.placeDaysList.removeAllViews()
         val days = w?.days.orEmpty().drop(1).take(4)
         b.placeDaysCard.visibility = if (days.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE

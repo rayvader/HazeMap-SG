@@ -42,12 +42,14 @@ object Endpoints {
 
     private const val OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
     private const val OPEN_METEO_CURRENT = "current=temperature_2m,weather_code,is_day&timezone=auto"
+    private const val OPEN_METEO_CURRENT_PAGE = "current=temperature_2m,relative_humidity_2m,weather_code,is_day&timezone=auto"
 
     /** Current weather and the next days for one place. Open-Meteo is not rate limited like data.gov.sg. */
     fun placeForecast(p: Place): Endpoint<PlaceWeather> = Endpoint(
         url = "$OPEN_METEO?latitude=${coord(p.lat)}&longitude=${coord(p.lon)}" +
-            "&$OPEN_METEO_CURRENT&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5",
-        cacheKey = "place-forecast-${p.id}",
+            "&$OPEN_METEO_CURRENT_PAGE&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5",
+        // "v2" keeps a copy saved before humidity was asked for from being shown as if it had none.
+        cacheKey = "place-forecast-v2-${p.id}",
         ttlMs = 15 * MIN,
         limited = false,
         parse = PlaceParsers::forecast
