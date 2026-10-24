@@ -138,6 +138,15 @@
                         android:clickable="false"
                         android:visibility="gone"
                         app:ensureMinTouchTargetSize="false" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/placeChipWind"
+                        style="@style/Widget.Material3.Chip.Assist"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="false"
+                        android:visibility="gone"
+                        app:ensureMinTouchTargetSize="false" />
                 </com.google.android.material.chip.ChipGroup>
 
                 <com.google.android.material.card.MaterialCardView
