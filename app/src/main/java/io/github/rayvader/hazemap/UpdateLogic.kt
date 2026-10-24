@@ -3,7 +3,31 @@ package io.github.rayvader.hazemap
 import org.json.JSONObject
 
 /** The newest full release: its version text such as "1.0.32" and where to download the APK. */
-data class UpdateInfo(val version: String, val downloadUrl: String)
+data class UpdateInfo(val version: String, val downloadUrl: String) {
+    /** False when the release has no APK and only its web page can be opened. */
+    val isApk: Boolean get() = downloadUrl.endsWith(".apk", ignoreCase = true)
+}
+
+/** Why a self-update stopped. [retry] says whether trying again can help. */
+enum class UpdateProblem(val retry: Boolean) {
+    /** The network failed. */
+    DOWNLOAD(true),
+
+    /** The file is not a whole APK. */
+    DAMAGED(true),
+
+    /** The file is a different app. */
+    OTHER_APP(false),
+
+    /** The file is not newer than the app on the phone. */
+    NOT_NEWER(false),
+
+    /** The file is not signed with this app's key. */
+    OTHER_SIGNER(false),
+
+    /** Android refused or failed the install. */
+    INSTALL(true)
+}
 
 /** Version numbers such as "1.0.31" (or a release tag "v1.0.31"), compared number by number. */
 object Versions {
@@ -68,4 +92,52 @@ object UpdateLogic {
     /** Show the banner for a newer version the user has not closed. */
     fun shouldShow(installed: String?, latest: UpdateInfo?, dismissedVersion: String?): Boolean =
         latest != null && Versions.isNewer(latest.version, installed) && latest.version != dismissedVersion
+
+    /**
+     * Checks a downloaded APK against the app on the phone: same app, newer, same signing key.
+     * Android checks the key again when it installs, so a key list that cannot be read here is left to it.
+     */
+    fun checkApk(
+        archivePackage: String?,
+        archiveVersion: Long,
+        archiveSigners: List<ByteArray>,
+        ownPackage: String,
+        ownVersion: Long,
+        ownSigners: List<ByteArray>
+    ): UpdateProblem? {
+        if (archivePackage == null) return UpdateProblem.DAMAGED
+        if (archivePackage != ownPackage) return UpdateProblem.OTHER_APP
+        if (archiveVersion <= ownVersion) return UpdateProblem.NOT_NEWER
+        if (archiveSigners.isNotEmpty() && ownSigners.isNotEmpty() &&
+            archiveSigners.map { it.toList() }.toSet() != ownSigners.map { it.toList() }.toSet()
+        ) {
+            return UpdateProblem.OTHER_SIGNER
+        }
+        return null
+    }
+
+    /** What is kept when Android turned a no-tap install into a prompt: the version and the permission then. */
+    fun askRecord(version: String, canInstallApps: Boolean): String = "$version|$canInstallApps"
+
+    /**
+     * Whether to install with no tap when the person leaves the app. Android 12 (API 31) and newer can
+     * update an app with no tap. A try that Android turned into a prompt is not repeated for that
+     * version until the "Install unknown apps" setting changes.
+     */
+    fun installOnLeave(sdk: Int, version: String, canInstallApps: Boolean, lastAsk: String?): Boolean =
+        sdk >= 31 && lastAsk != askRecord(version, canInstallApps)
+
+    fun failRecord(version: String, problem: UpdateProblem): String = "$version|${problem.name}"
+
+    /** The problem recorded for [version], or null when it has none (or the record is for another version). */
+    fun failedProblem(record: String?, version: String): UpdateProblem? {
+        val parts = record?.split('|') ?: return null
+        if (parts.size != 2 || parts[0] != version) return null
+        return UpdateProblem.entries.firstOrNull { it.name == parts[1] }
+    }
+
+    /** True when the app now runs the version an update was installing, or a later one. */
+    fun justUpdated(installing: String?, installed: String?): Boolean =
+        Versions.parse(installing) != null && Versions.parse(installed) != null &&
+            !Versions.isNewer(installing, installed)
 }

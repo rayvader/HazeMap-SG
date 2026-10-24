@@ -72,10 +72,22 @@ jobs:
           APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
           "$APKSIGNER" verify --print-certs "${{ steps.apk.outputs.file }}" | grep -i "SHA-256"
 
+      # The same code built as version 1.0.1, so the emulator can watch it update itself to the
+      # newest release. Only the smoke test uses it; it is never published.
+      - name: Old copy for the self-update test
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: hazemap
+        run: |
+          GITHUB_RUN_NUMBER=1 ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk update-test-old.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: hazemap-apk
-          path: ${{ steps.apk.outputs.file }}
+          path: |
+            ${{ steps.apk.outputs.file }}
+            update-test-old.apk
           if-no-files-found: error
           retention-days: 14
 

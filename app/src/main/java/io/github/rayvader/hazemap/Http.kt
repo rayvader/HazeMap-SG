@@ -2,7 +2,9 @@ package io.github.rayvader.hazemap
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -61,6 +63,50 @@ object Http {
         val response = withContext(Dispatchers.IO) { fetch(url) }
         if (response.code !in 200..299) throw IOException("HTTP ${response.code} for $url")
         return response.body
+    }
+
+    /**
+     * Streams [url] into [target], at most [maxBytes], calling [onProgress] with the bytes so far and the
+     * total (-1 when the server does not say). It is written to a side file first, so a download cut
+     * short never looks whole. Not rate limited.
+     */
+    suspend fun download(url: String, target: File, maxBytes: Long, onProgress: (Long, Long) -> Unit) {
+        withContext(Dispatchers.IO) {
+            val part = File(target.path + ".part")
+            val conn = URL(url).openConnection() as HttpURLConnection
+            try {
+                conn.connectTimeout = 15_000
+                conn.readTimeout = 30_000
+                conn.setRequestProperty("User-Agent", USER_AGENT)
+                val code = conn.responseCode
+                if (code !in 200..299) throw IOException("HTTP $code for $url")
+                val total = conn.contentLengthLong
+                if (total > maxBytes) throw IOException("too big: $total bytes")
+                var done = 0L
+                conn.inputStream.use { input ->
+                    part.outputStream().use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            ensureActive()
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            done += n
+                            if (done > maxBytes) throw IOException("too big")
+                            output.write(buffer, 0, n)
+                            onProgress(done, total)
+                        }
+                    }
+                }
+                if (total >= 0 && done != total) throw IOException("cut short at $done of $total bytes")
+                target.delete()
+                if (!part.renameTo(target)) throw IOException("could not save $target")
+            } catch (e: Throwable) {
+                part.delete()
+                throw e
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
     private class Response(val code: Int, val body: ByteArray)

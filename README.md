@@ -44,10 +44,14 @@ other cities you saved. Each shows its temperature and weather; tap one for its 
 days and the humidity. The star on a page saves or removes it. Use "Add a place" to search any city in the world.
 City weather is from [Open-Meteo](https://open-meteo.com/) (free for apps without ads or subscriptions).
 
-**Updates** — when the app opens it asks GitHub (at most every 6 hours) for the newest release. If it is newer
-than yours, a banner at the top says so. Download opens the APK in your browser; tap it to install. Android only
-installs it if it carries the same signature as the app on your phone. The X hides the banner until a newer
-version comes out. The request sends nothing about you except what any web request does.
+**Updates** — the app updates itself. When it opens it asks GitHub (at most every 6 hours) for the newest
+release. If that is newer, a banner at the top says so and the app downloads it: by itself on Wi-Fi, or when
+you tap Update on mobile data. It checks the file is this app, newer, and signed with the same key, then
+installs it when you leave the app, so it never closes in front of you. On Android 12 and newer that needs no
+tap. On older Android, or the first time, Android asks you once (allow "Install unknown apps", then Update).
+Install in the banner does it right away. The X skips that version. If something fails, the banner says why
+and offers Try again, or Download to get the file in your browser. The request sends nothing about you
+except what any web request does.
 
 **Widgets** — three home screen widgets, each showing the average temperature of all NEA stations,
 the weather now for your area, the PSI for your region, the time NEA recorded it, and the area name:

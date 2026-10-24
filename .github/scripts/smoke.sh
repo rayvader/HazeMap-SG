@@ -294,6 +294,43 @@ shot 22-offline-radar 25 --es tab rain --es source radar
 dump && say "offline radar: status='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" rainStatus text)' clock='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" rainClock text)'"
 adb shell svc wifi enable
 adb shell svc data enable
+
+# ---- Self-update: an old copy (version 1.0.1) finds the newest release on GitHub, downloads it, checks
+# it and installs it when the app is left. Runs last: afterwards the phone has the newest release. ----
+version_code() { adb shell dumpsys package "$PKG" | grep -m1 -o 'versionCode=[0-9]*'; }
+logged() { adb logcat -d | grep -c "$1"; }
+self_update_try() {
+  local ready_before start_before
+  ready_before=$(logged 'update ready')
+  start_before=$(logged 'update download start')
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab now > /dev/null
+  for i in $(seq 1 45); do
+    [ "$(logged 'update ready')" -gt "$ready_before" ] && break
+    if [ "$i" = 10 ] && [ "$(logged 'update download start')" -le "$start_before" ]; then
+      say "self update ($1): no download by itself, tapping the banner button"
+      tap updateDownload
+    fi
+    sleep 2
+  done
+  say "self update banner ($1): '$(attr updateTitle text)' / '$(attr updateSub text)'"
+  adb exec-out screencap -p > "$OUT/80-self-update-$1.png"
+  adb shell input keyevent KEYCODE_HOME
+  sleep 25
+  say "self update after leaving the app ($1): $(version_code)"
+}
+if [ -f update-test-old.apk ]; then
+  sleep 5
+  adb uninstall "$PKG" > /dev/null
+  adb install update-test-old.apk > /dev/null
+  say "self update before: $(version_code)"
+  self_update_try first
+  if version_code | grep -q 'versionCode=1$'; then
+    # Stands in for the one time a person allows "Install unknown apps" for the app.
+    adb shell appops set "$PKG" REQUEST_INSTALL_PACKAGES allow
+    self_update_try allowed
+  fi
+  adb logcat -d | grep ' Updater' | sed -E 's/^[0-9-]+ //' | tee -a "$LOG"
+fi
 set -e
 
 adb logcat -d > "$OUT/logcat.txt" || true

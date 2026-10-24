@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -19,7 +20,9 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.rayvader.hazemap.databinding.ActivityMainBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
@@ -41,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private var haze: HazeScreen? = null
     private var activeLocationListener: LocationListener? = null
     private lateinit var updates: UpdateChecker
-    private var shownUpdate: UpdateInfo? = null
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -140,28 +142,90 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupUpdateBanner() {
         updates = UpdateChecker(this)
-        binding.updateDownload.setOnClickListener { openDownload() }
-        binding.updateClose.setOnClickListener {
-            shownUpdate?.let { updates.dismiss(it.version) }
-            showUpdate(null)
+        Updater.justUpdatedTo(this, updates.installedVersion())?.let {
+            Toast.makeText(this, getString(R.string.update_done, it), Toast.LENGTH_LONG).show()
         }
-        showUpdate(updates.cached())
+        binding.updateDownload.setOnClickListener { onUpdateButton() }
+        binding.updateClose.setOnClickListener {
+            Updater.state.value.info?.let { updates.dismiss(it.version) }
+            offerUpdate(null)
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { Updater.state.collect { showUpdate(it) } }
+        }
+        offerUpdate(updates.cached())
         // The smoke test's pretend version also skips the six-hour wait, so the real request is tested.
         val force = intent.hasExtra(EXTRA_INSTALLED_VERSION)
-        lifecycleScope.launch { showUpdate(updates.refreshIfDue(force)) }
+        lifecycleScope.launch { offerUpdate(updates.refreshIfDue(force)) }
     }
 
-    private fun showUpdate(latest: UpdateInfo?) {
+    private fun offerUpdate(latest: UpdateInfo?) {
         val show = UpdateLogic.shouldShow(installedVersion(), latest, updates.dismissedVersion())
-        shownUpdate = if (show) latest else null
-        binding.updateBanner.visibility = if (show) View.VISIBLE else View.GONE
-        if (show && latest != null) binding.updateSub.text = getString(R.string.update_sub, latest.version)
+        // A pretend version only shows the banner. The download starts by itself only off mobile data.
+        val auto = !intent.hasExtra(EXTRA_INSTALLED_VERSION) && onUnmeteredNetwork()
+        Updater.offer(this, if (show) latest else null, auto)
     }
 
-    private fun openDownload() {
-        val url = shownUpdate?.downloadUrl ?: return
+    private fun onUnmeteredNetwork(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        return !cm.isActiveNetworkMetered
+    }
+
+    private fun showUpdate(state: UpdateState) {
+        val info = state.info
+        binding.updateBanner.visibility = if (info == null) View.GONE else View.VISIBLE
+        if (info == null) return
+        val version = getString(R.string.update_sub, info.version)
+        val (title, sub, button) = when (state) {
+            is UpdateState.Available -> Triple(R.string.update_title, version, R.string.update_now)
+            is UpdateState.Downloading -> Triple(
+                R.string.update_downloading,
+                state.percent?.let { getString(R.string.update_percent, info.version, it) } ?: version,
+                null
+            )
+            is UpdateState.Ready -> Triple(
+                R.string.update_ready,
+                if (state.installOnLeave) getString(R.string.update_on_leave, info.version) else version,
+                R.string.update_install
+            )
+            is UpdateState.Installing -> Triple(R.string.update_installing, version, null)
+            is UpdateState.Failed -> Triple(
+                R.string.update_failed,
+                getString(problemText(state.problem)),
+                if (state.problem.retry && info.isApk) R.string.update_retry else R.string.update_download
+            )
+            UpdateState.Hidden -> return
+        }
+        binding.updateTitle.setText(title)
+        binding.updateSub.text = sub
+        binding.updateDownload.visibility = if (button == null) View.GONE else View.VISIBLE
+        if (button != null) binding.updateDownload.setText(button)
+    }
+
+    private fun problemText(problem: UpdateProblem): Int = when (problem) {
+        UpdateProblem.DOWNLOAD -> R.string.update_problem_download
+        UpdateProblem.DAMAGED -> R.string.update_problem_damaged
+        UpdateProblem.OTHER_APP -> R.string.update_problem_other_app
+        UpdateProblem.NOT_NEWER -> R.string.update_problem_not_newer
+        UpdateProblem.OTHER_SIGNER -> R.string.update_problem_other_signer
+        UpdateProblem.INSTALL -> R.string.update_problem_install
+    }
+
+    private fun onUpdateButton() {
+        when (val s = Updater.state.value) {
+            is UpdateState.Available -> s.info?.let { if (it.isApk) Updater.download(this, it) else openDownload(it) }
+            is UpdateState.Ready -> Updater.installNow(this)
+            is UpdateState.Failed -> s.info?.let {
+                if (s.problem.retry && it.isApk) Updater.download(this, it) else openDownload(it)
+            }
+            else -> Unit
+        }
+    }
+
+    /** The release page or APK in the browser: the way out when the app cannot update itself. */
+    private fun openDownload(info: UpdateInfo) {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(info.downloadUrl)))
         } catch (e: ActivityNotFoundException) {
             Toast.makeText(this, R.string.update_no_browser, Toast.LENGTH_LONG).show()
         }

@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- The app installs its own updates. Android asks the person before allowing this. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 12 and newer: later updates of this app can install with no tap. -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <application
         android:name=".HazeApp"
@@ -63,6 +67,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_strip_info" />
         </receiver>
+
+        <receiver
+            android:name=".UpdateStatusReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
