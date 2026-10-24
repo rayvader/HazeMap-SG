@@ -131,6 +131,43 @@ class PlaceDataTest {
     }
 
     @Test
+    fun windIsReadFromTheForecast() {
+        val w = PlaceParsers.forecast(fixture("om-forecast.json"))
+        assertNotNull(w.windKmh)
+        assertTrue("wind ${w.windKmh}", w.windKmh!! in 0..300)
+        assertNotNull(w.windFromDeg)
+        assertTrue("direction ${w.windFromDeg}", w.windFromDeg!! in 0..360)
+    }
+
+    @Test
+    fun windIsKeptInKilometresPerHourAndRoundedToWholeNumbers() {
+        // Open-Meteo already reports km/h; the Singapore knots conversion must not be applied to it.
+        val body = """{"timezone":"UTC","current":{"temperature_2m":20.5,"wind_speed_10m":12.4,"wind_direction_10m":134.6,"weather_code":0,"is_day":1}}"""
+        val w = PlaceParsers.forecast(body)
+        assertEquals(12, w.windKmh)
+        assertEquals(135, w.windFromDeg)
+    }
+
+    @Test
+    fun missingWindIsNullNotZero() {
+        val without = """{"timezone":"UTC","current":{"temperature_2m":20.5,"weather_code":0,"is_day":1}}"""
+        val empty = """{"timezone":"UTC","current":{"temperature_2m":20.5,"wind_speed_10m":null,"wind_direction_10m":null,"weather_code":0,"is_day":1}}"""
+        for (body in listOf(without, empty)) {
+            val w = PlaceParsers.forecast(body)
+            assertNull(w.windKmh)
+            assertNull(w.windFromDeg)
+        }
+    }
+
+    @Test
+    fun aSpeedWithoutADirectionIsStillKept() {
+        val body = """{"timezone":"UTC","current":{"temperature_2m":20.5,"wind_speed_10m":7.0,"weather_code":0,"is_day":1}}"""
+        val w = PlaceParsers.forecast(body)
+        assertEquals(7, w.windKmh)
+        assertNull(w.windFromDeg)
+    }
+
+    @Test
     fun forecastRoundsDailyTemperatures() {
         val body = """{"timezone":"UTC","current":{"temperature_2m":20.5,"weather_code":0,"is_day":1},
             "daily":{"time":["2026-01-01"],"weather_code":[3],"temperature_2m_max":[24.5],"temperature_2m_min":[18.4]}}"""

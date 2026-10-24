@@ -31,6 +31,10 @@ data class PlaceWeather(
     val tempC: Double?,
     /** Relative humidity in percent, or null when the service did not report it. */
     val humidity: Int?,
+    /** Wind speed in km/h (Open-Meteo's own unit, not knots), or null when not reported. */
+    val windKmh: Int?,
+    /** The compass bearing the wind blows FROM, in degrees, or null when not reported. */
+    val windFromDeg: Int?,
     val code: Int?,
     val isDay: Boolean,
     val timezone: String,
@@ -160,6 +164,8 @@ object PlaceParsers {
         return PlaceWeather(
             tempC = current?.numberOrNull("temperature_2m"),
             humidity = current?.numberOrNull("relative_humidity_2m")?.let { Math.round(it).toInt() },
+            windKmh = current?.numberOrNull("wind_speed_10m")?.let { Math.round(it).toInt() },
+            windFromDeg = current?.numberOrNull("wind_direction_10m")?.let { Math.round(it).toInt() },
             code = current?.intOrNull("weather_code"),
             isDay = current?.optInt("is_day", 1) != 0,
             timezone = root.optString("timezone").ifBlank { "UTC" },

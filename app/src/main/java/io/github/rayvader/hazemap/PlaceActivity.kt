@@ -106,6 +106,18 @@ class PlaceActivity : AppCompatActivity() {
         b.placeChipHumidity.visibility = if (humidity == null) android.view.View.GONE else android.view.View.VISIBLE
         if (humidity != null) b.placeChipHumidity.text = getString(R.string.chip_humid, humidity)
 
+        // Same words as the Singapore Now tab. Open-Meteo already gives km/h, so no knots conversion.
+        val speed = w?.windKmh
+        val from = w?.windFromDeg
+        b.placeChipWind.visibility = if (speed == null) android.view.View.GONE else android.view.View.VISIBLE
+        if (speed != null) {
+            b.placeChipWind.text = if (from == null) {
+                getString(R.string.chip_wind_only, speed)
+            } else {
+                getString(R.string.chip_wind, WindFmt.compass(from.toDouble()), speed)
+            }
+        }
+
         b.placeDaysList.removeAllViews()
         val days = w?.days.orEmpty().drop(1).take(4)
         b.placeDaysCard.visibility = if (days.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE

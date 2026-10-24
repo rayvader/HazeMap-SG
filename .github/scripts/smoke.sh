@@ -235,6 +235,7 @@ sleep 10
 say "place page title: $(attr placeTitle text)"
 say "place page star: $(attr btnStar content-desc)"
 say "place page humidity: '$(attr placeChipHumidity text)'"
+say "place page wind: '$(attr placeChipWind text)'"
 adb exec-out screencap -p > "$OUT/53-place-page.png"
 tap btnStar
 say "place page star after tap: $(attr btnStar content-desc)"
