@@ -94,4 +94,20 @@
     <string name="update_download">Download</string>
     <string name="update_close">Dismiss</string>
     <string name="update_no_browser">No app can open the download link.</string>
+    <string name="update_now">Update</string>
+    <string name="update_downloading">Downloading update</string>
+    <string name="update_percent">Version %1$s · %2$d%%</string>
+    <string name="update_ready">Update ready</string>
+    <string name="update_on_leave">Version %1$s · installs when you leave the app</string>
+    <string name="update_install">Install</string>
+    <string name="update_installing">Installing update</string>
+    <string name="update_failed">Update failed</string>
+    <string name="update_retry">Try again</string>
+    <string name="update_done">Updated to version %1$s</string>
+    <string name="update_problem_download">The download did not finish.</string>
+    <string name="update_problem_damaged">The downloaded file is damaged.</string>
+    <string name="update_problem_other_app">The file is not this app.</string>
+    <string name="update_problem_not_newer">The file is not newer than this app.</string>
+    <string name="update_problem_other_signer">The file is not signed by this app\'s maker.</string>
+    <string name="update_problem_install">Android could not install it.</string>
 </resources>

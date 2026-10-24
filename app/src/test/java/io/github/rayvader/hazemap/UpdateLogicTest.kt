@@ -131,4 +131,92 @@ class UpdateLogicTest {
         assertFalse(UpdateLogic.shouldShow("1.0.31", v32, "1.0.32"))
         assertTrue(UpdateLogic.shouldShow("1.0.31", v33, "1.0.32"))
     }
+
+    // ---- Self-update ----
+
+    private val pkg = "io.github.rayvader.hazemap"
+    private val key = listOf(byteArrayOf(1, 2, 3))
+
+    private fun check(
+        archivePackage: String? = pkg,
+        archiveVersion: Long = 41,
+        archiveSigners: List<ByteArray> = key,
+        ownVersion: Long = 40,
+        ownSigners: List<ByteArray> = listOf(byteArrayOf(1, 2, 3))
+    ) = UpdateLogic.checkApk(archivePackage, archiveVersion, archiveSigners, pkg, ownVersion, ownSigners)
+
+    @Test
+    fun aNewerCopySignedWithTheSameKeyPasses() {
+        assertNull(check())
+    }
+
+    @Test
+    fun aFileThatIsNotAnApkIsDamaged() {
+        assertEquals(UpdateProblem.DAMAGED, check(archivePackage = null))
+    }
+
+    @Test
+    fun anotherAppIsRefused() {
+        assertEquals(UpdateProblem.OTHER_APP, check(archivePackage = "com.example.other"))
+    }
+
+    @Test
+    fun theSameOrAnOlderVersionIsRefused() {
+        assertEquals(UpdateProblem.NOT_NEWER, check(archiveVersion = 40))
+        assertEquals(UpdateProblem.NOT_NEWER, check(archiveVersion = 39))
+    }
+
+    @Test
+    fun anotherKeyIsRefused() {
+        assertEquals(UpdateProblem.OTHER_SIGNER, check(archiveSigners = listOf(byteArrayOf(9, 9))))
+        assertEquals(UpdateProblem.OTHER_SIGNER, check(archiveSigners = key + listOf(byteArrayOf(9))))
+    }
+
+    @Test
+    fun anUnreadableKeyListIsLeftToAndroidsOwnCheck() {
+        assertNull(check(archiveSigners = emptyList()))
+        assertNull(check(ownSigners = emptyList()))
+    }
+
+    @Test
+    fun noTapInstallsNeedAndroid12AndTheInstallAppsPermission() {
+        assertFalse(UpdateLogic.installOnLeave(30, "1.0.41", true, null))
+        // Before the person allows "Install unknown apps", Android asks first.
+        assertFalse(UpdateLogic.installOnLeave(34, "1.0.41", false, null))
+        assertTrue(UpdateLogic.installOnLeave(31, "1.0.41", true, null))
+        assertTrue(UpdateLogic.installOnLeave(34, "1.0.41", true, null))
+    }
+
+    @Test
+    fun aNoTapTryThatAndroidTurnedIntoAPromptIsNotRepeated() {
+        val asked = UpdateLogic.askRecord("1.0.41", true)
+        assertFalse(UpdateLogic.installOnLeave(34, "1.0.41", true, asked))
+        // A newer version gets its own try.
+        assertTrue(UpdateLogic.installOnLeave(34, "1.0.42", true, asked))
+    }
+
+    @Test
+    fun aFailureIsRememberedForItsVersionOnly() {
+        val record = UpdateLogic.failRecord("1.0.41", UpdateProblem.OTHER_SIGNER)
+        assertEquals(UpdateProblem.OTHER_SIGNER, UpdateLogic.failedProblem(record, "1.0.41"))
+        assertNull(UpdateLogic.failedProblem(record, "1.0.42"))
+        assertNull(UpdateLogic.failedProblem(null, "1.0.41"))
+        assertNull(UpdateLogic.failedProblem("garbage", "1.0.41"))
+        assertNull(UpdateLogic.failedProblem("1.0.41|NOPE", "1.0.41"))
+    }
+
+    @Test
+    fun anUpdateCountsAsDoneOnceThatVersionOrALaterOneRuns() {
+        assertTrue(UpdateLogic.justUpdated("1.0.41", "1.0.41"))
+        assertTrue(UpdateLogic.justUpdated("1.0.41", "1.0.42"))
+        assertFalse(UpdateLogic.justUpdated("1.0.41", "1.0.40"))
+        assertFalse(UpdateLogic.justUpdated(null, "1.0.41"))
+        assertFalse(UpdateLogic.justUpdated("1.0.41", null))
+    }
+
+    @Test
+    fun onlyAnApkLinkCanBeInstalledByTheApp() {
+        assertTrue(UpdateInfo("1.0.41", "https://github.com/rayvader/HazeMap-SG/x.apk").isApk)
+        assertFalse(UpdateInfo("1.0.41", "https://github.com/rayvader/HazeMap-SG/releases/tag/v1.0.41").isApk)
+    }
 }

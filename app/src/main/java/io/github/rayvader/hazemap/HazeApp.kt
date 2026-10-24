@@ -10,6 +10,8 @@ class HazeApp : Application() {
         super.onCreate()
         // Before the first activity, so the app opens in the saved theme with no flash of the other one.
         AppCompatDelegate.setDefaultNightMode(ThemeStore.load(this).nightMode)
+        // Updates install when the person leaves the app, never in front of them.
+        registerActivityLifecycleCallbacks(Updater.lifecycle)
         // osmdroid needs a user agent, and its tile cache must sit in app storage: it defaults to
         // shared storage, which apps cannot write to on current Android.
         val cfg = Configuration.getInstance()

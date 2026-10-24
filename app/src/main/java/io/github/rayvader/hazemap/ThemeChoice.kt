@@ -13,6 +13,9 @@ object Prefs {
     const val KEY_UPDATE_VERSION = "update_version"
     const val KEY_UPDATE_URL = "update_url"
     const val KEY_UPDATE_DISMISSED = "update_dismissed"
+    const val KEY_UPDATE_INSTALLING = "update_installing"
+    const val KEY_UPDATE_ASKED = "update_asked"
+    const val KEY_UPDATE_FAILED = "update_failed"
 }
 
 /**
