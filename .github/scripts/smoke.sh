@@ -188,12 +188,13 @@ anim_scale() {
   done
 }
 # Leaving the home screen and coming back is what starts the widget pictures. Extras go to the app.
+# The emulator's launcher takes over a second to settle after Home, so shots start 2 s in.
 home_again() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" "$@"
   sleep 4
   adb shell input keyevent KEYCODE_HOME
-  sleep 1
+  sleep 2
 }
 RAW=$(mktemp -d)
 # raw_shots <name> <count>: quick screenshots without PNG encoding, kept out of the uploaded folder
