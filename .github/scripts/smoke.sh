@@ -204,6 +204,13 @@ raw_shots() {
   done
 }
 picture_frames() { python3 .github/scripts/ui_probe.py frames "$OUT/ui-widgets.xml" "$@"; }
+# The widget clocks redraw the whole widget when the minute changes, so steady pictures are shot clear of it.
+clear_of_minute() {
+  local s
+  s=$(adb shell date +%S | tr -d '\r')
+  s=${s#0}
+  if [ "${s:-0}" -ge 52 ]; then sleep $((63 - s)); fi
+}
 
 adb shell input keyevent KEYCODE_HOME
 sleep 2
@@ -227,33 +234,39 @@ say "widgets bound: $(adb shell dumpsys appwidget | grep -c 'io.github.rayvader.
 dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
 say "--- widgets on the home screen, real weather ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
+REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep -o -m1 'picture=[a-z]*' | cut -d= -f2)
 
 # Every sky in turn: its picture should move just after the home screen shows, and rest 10 s later.
 for scene in sun partly cloud rain storm haze wind night; do
   home_again --es widget_scene "$scene"
   raw_shots "$scene-moving" 2
-  sleep 10
+  sleep 9
+  clear_of_minute
   raw_shots "$scene-resting" 2
   adb exec-out screencap -p > "$OUT/45-widget-$scene.png"
   say "sky $scene moving: $(picture_frames "$RAW/$scene"-moving-*.raw)"
   say "sky $scene resting: $(picture_frames "$RAW/$scene"-resting-*.raw)"
-  rm -f "$RAW/$scene"-*.raw
+  rm -f "$RAW/$scene"-moving-*.raw "$RAW/$scene-resting-2.raw"
+  # The real weather's resting frame is kept, to compare with the still picture below.
+  [ "$scene" = "$REAL" ] || rm -f "$RAW/$scene-resting-1.raw"
 done
 anim_scale 0
 
-# Back to the real weather. Dark mode makes the home screen build its widgets again, now with animations off.
+# Back to the real weather. Dark mode, and back, make the home screen build its widgets again with animations off.
 home_again --es widget_scene auto
 sleep 4
 dump && say "--- widgets back on the real weather ---" && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 adb shell cmd uimode night yes
 sleep 10
 adb exec-out screencap -p > "$OUT/44-widgets-home-dark.png"
-home_again
-raw_shots still 2
-say "pictures with animations off: $(picture_frames "$RAW"/still-*.raw)"
-rm -rf "$RAW"
 adb shell cmd uimode night no
 sleep 5
+home_again
+clear_of_minute
+raw_shots still 2
+say "pictures with animations off: $(picture_frames "$RAW"/still-*.raw)"
+say "resting $REAL picture vs animations off: $(picture_frames "$RAW/$REAL-resting-1.raw" "$RAW/still-1.raw")"
+rm -rf "$RAW"
 
 # ---- Saved places: open the list, search a city, save it, open its page, remove it ----
 adb shell am force-stop "$PKG"

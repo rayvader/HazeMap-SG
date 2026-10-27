@@ -70,15 +70,15 @@ def frames(path, raws):
         shots.append((data, w, head))
     out = []
     for name, (x1, y1, x2, y2) in boxes:
-        seen = set()
+        crops = []
         for data, w, head in shots:
-            digest = hashlib.md5()
-            for y in range(y1, y2):
-                start = head + (y * w + x1) * 4
-                digest.update(data[start:start + (x2 - x1) * 4])
-            seen.add(digest.hexdigest())
+            rows = (data[head + (y * w + x1) * 4:head + (y * w + x2) * 4] for y in range(y1, y2))
+            crops.append(memoryview(b"".join(rows)).cast("I"))
+        # How far apart the shots are: real motion moves thousands of pixels, a redraw only a few.
+        changed = max((sum(p != q for p, q in zip(a, b)) for a, b in zip(crops, crops[1:])), default=0)
+        distinct = len({hashlib.md5(c).hexdigest() for c in crops})
         label = name if name == "whole widget" else "picture"
-        out.append(f"{label} {x2 - x1}x{y2 - y1}px: {len(seen)} different of {len(shots)}")
+        out.append(f"{label} {x2 - x1}x{y2 - y1}px: {distinct} different of {len(shots)}, {changed} px changed")
     print("; ".join(out))
 
 
