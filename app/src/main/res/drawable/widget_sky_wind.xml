@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget sky for: windy. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="315"
+        android:endColor="#FF8EC5E8"
+        android:startColor="#FF2F6E9C" />
+    <corners android:radius="22dp" />
+</shape>

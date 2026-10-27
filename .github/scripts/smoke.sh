@@ -182,8 +182,33 @@ sleep 20
 say "theme after 2nd restart: button='$(attr btnTheme content-desc)'"
 
 # ---- Home screen widgets: ask the launcher to add each shape, confirm, then look at the home screen ----
+anim_scale() {
+  for s in animator_duration_scale transition_animation_scale window_animation_scale; do
+    adb shell settings put global "$s" "$1"
+  done
+}
+# Leaving the home screen and coming back is what starts the widget pictures. Extras go to the app.
+home_again() {
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" "$@"
+  sleep 4
+  adb shell input keyevent KEYCODE_HOME
+  sleep 1
+}
+RAW=$(mktemp -d)
+# raw_shots <name> <count>: quick screenshots without PNG encoding, kept out of the uploaded folder
+raw_shots() {
+  for i in $(seq 1 "$2"); do
+    adb exec-out screencap > "$RAW/$1-$i.raw"
+    sleep 0.6
+  done
+}
+picture_frames() { python3 .github/scripts/ui_probe.py frames "$OUT/ui-widgets.xml" "$@"; }
+
 adb shell input keyevent KEYCODE_HOME
 sleep 2
+# A widget picture keeps the speed it first played at, so animations are on before the widgets arrive.
+anim_scale 1
 add_widget() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" --es pin_widget "$1"
@@ -199,9 +224,34 @@ adb shell input keyevent KEYCODE_HOME
 sleep 25
 adb exec-out screencap -p > "$OUT/43-widgets-home-light.png"
 say "widgets bound: $(adb shell dumpsys appwidget | grep -c 'io.github.rayvader.hazemap')"
+dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
+say "--- widgets on the home screen, real weather ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
+
+# Every sky in turn: its picture should move just after the home screen shows, and rest 10 s later.
+for scene in sun partly cloud rain storm haze wind night; do
+  home_again --es widget_scene "$scene"
+  raw_shots "$scene-moving" 2
+  sleep 10
+  raw_shots "$scene-resting" 2
+  adb exec-out screencap -p > "$OUT/45-widget-$scene.png"
+  say "sky $scene moving: $(picture_frames "$RAW/$scene"-moving-*.raw)"
+  say "sky $scene resting: $(picture_frames "$RAW/$scene"-resting-*.raw)"
+  rm -f "$RAW/$scene"-*.raw
+done
+anim_scale 0
+
+# Back to the real weather. Dark mode makes the home screen build its widgets again, now with animations off.
+home_again --es widget_scene auto
+sleep 4
+dump && say "--- widgets back on the real weather ---" && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 adb shell cmd uimode night yes
 sleep 10
 adb exec-out screencap -p > "$OUT/44-widgets-home-dark.png"
+home_again
+raw_shots still 2
+say "pictures with animations off: $(picture_frames "$RAW"/still-*.raw)"
+rm -rf "$RAW"
 adb shell cmd uimode night no
 sleep 5
 

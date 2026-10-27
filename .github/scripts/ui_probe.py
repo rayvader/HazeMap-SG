@@ -1,21 +1,85 @@
 #!/usr/bin/env python3
 """Reads a uiautomator dump for the emulator smoke test.
 
-  ui_probe.py bounds <ui.xml> <text-or-content-desc-or-id-suffix>   -> "x y" (centre of the first match)
-  ui_probe.py attr   <ui.xml> <id-suffix> <attribute>               -> the attribute's value, or nothing
+  ui_probe.py bounds  <ui.xml> <text-or-content-desc-or-id-suffix>   -> "x y" (centre of the first match)
+  ui_probe.py attr    <ui.xml> <id-suffix> <attribute>               -> the attribute's value, or nothing
+  ui_probe.py widgets <ui.xml>                                       -> one line per Haze Map widget on screen
+  ui_probe.py frames  <ui.xml> <shot.raw>...                         -> how many shots differ inside each picture
+
+The raw shots come from `adb exec-out screencap` without -p: a small header, then 4 bytes per pixel.
 """
+import hashlib
 import re
+import struct
 import sys
 import xml.etree.ElementTree as ET
+
+WIDGET_FIELDS = ("wClock", "wDate", "wTemp", "wCondition", "wPlace", "wPsi", "wWhen")
 
 
 def nodes(path):
     return ET.parse(path).getroot().iter("node")
 
 
+def box(bounds):
+    return tuple(int(v) for v in re.findall(r"\d+", bounds))
+
+
 def centre(bounds):
-    x1, y1, x2, y2 = (int(v) for v in re.findall(r"\d+", bounds))
+    x1, y1, x2, y2 = box(bounds)
     return (x1 + x2) // 2, (y1 + y2) // 2
+
+
+def short_id(node):
+    return node.get("resource-id", "").rsplit("/", 1)[-1]
+
+
+def widget_roots(path):
+    return [n for n in nodes(path) if short_id(n) == "wRoot"]
+
+
+def widgets(path):
+    roots = widget_roots(path)
+    if not roots:
+        print("no widget found on screen")
+    for root in roots:
+        x1, y1, x2, y2 = box(root.get("bounds"))
+        scenes = [short_id(n)[len("wScene"):].lower() for n in root.iter("node") if short_id(n).startswith("wScene")]
+        fields = {short_id(n): n.get("text", "") for n in root.iter("node") if short_id(n) in WIDGET_FIELDS}
+        text = " ".join(f"{k[1:].lower()}='{fields[k]}'" for k in WIDGET_FIELDS if k in fields)
+        print(f"widget {x2 - x1}x{y2 - y1}px picture={'+'.join(scenes) or 'none'} {text}")
+
+
+def frames(path, raws):
+    # Each widget's picture box; every scene shares it, so one dump serves all of them.
+    boxes = [(short_id(n), box(n.get("bounds"))) for n in nodes(path) if short_id(n).startswith("wScene")]
+    if not boxes:
+        boxes = [("whole widget", box(n.get("bounds"))) for n in widget_roots(path)]
+    if not boxes:
+        print("no widget found on screen")
+        return
+    shots = []
+    for raw in raws:
+        with open(raw, "rb") as fh:
+            data = fh.read()
+        w, h = struct.unpack_from("<II", data)
+        head = len(data) - w * h * 4
+        if head not in (12, 16):
+            print(f"{raw}: not a 4-byte-per-pixel screenshot")
+            return
+        shots.append((data, w, head))
+    out = []
+    for name, (x1, y1, x2, y2) in boxes:
+        seen = set()
+        for data, w, head in shots:
+            digest = hashlib.md5()
+            for y in range(y1, y2):
+                start = head + (y * w + x1) * 4
+                digest.update(data[start:start + (x2 - x1) * 4])
+            seen.add(digest.hexdigest())
+        label = name if name == "whole widget" else "picture"
+        out.append(f"{label} {x2 - x1}x{y2 - y1}px: {len(seen)} different of {len(shots)}")
+    print("; ".join(out))
 
 
 def main():
@@ -33,6 +97,10 @@ def main():
             if n.get("resource-id", "").endswith("/" + suffix):
                 print(n.get(attr, ""))
                 return
+    if mode == "widgets":
+        widgets(path)
+    if mode == "frames":
+        frames(path, sys.argv[3:])
 
 
 if __name__ == "__main__":

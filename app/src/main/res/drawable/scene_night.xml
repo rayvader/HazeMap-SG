@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Clear night: the stars twinkle around the moon. It moves for about 10 seconds each time the home screen shows it, then rests.
+     The resting frame is the still picture below, which is all a phone with animations off shows. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="100dp"
+            android:height="100dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <path
+                android:name="star0"
+                android:fillColor="#FFFFFF"
+                android:pathData="M15.8,22a2.2,2.2 0 1,1 4.4,0a2.2,2.2 0 1,1 -4.4,0Z" />
+            <path
+                android:name="star1"
+                android:fillColor="#FFFFFF"
+                android:pathData="M26.5,72a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0Z" />
+            <path
+                android:name="star2"
+                android:fillColor="#FFFFFF"
+                android:pathData="M75.8,16a2.2,2.2 0 1,1 4.4,0a2.2,2.2 0 1,1 -4.4,0Z" />
+            <path
+                android:name="star3"
+                android:fillColor="#FFFFFF"
+                android:pathData="M86.5,56a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0Z" />
+            <path
+                android:name="star4"
+                android:fillColor="#FFFFFF"
+                android:pathData="M63.8,86a2.2,2.2 0 1,1 4.4,0a2.2,2.2 0 1,1 -4.4,0Z" />
+            <path
+                android:name="star5"
+                android:fillColor="#FFFFFF"
+                android:pathData="M10.5,46a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0Z" />
+            <path
+                android:fillColor="#FFF6F1C7"
+                android:pathData="M49,32A18,18 0 1,0 67,56A15,15 0 0,1 49,32Z" />
+        </vector>
+    </aapt:attr>
+    <target android:name="star0">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star1">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star2">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="1000"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star3">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="1500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star4">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="2000"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star5">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="2500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+</animated-vector>

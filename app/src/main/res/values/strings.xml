@@ -61,11 +61,11 @@
     <string name="widget_label_small">Haze Map SG · Square</string>
     <string name="widget_label_wide">Haze Map SG · Wide</string>
     <string name="widget_label_strip">Haze Map SG · Strip</string>
-    <string name="widget_desc_small">Temperature, weather and PSI for your area. Square.</string>
-    <string name="widget_desc_wide">Temperature, weather, PSI and time recorded. Wide.</string>
-    <string name="widget_desc_strip">Temperature, weather and PSI in one line.</string>
-    <string name="widget_recorded">Recorded %1$s</string>
-    <string name="widget_average_note">Average of all stations</string>
+    <string name="widget_desc_small">Clock and a moving sky for the weather, with temperature and PSI. Square.</string>
+    <string name="widget_desc_wide">Big clock and a moving sky for the weather, with temperature and PSI. Wide.</string>
+    <string name="widget_desc_strip">Clock, a moving sky picture, temperature and PSI in one row.</string>
+    <string name="widget_place_psi_time">%1$s · PSI at %2$s</string>
+    <string name="widget_place_time">%1$s · %2$s</string>
     <string name="widget_psi_none">PSI --</string>
     <string name="widget_summary">%1$s. Average %2$s. %3$s. PSI %4$s. Recorded %5$s.</string>
 
