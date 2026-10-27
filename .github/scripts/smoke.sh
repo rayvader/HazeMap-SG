@@ -326,12 +326,17 @@ tap "Tokyo"
 sleep 4
 home_again --es widget_scene auto
 widget_id() { adb logcat -d -s HazeWidget:I | grep "shape=$1 " | tail -1 | sed -n 's/.* id=\([0-9]*\) .*/\1/p'; }
-for shape in small wide strip; do
-  id=$(widget_id "$shape")
-  say "widget $shape has id '$id'"
+open_picker() {
+  local id
+  id=$(widget_id "$1")
+  say "widget $1 has id '$id'"
   adb shell am start -W -a android.appwidget.action.APPWIDGET_CONFIGURE -n "$PKG/.WidgetPlaceActivity" --ei appWidgetId "$id"
   sleep 3
-  if [ "$shape" = small ]; then
+}
+# The Wide and the Strip get Tokyo. The Square stays on Singapore, to show each widget keeps its own choice.
+for shape in wide strip; do
+  open_picker "$shape"
+  if [ "$shape" = wide ]; then
     adb exec-out screencap -p > "$OUT/46-widget-picker.png"
     dump && say "widget screen: '$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" widgetPlaceTitle text)'" \
       "rows: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowName text)" \
@@ -340,13 +345,23 @@ for shape in small wide strip; do
   tap "Tokyo"
   sleep 3
 done
-sleep 20
+# Open the Wide's screen again: it marks Tokyo now, and backing out must leave the widget alone.
+open_picker wide
+adb exec-out screencap -p > "$OUT/46b-widget-picker-tokyo.png"
+dump && say "widget screen again, marked: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowTemp text)"
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+# Here the screen opened on top of the app, not on the launcher as in real use, so go home to see the widgets.
+adb shell input keyevent KEYCODE_HOME
+sleep 25
 adb exec-out screencap -p > "$OUT/47-widgets-tokyo.png"
 dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
-say "--- widgets now showing Tokyo ---"
+say "--- widgets, the Wide and the Strip showing Tokyo ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
 say "time now: Tokyo $(TZ=Asia/Tokyo date +%-I:%M), Singapore $(TZ=Asia/Singapore date +%-I:%M), phone $(adb shell date +%H:%M | tr -d '\r') (24 h)"
-tap wRoot
+adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
+# Tap the Tokyo widget: its description starts with the place name.
+dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo.") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
 sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
