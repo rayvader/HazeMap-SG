@@ -97,6 +97,10 @@ class MainActivity : AppCompatActivity() {
 
         if (savedInstanceState == null) {
             WidgetShape.fromKey(intent.getStringExtra(EXTRA_PIN_WIDGET))?.let { WidgetUpdater.requestPin(this, it) }
+            intent.getStringExtra(EXTRA_WIDGET_SCENE)?.let { key ->
+                WidgetUpdater.sceneOverride = SkyScene.fromKey(key)
+                lifecycleScope.launch { WidgetUpdater.update(this@MainActivity) }
+            }
         }
     }
 
@@ -390,6 +394,12 @@ class MainActivity : AppCompatActivity() {
 
         /** Pretends the installed app has this version, to see the update banner. Used by the emulator smoke test. */
         const val EXTRA_INSTALLED_VERSION = "installed_version"
+
+        /**
+         * Redraws the widgets with this sky ("sun", "rain", "night", ...) whatever the weather; "auto" goes
+         * back to the real one. Used by the emulator smoke test.
+         */
+        const val EXTRA_WIDGET_SCENE = "widget_scene"
 
         private const val LOCATION_TIMEOUT_MS = 10_000L
         private const val KEY_AREA = Prefs.KEY_AREA

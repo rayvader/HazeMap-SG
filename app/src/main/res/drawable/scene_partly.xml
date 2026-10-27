@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Partly cloudy: the rays turn while a cloud drifts by. It moves for about 10 seconds each time the home screen shows it, then rests.
+     The resting frame is the still picture below, which is all a phone with animations off shows. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="100dp"
+            android:height="100dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <group
+                android:translateX="37"
+                android:translateY="38">
+                <group
+                    android:name="sunGlow">
+                    <path
+                        android:name="sunGlowFill"
+                        android:fillColor="#FFE9A8"
+                        android:fillAlpha="0.4"
+                        android:pathData="M-18.85,0a18.85,18.85 0 1,1 37.7,0a18.85,18.85 0 1,1 -37.7,0Z" />
+                </group>
+                <group
+                    android:name="sunRays">
+                    <path
+                        android:strokeColor="#FFD866"
+                        android:strokeWidth="3"
+                        android:strokeLineCap="round"
+                        android:pathData="M17.55,0L23.4,0M12.41,12.41L16.55,16.55M0,17.55L0,23.4M-12.41,12.41L-16.55,16.55M-17.55,0L-23.4,0M-12.41,-12.41L-16.55,-16.55M0,-17.55L0,-23.4M12.41,-12.41L16.55,-16.55" />
+                </group>
+                <path
+                    android:fillColor="#FFC93C"
+                    android:pathData="M-13,0a13,13 0 1,1 26,0a13,13 0 1,1 -26,0Z" />
+            </group>
+            <group
+                android:translateX="61.15"
+                android:translateY="60"
+                android:scaleX="1.05"
+                android:scaleY="1.05">
+                <group
+                    android:name="cloudFront">
+                    <path
+                        android:fillColor="#FFFFFF"
+                        android:pathData="M-23,2a11,11 0 1,1 22,0a11,11 0 1,1 -22,0ZM-11,-6a14,14 0 1,1 28,0a14,14 0 1,1 -28,0ZM7,3a9,9 0 1,1 18,0a9,9 0 1,1 -18,0ZM-16,2H18A6,6 0 0 1 18,14H-16A6,6 0 0 1 -16,2Z" />
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="sunRays">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="rotation"
+                android:valueFrom="0"
+                android:valueTo="135"
+                android:valueType="floatType"
+                android:duration="10000"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="sunGlow">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="sunGlowFill">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0.4"
+                android:valueTo="0.65"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="cloudFront">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="-6"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+</animated-vector>

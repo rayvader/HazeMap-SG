@@ -53,18 +53,25 @@ Install in the banner does it right away. The X skips that version. If something
 and offers Try again, or Download to get the file in your browser. The request sends nothing about you
 except what any web request does.
 
-**Widgets** — three home screen widgets, each showing the average temperature of all NEA stations,
-the weather now for your area, the PSI for your region, the time NEA recorded it, and the area name:
+**Widgets** — three home screen widgets with a sky that matches the weather. Each shows a clock and
+the date, the average temperature of all NEA stations, the weather now for your area, the PSI for your
+region with the time NEA recorded it, and the area name:
 
-| Widget | Size | Notes |
+| Widget | Size | Layout |
 |---|---|---|
-| Square | 2x2 | location, temperature, weather, PSI, time |
-| Wide | 4x2 | adds the PSI band name and "Recorded" label |
-| Strip | 4x1 | one line |
+| Square | 2x2 | clock and picture on top; temperature, weather, area, PSI and its time below |
+| Wide | 4x2 | big clock and big picture; "Bedok · PSI at 2:00 pm" under the weather |
+| Strip | 4x1 | clock, picture, weather and PSI in one row |
 
-Long-press the home screen, pick Widgets, then Haze Map SG. They refresh about every 30 minutes
+The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
+haze and windy. Clear weather from 7 pm to 7 am shows a night sky with the moon, and partly cloudy
+shows clouds. The picture moves for about 10 seconds each time the home screen shows it, then rests,
+to save battery. With animations turned off, and on some home screen apps, it stays still. The clock
+is the phone's own and keeps time by itself.
+
+Long-press the home screen, pick Widgets, then Haze Map SG. The weather refreshes about every 30 minutes
 (the fastest Android allows), even when the app is closed, and when you change area in the app.
-Tap a widget to open the app. They follow the phone's dark mode setting.
+Tap a widget to open the app. The sky looks the same in light and dark mode.
 
 ## Data, and what to expect
 

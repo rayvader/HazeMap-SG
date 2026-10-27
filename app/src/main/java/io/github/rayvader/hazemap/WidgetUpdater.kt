@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.view.View
 import android.widget.RemoteViews
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -105,40 +106,52 @@ object WidgetUpdater {
         }
     }
 
-    internal fun views(context: Context, shape: WidgetShape, model: WidgetModel): RemoteViews {
+    /**
+     * Draws every widget with this sky whatever the weather, until the app process ends.
+     * Set only by the emulator smoke test, to look at all eight pictures.
+     */
+    @Volatile
+    internal var sceneOverride: SkyScene? = null
+
+    internal fun views(
+        context: Context,
+        shape: WidgetShape,
+        model: WidgetModel,
+        nowMillis: Long = System.currentTimeMillis()
+    ): RemoteViews {
         val v = RemoteViews(context.packageName, shape.layout)
-        val condition = Condition.fromText(model.condition)
+        val scene = sceneOverride ?: WidgetLogic.scene(model.condition, nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clock(it) }
         val band = model.band
 
-        v.setTextViewText(R.id.wLocation, model.areaName)
+        // The sky colour, and the one moving picture for this weather. The clock and date tick by themselves.
+        v.setInt(R.id.wRoot, "setBackgroundResource", skyOf(scene))
+        for (s in SkyScene.entries) {
+            v.setViewVisibility(pictureOf(s), if (s == scene) View.VISIBLE else View.GONE)
+        }
+
         v.setTextViewText(R.id.wTemp, model.tempText)
-        v.setImageViewResource(R.id.wIcon, Icons.forCondition(condition))
-        v.setTextViewText(R.id.wCondition, model.condition ?: "--")
+        v.setTextViewText(R.id.wCondition, model.conditionText)
 
-        // A wide widget has room for the word; the small ones keep just the clock.
-        val time = when {
-            clock == null -> "--"
-            shape == WidgetShape.WIDE -> context.getString(R.string.widget_recorded, clock)
-            else -> clock
+        // The wide widget puts the PSI time after the area; the others show it beside the PSI.
+        if (shape == WidgetShape.WIDE) {
+            v.setTextViewText(R.id.wPlace, placeLine(context, model, clock))
+        } else {
+            v.setTextViewText(R.id.wPlace, model.areaName)
+            v.setTextViewText(R.id.wWhen, clock ?: "--")
         }
-        v.setTextViewText(R.id.wTime, time)
 
-        val badgeText = when {
-            model.psi == null -> if (shape == WidgetShape.WIDE) "--" else context.getString(R.string.widget_psi_none)
-            shape == WidgetShape.WIDE -> model.psi.toString()
-            else -> context.getString(R.string.psi_value, model.psi)
-        }
+        val badgeText = model.psi?.let { context.getString(R.string.psi_value, it) }
+            ?: context.getString(R.string.widget_psi_none)
         v.setTextViewText(R.id.wPsi, badgeText)
         v.setTextColor(R.id.wPsi, band?.textColor ?: NO_DATA_TEXT)
         v.setInt(R.id.wPsi, "setBackgroundResource", badgeBackground(band))
-        v.setTextViewText(R.id.wBand, band?.label ?: "")
 
         val summary = context.getString(
             R.string.widget_summary,
             model.areaName,
             model.tempText,
-            model.condition ?: "--",
+            model.conditionText,
             model.psi?.toString() ?: "--",
             clock ?: "--"
         )
@@ -152,6 +165,36 @@ object WidgetUpdater {
         )
         v.setOnClickPendingIntent(R.id.wRoot, open)
         return v
+    }
+
+    /** "Bedok · PSI at 2:00 pm". Without a PSI, the time is when the temperature was recorded. */
+    private fun placeLine(context: Context, model: WidgetModel, clock: String?): String = when {
+        clock == null -> model.areaName
+        model.psi != null -> context.getString(R.string.widget_place_psi_time, model.areaName, clock)
+        else -> context.getString(R.string.widget_place_time, model.areaName, clock)
+    }
+
+    private fun skyOf(scene: SkyScene): Int = when (scene) {
+        SkyScene.SUN -> R.drawable.widget_sky_sun
+        SkyScene.PARTLY -> R.drawable.widget_sky_partly
+        SkyScene.CLOUD -> R.drawable.widget_sky_cloud
+        SkyScene.RAIN -> R.drawable.widget_sky_rain
+        SkyScene.STORM -> R.drawable.widget_sky_storm
+        SkyScene.HAZE -> R.drawable.widget_sky_haze
+        SkyScene.WIND -> R.drawable.widget_sky_wind
+        SkyScene.NIGHT -> R.drawable.widget_sky_night
+    }
+
+    /** Every widget layout holds all eight pictures; each is a progress bar that plays its scene. */
+    private fun pictureOf(scene: SkyScene): Int = when (scene) {
+        SkyScene.SUN -> R.id.wSceneSun
+        SkyScene.PARTLY -> R.id.wScenePartly
+        SkyScene.CLOUD -> R.id.wSceneCloud
+        SkyScene.RAIN -> R.id.wSceneRain
+        SkyScene.STORM -> R.id.wSceneStorm
+        SkyScene.HAZE -> R.id.wSceneHaze
+        SkyScene.WIND -> R.id.wSceneWind
+        SkyScene.NIGHT -> R.id.wSceneNight
     }
 
     /** A RemoteViews cannot tint a drawable on every Android version, so each band has its own rounded fill. */
