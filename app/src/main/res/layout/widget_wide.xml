@@ -206,7 +206,7 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/wPsi"
+            android:id="@+id/wBadge"
             style="@style/WidgetPill"
             android:text="@string/widget_psi_none"
             android:layout_marginStart="8dp" />

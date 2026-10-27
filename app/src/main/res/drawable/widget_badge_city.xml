@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The pill on a city widget, which has no PSI colour: a dark tint that keeps white text readable on every sky. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#59000000" />
+    <corners android:radius="10dp" />
+</shape>

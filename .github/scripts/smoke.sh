@@ -309,6 +309,63 @@ tap btnTheme
 sleep 6
 say "places run theme button after: $(attr btnTheme content-desc)"
 
+# ---- Widgets that show a saved city: save Tokyo, then pick it for each widget on the widget's own screen ----
+# The launcher opens that screen when a widget is added or reconfigured, but not for a widget pinned from an app.
+# So the test opens it the way the launcher does: with the widget's id, found in the app's own log line.
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+sleep 20
+tap "My places"
+sleep 3
+tap "＋ Add a place"
+sleep 3
+adb shell input text "tokyo"
+adb shell input keyevent KEYCODE_ENTER
+sleep 6
+tap "Tokyo"
+sleep 4
+home_again --es widget_scene auto
+widget_id() { adb logcat -d -s HazeWidget:I | grep "shape=$1 " | tail -1 | sed -n 's/.* id=\([0-9]*\) .*/\1/p'; }
+open_picker() {
+  local id
+  id=$(widget_id "$1")
+  say "widget $1 has id '$id'"
+  adb shell am start -W -a android.appwidget.action.APPWIDGET_CONFIGURE -n "$PKG/.WidgetPlaceActivity" --ei appWidgetId "$id"
+  sleep 3
+}
+# The Wide and the Strip get Tokyo. The Square stays on Singapore, to show each widget keeps its own choice.
+for shape in wide strip; do
+  open_picker "$shape"
+  if [ "$shape" = wide ]; then
+    adb exec-out screencap -p > "$OUT/46-widget-picker.png"
+    dump && say "widget screen: '$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" widgetPlaceTitle text)'" \
+      "rows: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowName text)" \
+      "marked: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowTemp text)"
+  fi
+  tap "Tokyo"
+  sleep 3
+done
+# Open the Wide's screen again: it marks Tokyo now, and backing out must leave the widget alone.
+open_picker wide
+adb exec-out screencap -p > "$OUT/46b-widget-picker-tokyo.png"
+dump && say "widget screen again, marked: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowTemp text)"
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+# Here the screen opened on top of the app, not on the launcher as in real use, so go home to see the widgets.
+adb shell input keyevent KEYCODE_HOME
+sleep 25
+adb exec-out screencap -p > "$OUT/47-widgets-tokyo.png"
+dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
+say "--- widgets, the Wide and the Strip showing Tokyo ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
+say "time now: Tokyo $(TZ=Asia/Tokyo date +%-I:%M), Singapore $(TZ=Asia/Singapore date +%-I:%M), phone $(adb shell date +%H:%M | tr -d '\r') (24 h)"
+adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
+# Tap the Tokyo widget: its description starts with the place name.
+dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo.") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
+sleep 5
+say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
+adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
+
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
 adb shell settings put global animator_duration_scale 1
 adb shell settings put global transition_animation_scale 1

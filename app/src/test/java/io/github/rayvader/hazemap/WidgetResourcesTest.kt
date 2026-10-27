@@ -56,6 +56,53 @@ class WidgetResourcesTest {
         for (s in SkyScene.entries) assertTrue(s.key, File(res, "drawable/widget_sky_${s.key}.xml").isFile)
     }
 
+    /** Every view in a layout, the root included. */
+    private fun views(layout: String): List<Element> = parse("layout/$layout.xml").let { listOf(it) + it.descendants() }
+
+    @Test
+    fun everyLayoutHasTheViewsTheAppFillsIn() {
+        // A view missing from one layout only fails on a phone, when the widget refuses to draw.
+        val shared = listOf("wRoot", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
+        val wanted = mapOf(
+            "widget_small" to shared + "wWhen",
+            "widget_wide" to shared,
+            "widget_strip" to shared + "wWhen"
+        )
+        for ((layout, ids) in wanted) {
+            val have = views(layout).mapNotNull { it.attr("id") }.toSet()
+            for (id in ids) assertTrue("$layout has no $id", "@+id/$id" in have)
+        }
+    }
+
+    @Test
+    fun theClockAndDateAreRealClocksSoTheyCanTakeATimeZone() {
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            for (id in listOf("wClock", "wDate")) {
+                val view = views(layout).single { it.attr("id") == "@+id/$id" }
+                assertEquals("$layout $id", "TextClock", view.localName)
+            }
+        }
+    }
+
+    @Test
+    fun theWidgetPlaceScreenIsDeclaredTheWayTheLauncherNeedsIt() {
+        val main = res.parentFile
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(main, "AndroidManifest.xml")).documentElement
+        val screen = manifest.descendants().single { it.localName == "activity" && it.attr("name") == ".WidgetPlaceActivity" }
+        assertEquals("true", screen.attr("exported"))
+        val actions = screen.descendants().filter { it.localName == "action" }.mapNotNull { it.attr("name") }
+        assertTrue(actions.contains("android.appwidget.action.APPWIDGET_CONFIGURE"))
+
+        for (info in listOf("widget_small_info", "widget_wide_info", "widget_strip_info")) {
+            val provider = parse("xml/$info.xml")
+            assertEquals(info, "io.github.rayvader.hazemap.WidgetPlaceActivity", provider.attr("configure"))
+            assertEquals(info, "reconfigurable", provider.attr("widgetFeatures"))
+        }
+        // The class is named in XML, which the compiler does not check, so look for its file.
+        assertTrue(File(main, "java/io/github/rayvader/hazemap/WidgetPlaceActivity.kt").isFile)
+    }
+
     @Test
     fun picturesOnlyMovePartsTheyHave() {
         for (s in SkyScene.entries) {

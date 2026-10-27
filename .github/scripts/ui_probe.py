@@ -3,6 +3,8 @@
 
   ui_probe.py bounds  <ui.xml> <text-or-content-desc-or-id-suffix>   -> "x y" (centre of the first match)
   ui_probe.py attr    <ui.xml> <id-suffix> <attribute>               -> the attribute's value, or nothing
+  ui_probe.py all     <ui.xml> <id-suffix> <attribute>               -> the value of every match, joined by " | "
+  ui_probe.py desc    <ui.xml> <text>                                -> "x y" (centre) of the first node whose description starts with the text
   ui_probe.py widgets <ui.xml>                                       -> one line per Haze Map widget on screen
   ui_probe.py frames  <ui.xml> <shot.raw>...                         -> how many shots differ inside each picture
 
@@ -14,7 +16,7 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 
-WIDGET_FIELDS = ("wClock", "wDate", "wTemp", "wCondition", "wPlace", "wPsi", "wWhen")
+WIDGET_FIELDS = ("wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge", "wWhen")
 
 
 def nodes(path):
@@ -97,6 +99,15 @@ def main():
             if n.get("resource-id", "").endswith("/" + suffix):
                 print(n.get(attr, ""))
                 return
+    if mode == "desc":
+        for n in nodes(path):
+            if n.get("content-desc", "").startswith(sys.argv[3]):
+                print(*centre(n.get("bounds")))
+                return
+        sys.exit(f"no node described {sys.argv[3]!r}")
+    if mode == "all":
+        suffix, attr = sys.argv[3], sys.argv[4]
+        print(" | ".join(n.get(attr, "") for n in nodes(path) if n.get("resource-id", "").endswith("/" + suffix)))
     if mode == "widgets":
         widgets(path)
     if mode == "frames":
