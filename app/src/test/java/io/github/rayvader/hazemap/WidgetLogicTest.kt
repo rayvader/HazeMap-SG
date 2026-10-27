@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.ZoneId
 import java.time.ZonedDateTime
 
 class WidgetLogicTest {
@@ -144,5 +145,100 @@ class WidgetLogicTest {
         assertEquals(SkyScene.entries.size, SkyScene.entries.map { it.key }.toSet().size)
         for (s in SkyScene.entries) assertEquals(s, SkyScene.fromKey(s.key))
         assertNull(SkyScene.fromKey("auto"))
+    }
+
+    @Test
+    fun singaporeWidgetsKeepSingaporeTimeWhereverThePhoneIs() {
+        assertEquals("Asia/Singapore", WidgetLogic.build(bedok, null, null, null).zoneId)
+    }
+
+    // ---- A saved city ----
+
+    private val tokyo = Place(1850147L, "Tokyo", "Tokyo", "Japan", "JP", 35.69, 139.69, "Asia/Tokyo")
+
+    private fun weather(
+        code: Int? = 61,
+        isDay: Boolean = true,
+        temp: Double? = 18.4,
+        humidity: Int? = 62,
+        zone: String = "Asia/Tokyo"
+    ) = PlaceWeather(
+        tempC = temp,
+        humidity = humidity,
+        windKmh = 10,
+        windFromDeg = 90,
+        code = code,
+        isDay = isDay,
+        timezone = zone,
+        days = emptyList()
+    )
+
+    private fun cityScene(code: Int?, isDay: Boolean, at: Long): SkyScene =
+        WidgetLogic.buildCity(tokyo, weather(code = code, isDay = isDay), 1L).scene(at)
+
+    @Test
+    fun cityShowsItsOwnTemperatureWeatherAndHumidity() {
+        val model = WidgetLogic.buildCity(tokyo, weather(), 9_000L)
+        assertEquals("Tokyo", model.placeName)
+        assertEquals("18°", model.tempText)
+        assertEquals("Light rain", model.conditionText)
+        assertEquals(62, model.humidity)
+        assertEquals("Asia/Tokyo", model.zoneId)
+        assertEquals(9_000L, model.recordedMillis)
+        assertEquals(SkyScene.RAIN, model.scene(sgt(12)))
+    }
+
+    @Test
+    fun cityNightFollowsTheSunThereNotTheSingaporeClock() {
+        // Noon in Singapore but dark in the city: night. Late evening in Singapore but sunny there: sun.
+        assertEquals(SkyScene.NIGHT, cityScene(code = 0, isDay = false, at = sgt(12)))
+        assertEquals(SkyScene.SUN, cityScene(code = 0, isDay = true, at = sgt(23)))
+        // Partly cloudy has no night picture, so it shows plain clouds after dark.
+        assertEquals(SkyScene.CLOUD, cityScene(code = 2, isDay = false, at = sgt(12)))
+        assertEquals(SkyScene.PARTLY, cityScene(code = 2, isDay = true, at = sgt(23)))
+    }
+
+    @Test
+    fun cityWeatherCodesPickTheirSky() {
+        assertEquals(SkyScene.SUN, cityScene(1, true, sgt(12)))
+        assertEquals(SkyScene.CLOUD, cityScene(3, true, sgt(12)))
+        assertEquals(SkyScene.HAZE, cityScene(45, true, sgt(12)))
+        assertEquals(SkyScene.RAIN, cityScene(63, true, sgt(12)))
+        assertEquals(SkyScene.RAIN, cityScene(81, true, sgt(12)))
+        assertEquals(SkyScene.STORM, cityScene(95, true, sgt(12)))
+        // There is no snow sky yet: snow shows clouds.
+        assertEquals(SkyScene.CLOUD, cityScene(73, true, sgt(12)))
+    }
+
+    @Test
+    fun cityWithNothingLoadedShowsPlaceholders() {
+        val model = WidgetLogic.buildCity(tokyo, null, null)
+        assertEquals("--°", model.tempText)
+        assertEquals("--", model.conditionText)
+        assertNull(model.humidity)
+        assertNull(model.recordedMillis)
+        assertEquals("Asia/Tokyo", model.zoneId)
+        assertEquals(SkyScene.CLOUD, model.scene(sgt(12)))
+    }
+
+    @Test
+    fun cityClockUsesTheZoneFromTheAnswerThenTheSavedOne() {
+        val answered = WidgetLogic.buildCity(tokyo.copy(timezone = "UTC"), weather(zone = "Asia/Tokyo"), 1L)
+        assertEquals("Asia/Tokyo", answered.zoneId)
+        assertEquals("Asia/Tokyo", WidgetLogic.buildCity(tokyo, null, null).zoneId)
+        // A zone id Java does not know falls back to the phone's zone, as the rest of the app does.
+        val unknown = WidgetLogic.buildCity(tokyo.copy(timezone = "Mars/Olympus"), null, null)
+        assertEquals(ZoneId.systemDefault().id, unknown.zoneId)
+    }
+
+    @Test
+    fun cityBuiltFromARealOpenMeteoAnswer() {
+        val body = """{"timezone":"Asia/Tokyo","current":{"temperature_2m":21.6,"relative_humidity_2m":55,
+            "wind_speed_10m":7.2,"wind_direction_10m":200,"weather_code":3,"is_day":0}}"""
+        val model = WidgetLogic.buildCity(tokyo, PlaceParsers.forecast(body), 5_000L)
+        assertEquals("22°", model.tempText)
+        assertEquals("Overcast", model.conditionText)
+        assertEquals(55, model.humidity)
+        assertEquals(SkyScene.CLOUD, model.scene(sgt(12)))
     }
 }

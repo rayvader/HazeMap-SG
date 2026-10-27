@@ -53,25 +53,37 @@ Install in the banner does it right away. The X skips that version. If something
 and offers Try again, or Download to get the file in your browser. The request sends nothing about you
 except what any web request does.
 
-**Widgets** — three home screen widgets with a sky that matches the weather. Each shows a clock and
-the date, the average temperature of all NEA stations, the weather now for your area, the PSI for your
-region with the time NEA recorded it, and the area name:
+**Widgets** — three home screen widgets with a sky that matches the weather. Each one shows Singapore
+or one of your saved cities. It has a clock and the date, the temperature, the weather now, the place
+name, and a pill with the time of the reading:
 
 | Widget | Size | Layout |
 |---|---|---|
-| Square | 2x2 | clock and picture on top; temperature, weather, area, PSI and its time below |
+| Square | 2x2 | clock and picture on top; temperature, weather, place, pill and its time below |
 | Wide | 4x2 | big clock and big picture; "Bedok · PSI at 2:00 pm" under the weather |
-| Strip | 4x1 | clock, picture, weather and PSI in one row |
+| Strip | 4x1 | clock, picture, weather and pill in one row |
+
+| Shows | Temperature | Weather | Pill | Clock |
+|---|---|---|---|---|
+| Singapore | average of all NEA stations | NEA forecast for your area | PSI, in its band colour | Singapore time |
+| A saved city | the city's temperature | the city's weather | humidity | the city's own time |
+
+When you add a widget, a screen asks what it should show: Singapore or a city from My places. With no
+saved city it shows Singapore and asks nothing. To change it later, long-press the widget and open its
+settings (Android 12 and newer); on older Android, remove the widget and add it again. Each widget keeps
+its own choice, so a Square can show Singapore while a Wide shows Tokyo. Tapping a city widget opens that
+city's page. A widget keeps its city even if you take the city off My places.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
-haze and windy. Clear weather from 7 pm to 7 am shows a night sky with the moon, and partly cloudy
-shows clouds. The picture moves for about 10 seconds each time the home screen shows it, then rests,
-to save battery. With animations turned off, and on some home screen apps, it stays still. The clock
-is the phone's own and keeps time by itself.
+haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and
+partly cloudy shows clouds. A city is dark when the sun is down there. The picture moves for about
+10 seconds each time the home screen shows it, then rests, to save battery. With animations turned off,
+and on some home screen apps, it stays still. The clock is the phone's own and keeps time by itself.
 
 Long-press the home screen, pick Widgets, then Haze Map SG. The weather refreshes about every 30 minutes
-(the fastest Android allows), even when the app is closed, and when you change area in the app.
-Tap a widget to open the app. The sky looks the same in light and dark mode.
+(the fastest Android allows), even when the app is closed, and when you change area in the app. A city
+widget asks Open-Meteo for its city only, and a Singapore widget asks NEA only.
+The sky looks the same in light and dark mode.
 
 ## Data, and what to expect
 

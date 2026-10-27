@@ -32,6 +32,17 @@
             android:name=".PlaceActivity"
             android:exported="false" />
 
+        <!-- The screen a widget opens when it is added or reconfigured. The launcher starts it with the
+             widget's id, and it ignores any id that is not one of this app's own widgets. -->
+        <activity
+            android:name=".WidgetPlaceActivity"
+            android:exported="true"
+            android:label="@string/widget_pick_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".HazeWidgetSmall"
             android:exported="false"
