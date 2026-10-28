@@ -9,8 +9,11 @@ import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import android.os.Bundle
 import android.provider.CalendarContract
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import kotlinx.coroutines.CancellationException
@@ -23,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 /** The three widget shapes. Each has its own entry in the phone's widget picker. */
 enum class WidgetShape(
@@ -56,6 +60,16 @@ abstract class HazeWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         WidgetTargetStore(context).remove(appWidgetIds)
+    }
+
+    /** The home screen says how big a widget really is, once it is placed or resized: draw it to fit. */
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        WidgetUpdater.requestRefreshAll(context)
     }
 }
 
@@ -288,10 +302,28 @@ object WidgetUpdater {
             val target = targets.getValue(w.id)
             val model = modelFor(target, area, data)
             val line = if (event != null && text != null && w.shape.hasEventLine) EventLine(event, text) else null
+            val heightDp = heightOf(context, manager, w.id)
             // The smoke test reads these lines to find the id of each widget. No event details: they stay private.
-            Log.i(TAG, "draw id=${w.id} shape=${w.shape.key} place=${model.placeName} zone=${model.zoneId} event=${line != null}")
-            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now))
+            Log.i(
+                TAG,
+                "draw id=${w.id} shape=${w.shape.key} place=${model.placeName} zone=${model.zoneId} " +
+                    "event=${line != null} h=$heightDp"
+            )
+            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now, heightDp))
         }
+    }
+
+    /**
+     * The widget's height in dp as the home screen reports it, or 0 when it has not said yet. The home
+     * screen gives two: the max height is the one with the phone upright, the min height the one on its side.
+     */
+    private fun heightOf(context: Context, manager: AppWidgetManager, widgetId: Int): Int {
+        val options = manager.getAppWidgetOptions(widgetId)
+        return WidgetFits.heightFor(
+            uprightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0),
+            sidewaysDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0),
+            onItsSide = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        )
     }
 
     private fun modelFor(target: WidgetTarget, area: Area, data: Data): WidgetModel = when (target) {
@@ -316,11 +348,15 @@ object WidgetUpdater {
         model: WidgetModel,
         widgetId: Int,
         event: EventLine? = null,
-        nowMillis: Long = System.currentTimeMillis()
+        nowMillis: Long = System.currentTimeMillis(),
+        heightDp: Int = 0
     ): RemoteViews {
         val v = RemoteViews(context.packageName, shape.layout)
         val scene = sceneOverride ?: model.scene(nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
+        // A short widget drops the date, then the event line, and shrinks the rest; the Strip has no fit.
+        val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale)
+        if (fit != null) applyFit(context, v, shape, fit)
 
         // The sky colour, and the one moving picture for this weather.
         v.setInt(R.id.wRoot, "setBackgroundResource", skyOf(scene))
@@ -351,8 +387,30 @@ object WidgetUpdater {
         v.setContentDescription(R.id.wRoot, summaryOf(context, model, clock))
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
         // The strip has no event line in its layout: setting one there would stop it drawing.
-        if (shape.hasEventLine) showEvent(context, v, event, widgetId)
+        if (shape.hasEventLine) showEvent(context, v, event.takeIf { fit?.showEvent != false }, widgetId)
         return v
+    }
+
+    /** Sizes the clock and the numbers, trims the space at the top and bottom, and hides the date if told to. */
+    private fun applyFit(context: Context, v: RemoteViews, shape: WidgetShape, fit: WidgetFit) {
+        val density = context.resources.displayMetrics.density
+        fun px(dp: Int) = (dp * density).roundToInt()
+        v.setTextViewTextSize(R.id.wClock, TypedValue.COMPLEX_UNIT_SP, fit.clockSp.toFloat())
+        v.setTextViewTextSize(R.id.wTemp, TypedValue.COMPLEX_UNIT_SP, fit.tempSp.toFloat())
+        // The side space is what each layout has in XML (start and end); only the top and the bottom change.
+        // setViewPadding takes left and right, so a right-to-left phone gets start and end the other way round.
+        val start = px(if (shape == WidgetShape.WIDE) 16 else 14)
+        val end = px(if (shape == WidgetShape.WIDE) 14 else 12)
+        val rtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        v.setViewPadding(R.id.wTopBlock, if (rtl) 0 else start, px(fit.padTopDp), if (rtl) start else 0, 0)
+        v.setViewPadding(
+            R.id.wBottomBlock,
+            if (rtl) end else start,
+            0,
+            if (rtl) start else end,
+            px(fit.padBottomDp)
+        )
+        v.setViewVisibility(R.id.wDate, if (fit.showDate) View.VISIBLE else View.GONE)
     }
 
     /** "3 pm Lunch" behind a small calendar picture. The row stays hidden when there is no event. */

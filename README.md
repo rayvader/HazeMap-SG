@@ -89,6 +89,12 @@ Calendar app. It changes as an event starts and ends, and when a calendar change
 It is only the event: no weather, and no network. The app reads each event's title and time on the
 phone, and never sends them anywhere.
 
+**Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
+140 dp on some other phones. The widget asks for its height and packs its text to fit. A short Wide drops
+the date first, then the event line, then shrinks the clock and the temperature. A Square has less room,
+so it shows the event only from about 144 dp up. A larger text size in Settings counts as less height.
+The widgets cannot be resized, so they settle on a size when you add them.
+
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and
 partly cloudy shows clouds. A city is dark when the sun is down there. The picture moves for about
@@ -154,6 +160,10 @@ Locally: `./gradlew testDebugUnitTest assembleRelease`; the APK lands in `app/bu
 The 37 unit tests include the parsers, run against real NEA and RainViewer responses saved in
 `app/src/test/resources/fixtures`. The app reads three launch extras so the smoke test can reach a
 screen directly: `tab` (`now`, `rain`, `haze`), `source` (`radar`, `gauges`) and `zoom`.
+
+The emulator is a Pixel, whose home screen gives widgets plenty of height, so the smoke test also draws the
+widgets at exact short heights inside the app (the `widget_preview` extra) and keeps those pictures as
+`fit-*.png`. To run only that part, start the workflow by hand with the input `only` set to `widget-fit`.
 
 ## Code map
 

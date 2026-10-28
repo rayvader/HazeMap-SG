@@ -16,6 +16,11 @@ on:
       - "**.md"
       - "docs/**"
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Run only one part of the emulator test. widget-fit draws the widgets at short sizes."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -136,6 +141,8 @@ jobs:
 
       - name: Run on emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SMOKE_ONLY: ${{ github.event.inputs.only }}
         with:
           api-level: 34
           arch: x86_64

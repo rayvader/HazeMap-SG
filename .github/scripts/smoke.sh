@@ -23,6 +23,29 @@ shot() {
   adb exec-out screencap -p > "$OUT/$name.png"
 }
 
+# ---- Widget fit: the widgets drawn at exact sizes inside the app ----
+# A phone's home screen can give a two-row widget 140 dp or less, while the emulator's gives about 220.
+# So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
+# these shots show how each one packs its text. Rows split by "/", widgets by ",", "+e" adds an event line.
+# The screen is about 390 dp wide, so a row holds one Wide or Strip (362 dp), or two Squares (180 dp).
+fit_shot() { shot "$1" 4 --es widget_preview "$2"; }
+fit_shot fit-1-wide-event "wide@110+e/wide@125+e/wide@140+e/wide@160+e"
+fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
+fit_shot fit-3-small "small@110+e,small@140+e/small@160+e,small@190+e/small@223+e,small@140"
+fit_shot fit-4-strip "strip@70/strip@55"
+# Bigger text, as a person can set it in Settings: the same short widgets again.
+adb shell settings put system font_scale 1.15
+fit_shot fit-5-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@160+e"
+adb shell settings put system font_scale 1.0
+adb logcat -d -s HazeWidget:I | grep " preview " | sed 's/^.* I HazeWidget: //' > "$OUT/fit.txt" || true
+cat "$OUT/fit.txt"
+# A crash while drawing would leave a blank screenshot: keep its trace beside it.
+adb logcat -d -s AndroidRuntime:E > "$OUT/fit-crash.txt" || true
+if [ "${SMOKE_ONLY:-}" = widget-fit ]; then
+  echo "Only the widget fit was asked for. Screenshots in $OUT/"
+  exit 0
+fi
+
 # data.gov.sg allows 5 quick calls per 10 s, so the Now tab needs a little over 10 s to fill in.
 shot 1-now 30 --es tab now
 shot 2-rain-radar 35 --es tab rain --es source radar
