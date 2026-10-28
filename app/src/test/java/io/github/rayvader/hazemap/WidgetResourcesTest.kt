@@ -63,15 +63,42 @@ class WidgetResourcesTest {
     fun everyLayoutHasTheViewsTheAppFillsIn() {
         // A view missing from one layout only fails on a phone, when the widget refuses to draw.
         val shared = listOf("wRoot", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
-        val wanted = mapOf(
-            "widget_small" to shared + "wWhen",
-            "widget_wide" to shared,
-            "widget_strip" to shared + "wWhen"
-        )
-        for ((layout, ids) in wanted) {
+        val eventLine = listOf("wEventRow", "wEventIcon", "wEventText", "wEventWeather")
+        for (shape in WidgetShape.entries) {
+            val layout = "widget_${shape.key}"
+            val wanted = shared +
+                (if (shape == WidgetShape.WIDE) emptyList() else listOf("wWhen")) +
+                (if (shape.hasEventLine) eventLine else emptyList())
             val have = views(layout).mapNotNull { it.attr("id") }.toSet()
-            for (id in ids) assertTrue("$layout has no $id", "@+id/$id" in have)
+            for (id in wanted) assertTrue("$layout has no $id", "@+id/$id" in have)
         }
+    }
+
+    @Test
+    fun theEventLineIsHiddenUntilThereIsAnEvent() {
+        // The widget picker's preview, and a phone with no calendar chosen, show no empty line.
+        for (shape in WidgetShape.entries.filter { it.hasEventLine }) {
+            val row = views("widget_${shape.key}").single { it.attr("id") == "@+id/wEventRow" }
+            assertEquals(shape.key, "gone", row.attr("visibility"))
+        }
+    }
+
+    @Test
+    fun calendarChangesReachTheWidgets() {
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val all = manifest.descendants()
+        assertTrue(all.any { it.localName == "uses-permission" && it.attr("name") == "android.permission.READ_CALENDAR" })
+        // The calendar provider's broadcast comes from another app, so the receiver must be open to it.
+        val receiver = all.single { it.localName == "receiver" && it.attr("name") == ".CalendarChangedReceiver" }
+        assertEquals("true", receiver.attr("exported"))
+        val inside = receiver.descendants()
+        assertTrue(inside.any { it.localName == "action" && it.attr("name") == "android.intent.action.PROVIDER_CHANGED" })
+        assertTrue(inside.any { it.localName == "data" && it.attr("host") == "com.android.calendar" })
+        // The alarm that redraws at an event's start and end is only for this app.
+        val alarm = all.single { it.localName == "receiver" && it.attr("name") == ".WidgetRefreshReceiver" }
+        assertEquals("false", alarm.attr("exported"))
+        assertTrue(File(res.parentFile, "java/io/github/rayvader/hazemap/CalendarsActivity.kt").isFile)
     }
 
     @Test

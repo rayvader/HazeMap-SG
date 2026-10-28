@@ -165,6 +165,48 @@
         android:paddingEnd="12dp"
         android:paddingBottom="12dp">
 
+        <!-- The next event on the chosen calendars. Too narrow for the weather in words: its picture
+             stands in. Hidden until there is an event. -->
+        <LinearLayout
+            android:id="@+id/wEventRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_event_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="7dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="3dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/wEventIcon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginEnd="5dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_event"
+                android:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/wEventText"
+                style="@style/WidgetText"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="--"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/wEventWeather"
+                style="@style/WidgetText"
+                android:maxLines="1"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

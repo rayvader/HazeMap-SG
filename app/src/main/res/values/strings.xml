@@ -73,6 +73,21 @@
     <string name="widget_pick_title">Show on this widget</string>
     <string name="widget_pick_singapore_sub">%1$s · NEA weather and PSI</string>
     <string name="widget_pick_empty">Save a city in My places to show it here.</string>
+    <string name="widget_pick_next_event">Next event</string>
+    <string name="widget_pick_calendars">Calendars</string>
+    <string name="widget_pick_calendars_off">Off</string>
+    <string name="widget_pick_done">Done</string>
+    <string name="widget_event_desc">Next event: %1$s</string>
+
+    <!-- Calendars for the widget line -->
+    <string name="calendars_title">Calendars</string>
+    <string name="calendars_intro">Your next event shows on the Wide and Square widgets, with the weather for it. Tick the calendars to use.</string>
+    <string name="calendars_allow">Allow calendar access</string>
+    <string name="calendars_open_settings">Open settings</string>
+    <string name="calendars_empty">No calendars on this phone.</string>
+    <string name="calendars_this_phone">On this phone</string>
+    <string name="calendars_switched_off">Switched off</string>
+    <string name="calendars_private">Event details stay on the phone. Only weather is fetched.</string>
 
     <!-- Saved places -->
     <string name="places_title">My places</string>

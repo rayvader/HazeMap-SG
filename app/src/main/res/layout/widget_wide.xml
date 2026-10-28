@@ -129,12 +129,14 @@
             android:visibility="gone" />
     </FrameLayout>
 
+    <!-- Stops short of the picture, so a long event line ends in "…" instead of running under it. -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
+        android:layout_marginEnd="124dp"
         android:orientation="vertical">
 
         <TextClock
@@ -154,6 +156,48 @@
             android:textSize="13sp"
             android:layout_marginStart="2dp"
             android:layout_marginTop="2dp" />
+
+        <!-- The next event on the chosen calendars, with its weather. Hidden until there is one. -->
+        <LinearLayout
+            android:id="@+id/wEventRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/widget_event_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="7dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="3dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/wEventIcon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginEnd="5dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_event"
+                android:tint="@color/white" />
+
+            <!-- The weight lets only this text shrink, and end in "…", when the row runs out of room. -->
+            <TextView
+                android:id="@+id/wEventText"
+                style="@style/WidgetText"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="--"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/wEventWeather"
+                style="@style/WidgetText"
+                android:maxLines="1"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
