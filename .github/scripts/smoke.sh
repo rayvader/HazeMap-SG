@@ -10,21 +10,38 @@ APK=$(ls HazeMapSG-*.apk | head -1)
 OUT=smoke
 mkdir -p "$OUT"
 
+# Right after the emulator boots it is still starting its apps (a load average of 10 on a few cores), and the
+# launcher can stop responding. Wait for the load to drop before installing, for 2 minutes at most.
+load=""
+for _ in $(seq 1 24); do
+  load=$(adb shell cat /proc/loadavg | cut -d' ' -f1) || load=""
+  awk -v l="${load:-0}" 'BEGIN { exit !(l < 3.0) }' && break
+  sleep 5
+done
+echo "Load average before the test: ${load:-unknown}"
+
 adb logcat -c || true
 adb install -r "$APK"
 
-# Just after the emulator boots the launcher can be slow enough for Android to ask "Pixel Launcher isn't
-# responding". The dialog sits over the app, so every screenshot and tap after it misses. Tap its Wait button.
+# While it is busy Android can ask "Pixel Launcher isn't responding". The dialog sits over the app, so every
+# screenshot and tap after it misses. A launcher that has hung asks again 5 seconds after Wait, so it is
+# closed instead (the system starts a fresh one when it is needed); any other app gets more time.
+# dismiss_anr <ui dump>: if the dump shows the dialog, tap its button and succeed; otherwise do nothing and fail.
+dismiss_anr() {
+  local button=aerr_wait xy
+  grep -q "aerr_wait" "$1" || return 1
+  grep -q "Launcher" "$1" && button=aerr_close
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$1" "$button") || return 1
+  echo "A not-responding dialog is on screen. Tapping $button at $xy"
+  adb shell input tap $xy
+  sleep 2
+}
+
 clear_anr() {
-  local xy
   for _ in 1 2 3; do
     adb shell uiautomator dump /sdcard/anr.xml > /dev/null 2>&1 || return 0
     adb pull /sdcard/anr.xml /tmp/anr.xml > /dev/null 2>&1 || return 0
-    grep -q "aerr_wait" /tmp/anr.xml || return 0
-    xy=$(python3 .github/scripts/ui_probe.py bounds /tmp/anr.xml aerr_wait) || return 0
-    echo "A not-responding dialog is on screen. Tapping Wait at $xy"
-    adb shell input tap $xy
-    sleep 2
+    dismiss_anr /tmp/anr.xml || return 0
   done
 }
 
@@ -91,8 +108,12 @@ say() { echo "$*" | tee -a "$LOG"; }
 
 dump() {
   for _ in 1 2 3; do
-    adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1 && return 0
-    sleep 1
+    if adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1; then
+      # A not-responding dialog hides the screen behind it: clear it and look again.
+      dismiss_anr "$OUT/ui.xml" >> "$LOG" || return 0
+    else
+      sleep 1
+    fi
   done
   return 1
 }
