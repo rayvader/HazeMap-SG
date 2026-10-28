@@ -271,4 +271,24 @@ class PlaceDataTest {
     fun anUnknownZoneDoesNotCrash() {
         assertTrue(TimeFmt.clockIn(1792291500000L, "Nowhere/Land").isNotEmpty())
     }
+
+    @Test
+    fun hoursAreReadInThePlacesOwnTime() {
+        val body = """{"timezone":"Asia/Tokyo","current":{"temperature_2m":18.0,"weather_code":3,"is_day":1},
+            "hourly":{"time":["2026-10-28T15:00","2026-10-28T22:00"],"weather_code":[0,61],"is_day":[1,0]}}"""
+        val hours = PlaceParsers.forecast(body).hours
+        assertEquals(2, hours.size)
+        // 3 pm in Tokyo is 6 am UTC.
+        assertEquals(java.time.Instant.parse("2026-10-28T06:00:00Z").toEpochMilli(), hours[0].startMillis)
+        assertEquals(0, hours[0].code)
+        assertTrue(hours[0].isDay)
+        assertEquals(61, hours[1].code)
+        assertFalse(hours[1].isDay)
+    }
+
+    @Test
+    fun anAnswerWithoutHoursHasNone() {
+        val body = """{"timezone":"Asia/Tokyo","current":{"temperature_2m":18.0,"weather_code":3,"is_day":1}}"""
+        assertTrue(PlaceParsers.forecast(body).hours.isEmpty())
+    }
 }

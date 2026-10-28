@@ -9,16 +9,21 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.color.MaterialColors
 import io.github.rayvader.hazemap.databinding.ActivityWidgetPlaceBinding
 import io.github.rayvader.hazemap.databinding.ItemPlaceBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The screen a widget opens when it is added, and again when it is reconfigured: pick Singapore or
- * one of the saved cities. The launcher starts it with the widget's id.
+ * one of the saved cities, and the calendars for the next-event line. The launcher starts it with
+ * the widget's id.
  */
 class WidgetPlaceActivity : AppCompatActivity() {
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var chosen = false
+    private var current: WidgetTarget = WidgetTarget.Singapore
+    private lateinit var b: ActivityWidgetPlaceBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,20 +36,12 @@ class WidgetPlaceActivity : AppCompatActivity() {
             return
         }
 
-        val store = WidgetTargetStore(this)
         val places = PlaceStore(this).all()
-        // A new widget with no saved city has nothing to choose from: it shows Singapore, as widgets always did.
-        if (!store.has(widgetId) && places.isEmpty()) {
-            choose(WidgetTarget.Singapore)
-            return
-        }
-
-        val b = ActivityWidgetPlaceBinding.inflate(layoutInflater)
+        b = ActivityWidgetPlaceBinding.inflate(layoutInflater)
         setContentView(b.root)
-        val current = store.get(widgetId)
+        current = WidgetTargetStore(this).get(widgetId)
 
         addRow(
-            b,
             name = SINGAPORE,
             sub = getString(R.string.widget_pick_singapore_sub, WidgetUpdater.savedArea(this).name),
             selected = current is WidgetTarget.Singapore,
@@ -56,7 +53,6 @@ class WidgetPlaceActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         for (p in cities) {
             addRow(
-                b,
                 name = p.name,
                 sub = listOf(p.subtitle, TimeFmt.clockIn(now, p.timezone)).filter { it.isNotEmpty() }.joinToString(" · "),
                 selected = shown?.id == p.id,
@@ -64,9 +60,31 @@ class WidgetPlaceActivity : AppCompatActivity() {
             )
         }
         b.widgetPlaceHint.visibility = if (places.isEmpty()) View.VISIBLE else View.GONE
+        b.widgetCalendarRow.setOnClickListener { startActivity(Intent(this, CalendarsActivity::class.java)) }
+        // Keeps the place that is marked, after a visit to the calendars.
+        b.widgetPlaceDone.setOnClickListener { choose(current) }
     }
 
-    private fun addRow(b: ActivityWidgetPlaceBinding, name: String, sub: String, selected: Boolean, target: WidgetTarget) {
+    override fun onResume() {
+        super.onResume()
+        if (this::b.isInitialized) showCalendars()
+    }
+
+    /** "Personal, Family" under Calendars, or "Off". */
+    private fun showCalendars() {
+        lifecycleScope.launch {
+            val summary = withContext(Dispatchers.IO) {
+                val calendars = PhoneCalendars.list(this@WidgetPlaceActivity)
+                CalendarChoice.summary(
+                    calendars,
+                    CalendarChoice.chosen(calendars, PhoneCalendars.saved(this@WidgetPlaceActivity))
+                )
+            }
+            b.widgetCalendarSub.text = summary ?: getString(R.string.widget_pick_calendars_off)
+        }
+    }
+
+    private fun addRow(name: String, sub: String, selected: Boolean, target: WidgetTarget) {
         val row = ItemPlaceBinding.inflate(layoutInflater, b.widgetPlaceList, false)
         row.rowName.text = name
         row.rowSub.text = sub

@@ -68,11 +68,31 @@ name, and a pill with the time of the reading:
 | Singapore | average of all NEA stations | NEA forecast for your area | PSI, in its band colour | Singapore time |
 | A saved city | the city's temperature | the city's weather | humidity | the city's own time |
 
-When you add a widget, a screen asks what it should show: Singapore or a city from My places. With no
-saved city it shows Singapore and asks nothing. To change it later, long-press the widget and open its
-settings (Android 12 and newer); on older Android, remove the widget and add it again. Each widget keeps
-its own choice, so a Square can show Singapore while a Wide shows Tokyo. Tapping a city widget opens that
-city's page. A widget keeps its city even if you take the city off My places.
+When you add a widget, a screen asks what it should show: Singapore or a city from My places, and the
+calendars for the next-event line. Tap a place, or Done to keep the one marked. To change it later,
+long-press the widget and open its settings (Android 12 and newer); on older Android, remove the widget
+and add it again. Each widget keeps its own place, so a Square can show Singapore while a Wide shows
+Tokyo. Tapping a city widget opens that city's page. A widget keeps its city even if you take the city
+off My places.
+
+**Next event** — the Wide and Square widgets can show your next calendar event with its weather, such
+as "3 pm Lunch · Rain". On the widget's screen, open Calendars, allow calendar access, and tick the
+calendars to use. The list starts with the ones your Calendar app shows; a calendar switched off in its
+account has no events on the phone and cannot be ticked. One list serves every widget.
+
+| Event | Weather it shows |
+|---|---|
+| Names a Singapore area ("Bedok Mall") | that area |
+| Names a saved city ("Tokyo Station") | that city |
+| Anything else, or no place | the place the widget shows |
+
+In Singapore the weather comes from the 2-hour forecast, then the 24-hour forecast for the region, then
+the 4-day outlook; past that the line shows the event alone. A city uses that hour there. The line looks
+a week ahead. A timed event beats an all-day one on the same day, and one about to start beats one that
+has been running a while. Times follow the phone's clock, like your Calendar app. The Wide widget writes
+the weather in words; the Square shows its picture. Tap the line to open the event in your Calendar app.
+The line changes as an event starts and ends, and when a calendar changes. Event details stay on the
+phone: places are matched on the phone, and only weather is fetched.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and

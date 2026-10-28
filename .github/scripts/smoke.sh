@@ -366,6 +366,100 @@ sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
 
+# ---- Widget calendar line: the next event from the ticked calendars, with its weather ----
+# Three phone calendars: one the Calendar app shows, one it hides, and one switched off in its account.
+# The shell user may write calendars, so no root is needed.
+cal_insert() {  # cal_insert <name> <account> <account type> <visible> <sync>
+  adb shell "content insert --uri 'content://com.android.calendar/calendars?caller_is_syncadapter=true&account_name=$2&account_type=$3'" \
+    "--bind account_name:s:$2 --bind account_type:s:$3 --bind name:s:$1 --bind calendar_displayName:s:$1" \
+    "--bind calendar_color:i:-16744448 --bind calendar_access_level:i:700 --bind ownerAccount:s:$2" \
+    "--bind visible:i:$4 --bind sync_events:i:$5"
+}
+cal_id() {  # cal_id <name>: the calendar's id in the provider
+  adb shell content query --uri content://com.android.calendar/calendars --projection _id:calendar_displayName \
+    | tr -d '\r' | grep "calendar_displayName=$1\$" | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | head -1
+}
+event_insert() {  # event_insert <calendar id> <title> <place> <start ms> <end ms>
+  adb shell "content insert --uri content://com.android.calendar/events --bind calendar_id:i:$1 --bind title:s:$2" \
+    "--bind 'eventLocation:s:$3' --bind dtstart:l:$4 --bind dtend:l:$5 --bind eventTimezone:s:UTC"
+}
+# calendars_screen: open the Wide widget's own screen, then its Calendars row
+calendars_screen() {
+  open_picker wide
+  tap widgetCalendarRow
+  sleep 3
+}
+# show_widgets: the widgets sit on the launcher's second page, and Home on the launcher jumps to the
+# first. Look, then swipe one page each way until a dump finds them.
+show_widgets() {
+  local swipe
+  for swipe in "" "900 1200 150 1200" "150 1200 900 1200"; do
+    if [ -n "$swipe" ]; then
+      adb shell input swipe $swipe 300
+      sleep 2
+    fi
+    dump && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | grep -q '^widget ' && return 0
+  done
+  say "FAIL no widgets on the launcher's pages"
+  return 1
+}
+# back_home: from the Calendars screen, back to the widget screen, keep its place, find the widgets
+back_home() {
+  adb shell input keyevent KEYCODE_BACK
+  sleep 2
+  say "widget screen, calendars: '$(attr widgetCalendarSub text)'"
+  tap widgetPlaceDone
+  sleep 2
+  adb shell input keyevent KEYCODE_HOME
+  sleep 20
+  show_widgets
+}
+adb shell input keyevent KEYCODE_HOME
+NOW_MS=$(( $(adb shell date +%s | tr -d '\r') * 1000 ))
+cal_insert Family smoke LOCAL 1 1
+cal_insert Gym smoke LOCAL 0 1
+cal_insert Work work@example.com com.example 1 0
+FAMILY=$(cal_id Family)
+GYM=$(cal_id Gym)
+say "test calendars: Family='$FAMILY' Gym='$GYM' Work='$(cal_id Work)'"
+event_insert "$FAMILY" Lunch "Bedok Mall" $(( NOW_MS + 70 * 60000 )) $(( NOW_MS + 130 * 60000 ))
+event_insert "$GYM" Run "Changi Airport" $(( NOW_MS + 30 * 60000 )) $(( NOW_MS + 60 * 60000 ))
+say "phone time now: $(adb shell date +%H:%M | tr -d '\r') (24 h); Lunch at +70 min, Run at +30 min"
+
+calendars_screen
+adb exec-out screencap -p > "$OUT/55-calendars-ask.png"
+tap calendarsAllow
+sleep 2
+adb exec-out screencap -p > "$OUT/55b-calendars-permission.png"
+tap permission_allow_button || tap "Allow"
+sleep 4
+adb exec-out screencap -p > "$OUT/56-calendars.png"
+dump && say "calendars: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarName text)" \
+  "ticked: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarRow checked)" \
+  "notes: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarSub text)"
+back_home
+adb exec-out screencap -p > "$OUT/57-widgets-event.png"
+say "--- widgets, Family ticked (as the Calendar app shows it) ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
+# Tick Gym too: its run is sooner, so the line moves to it.
+calendars_screen
+tap Gym
+sleep 1
+dump && say "ticked now: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarRow checked)"
+back_home
+adb exec-out screencap -p > "$OUT/58-widgets-event-gym.png"
+say "--- widgets, Family and Gym ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
+# Untick both: the line goes away.
+calendars_screen
+tap Gym
+tap Family
+back_home
+say "--- widgets, nothing ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
 adb shell settings put global animator_duration_scale 1
 adb shell settings put global transition_animation_scale 1

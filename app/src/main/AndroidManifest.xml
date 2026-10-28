@@ -8,6 +8,17 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Android 12 and newer: later updates of this app can install with no tap. -->
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <!-- The widget line shows the next event from the calendars ticked in the app. Android asks first.
+         Event details stay on the phone. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- Whether a Calendar app can open an event tapped on the widget line. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="vnd.android.cursor.item/event" />
+        </intent>
+    </queries>
 
     <application
         android:name=".HazeApp"
@@ -82,6 +93,30 @@
         <receiver
             android:name=".UpdateStatusReceiver"
             android:exported="false" />
+
+        <!-- Which calendars the widget line reads. Opened from the widget's own screen. -->
+        <activity
+            android:name=".CalendarsActivity"
+            android:exported="false"
+            android:label="@string/calendars_title" />
+
+        <!-- Redraws the widgets when the shown event starts or ends. -->
+        <receiver
+            android:name=".WidgetRefreshReceiver"
+            android:exported="false" />
+
+        <!-- The calendar provider tells every app when a calendar changes, so the line stays current.
+             Anyone could send this; it only asks for a redraw. -->
+        <receiver
+            android:name=".CalendarChangedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PROVIDER_CHANGED" />
+                <data
+                    android:host="com.android.calendar"
+                    android:scheme="content" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
