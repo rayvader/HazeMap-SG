@@ -36,8 +36,8 @@ internal object WidgetPreview {
         val fontScale = context.resources.configuration.fontScale
         val now = System.currentTimeMillis()
         val model = SingaporeModel("Punggol", 27.0, "Light Rain", 73, now)
-        val event = CalendarEvent(1, 1, "Joya Onsen", now, now, allDay = false)
-        val line = WidgetUpdater.EventLine(event, "Sun 2 pm Joya Onsen")
+        val event = CalendarEvent(1, 1, "Team offsite", now, now, allDay = false)
+        val line = WidgetUpdater.EventLine(event, "Sun 2 pm Team offsite")
 
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL

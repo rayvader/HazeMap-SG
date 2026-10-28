@@ -59,6 +59,8 @@ fit_shot fit-7-small-edges "small@178+e,small@168+e/small@167+e,small@152/small@
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
 fit_shot fit-8-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@200+e"
+# Stop the app first, or the new text size would redraw the pictures and log them a second time.
+adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0
 adb logcat -d -s HazeWidget:I | grep " preview " | sed 's/^.* I HazeWidget: //' > "$OUT/fit.txt" || true
 cat "$OUT/fit.txt"
