@@ -69,7 +69,7 @@ class WidgetResourcesTest {
         for (shape in WidgetShape.entries) {
             val layout = "widget_${shape.key}"
             val wanted = shared +
-                (if (shape == WidgetShape.WIDE) emptyList() else listOf("wWhen")) +
+                (if (shape == WidgetShape.WIDE) listOf("wDateSide") else listOf("wWhen")) +
                 (if (shape.hasEventLine) eventLine else emptyList()) +
                 (if (WidgetFits.of(shape, 100, false) != null) trimmed else emptyList())
             val have = views(layout).mapNotNull { it.attr("id") }.toSet()
@@ -107,11 +107,29 @@ class WidgetResourcesTest {
     @Test
     fun theClockAndDateAreRealClocksSoTheyCanTakeATimeZone() {
         for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
-            for (id in listOf("wClock", "wDate")) {
+            val ids = listOf("wClock", "wDate") + (if (layout == "widget_wide") listOf("wDateSide") else emptyList())
+            for (id in ids) {
                 val view = views(layout).single { it.attr("id") == "@+id/$id" }
                 assertEquals("$layout $id", "TextClock", view.localName)
             }
         }
+    }
+
+    @Test
+    fun theClockIsAlways24Hour() {
+        // A TextClock picks one of its two formats by the phone's setting, so both must be 24-hour.
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            val clock = views(layout).single { it.attr("id") == "@+id/wClock" }
+            assertEquals("$layout 12-hour setting", "HH:mm", clock.attr("format12Hour"))
+            assertEquals("$layout 24-hour setting", "HH:mm", clock.attr("format24Hour"))
+        }
+    }
+
+    @Test
+    fun theDateBesideTheClockIsHiddenUntilTheAppAsks() {
+        // The widget picker's preview, drawn before the app knows the height, shows the date under the clock.
+        val side = views("widget_wide").single { it.attr("id") == "@+id/wDateSide" }
+        assertEquals("gone", side.attr("visibility"))
     }
 
     @Test

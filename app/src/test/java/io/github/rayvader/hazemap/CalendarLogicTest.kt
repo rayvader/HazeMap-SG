@@ -153,13 +153,13 @@ class CalendarLogicTest {
     // ---- How it reads ----
 
     @Test
-    fun timesReadLikeAClock() {
+    fun timesReadLikeA24HourClock() {
         val now = sgt(28, 12)
-        assertEquals("3 pm", EventLogic.whenLabel(timed(sgt(28, 15)), now, sgtZone))
-        assertEquals("3:30 pm", EventLogic.whenLabel(timed(sgt(28, 15, 30)), now, sgtZone))
+        assertEquals("15:00", EventLogic.whenLabel(timed(sgt(28, 15)), now, sgtZone))
+        assertEquals("15:30", EventLogic.whenLabel(timed(sgt(28, 15, 30)), now, sgtZone))
         assertEquals("Now", EventLogic.whenLabel(timed(sgt(28, 11, 50)), now, sgtZone))
-        assertEquals("Tmrw 9 am", EventLogic.whenLabel(timed(sgt(29, 9)), now, sgtZone))
-        assertEquals("Fri 12 pm", EventLogic.whenLabel(timed(sgt(30, 12)), now, sgtZone))
+        assertEquals("Tmrw 09:00", EventLogic.whenLabel(timed(sgt(29, 9)), now, sgtZone))
+        assertEquals("Fri 12:00", EventLogic.whenLabel(timed(sgt(30, 12)), now, sgtZone))
     }
 
     @Test
@@ -174,16 +174,16 @@ class CalendarLogicTest {
 
     @Test
     fun timesFollowThePhonesClock() {
-        // 3 pm in Singapore is 7 am in UTC, the same day.
-        assertEquals("7 am", EventLogic.whenLabel(timed(sgt(28, 15)), sgt(28, 12), ZoneOffset.UTC))
+        // 15:00 in Singapore is 07:00 in UTC, the same day.
+        assertEquals("07:00", EventLogic.whenLabel(timed(sgt(28, 15)), sgt(28, 12), ZoneOffset.UTC))
     }
 
     @Test
     fun theLineIsTheTimeThenTheTitle() {
         val now = sgt(28, 12)
-        assertEquals("3 pm Lunch", EventLogic.lineText(timed(sgt(28, 15)), now, sgtZone))
-        assertEquals("3 pm Event", EventLogic.lineText(timed(sgt(28, 15), title = "  "), now, sgtZone))
-        assertEquals("3 pm Lunch with Mei", EventLogic.lineText(timed(sgt(28, 15), title = "Lunch\nwith  Mei"), now, sgtZone))
+        assertEquals("15:00 Lunch", EventLogic.lineText(timed(sgt(28, 15)), now, sgtZone))
+        assertEquals("15:00 Event", EventLogic.lineText(timed(sgt(28, 15), title = "  "), now, sgtZone))
+        assertEquals("15:00 Lunch with Mei", EventLogic.lineText(timed(sgt(28, 15), title = "Lunch\nwith  Mei"), now, sgtZone))
     }
 
     @Test
@@ -191,7 +191,7 @@ class CalendarLogicTest {
         val now = sgt(28, 12)
         assertEquals(sgt(28, 15), EventLogic.nextChangeMillis(timed(sgt(28, 15)), now, sgtZone))
         assertEquals(sgt(28, 13), EventLogic.nextChangeMillis(timed(sgt(28, 11), minutes = 120), now, sgtZone))
-        // Tomorrow's event first changes at midnight, from "Tmrw 9 am" to "9 am".
+        // Tomorrow's event first changes at midnight, from "Tmrw 09:00" to "09:00".
         assertEquals(sgt(29, 0), EventLogic.nextChangeMillis(timed(sgt(29, 9)), now, sgtZone))
         assertEquals(sgt(29, 0), EventLogic.nextChangeMillis(allDay(28), now, sgtZone))
     }

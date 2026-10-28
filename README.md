@@ -55,12 +55,13 @@ except what any web request does.
 
 **Widgets** — three home screen widgets with a sky that matches the weather. Each one shows Singapore
 or one of your saved cities. It has a clock and the date, the temperature, the weather now, the place
-name, and a pill with the time of the reading:
+name, and a pill with the time of the reading. Every time, on the widgets and in the app, is 24-hour
+(15:00), whatever the phone is set to:
 
 | Widget | Size | Layout |
 |---|---|---|
 | Square | 2x2 | clock and picture on top; temperature, weather, place, pill and its time below |
-| Wide | 4x2 | big clock and big picture; "Bedok · PSI at 2:00 pm" under the weather |
+| Wide | 4x2 | big clock and big picture; "Bedok · PSI at 14:00" under the weather |
 | Strip | 4x1 | clock, picture, weather and pill in one row |
 
 | Shows | Temperature | Weather | Pill | Clock |
@@ -75,7 +76,7 @@ and add it again. Each widget keeps its own place, so a Square can show Singapor
 Tokyo. Tapping a city widget opens that city's page. A widget keeps its city even if you take the city
 off My places.
 
-**Next event** — the Wide and Square widgets can show your next calendar event, such as "3 pm Lunch".
+**Next event** — the Wide and Square widgets can show your next calendar event, such as "15:00 Lunch".
 On the widget's screen, open Calendars, allow calendar access, and tick the calendars to use. The list
 starts with the ones your Calendar app shows; a calendar switched off in its account has no events on
 the phone and cannot be ticked. One list serves every widget. With no event in the next week there is no
@@ -90,11 +91,13 @@ It is only the event: no weather, and no network. The app reads each event's tit
 phone, and never sends them anywhere.
 
 **Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
-140 dp on some other phones. The widget asks for its height and packs its text to fit. A short Wide drops
-the date first, then shrinks the clock and the temperature, and only then drops the event line (below
-about 120 dp). A Square shows the event only from about 168 dp up: its line sits under the sky picture
-and would cover it on a shorter widget. A larger text size in Settings counts as less height. If the home screen does not say how tall a widget is, it is
-drawn as the shortest one. The widgets cannot be resized, so they settle on a size when you add them.
+140 dp on some other phones. The widget asks for its height and packs its text to fit. A short Wide moves
+the date beside the clock, then shrinks the clock and the temperature, and only then drops the event line
+(below about 120 dp). It always shows the date. A Square shows the event only from about 168 dp up: its
+line sits under the sky picture and would cover it on a shorter widget. A short Square has no room beside
+its clock, so it drops the date. A larger text size in Settings counts as less height. If the home screen
+does not say how tall a widget is, it is drawn as the shortest one. The widgets cannot be resized, so they
+settle on a size when you add them.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and

@@ -262,9 +262,9 @@ class PlaceDataTest {
     fun clockShowsTheTimeAtThePlace() {
         // 2:45 am UTC on 18 Oct 2026.
         val t = 1792291500000L
-        assertEquals("2:45 am", TimeFmt.clockIn(t, "UTC"))
-        assertEquals("11:45 am", TimeFmt.clockIn(t, "Asia/Tokyo"))
-        assertEquals("10:45 am", TimeFmt.clockIn(t, "Asia/Singapore"))
+        assertEquals("02:45", TimeFmt.clockIn(t, "UTC"))
+        assertEquals("11:45", TimeFmt.clockIn(t, "Asia/Tokyo"))
+        assertEquals("10:45", TimeFmt.clockIn(t, "Asia/Singapore"))
     }
 
     @Test

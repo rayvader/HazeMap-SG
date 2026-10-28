@@ -37,7 +37,7 @@ internal object WidgetPreview {
         val now = System.currentTimeMillis()
         val model = SingaporeModel("Punggol", 27.0, "Light Rain", 73, now)
         val event = CalendarEvent(1, 1, "Team offsite", now, now, allDay = false)
-        val line = WidgetUpdater.EventLine(event, "Sun 2 pm Team offsite")
+        val line = WidgetUpdater.EventLine(event, "Sun 14:00 Team offsite")
 
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -82,13 +82,17 @@ internal object WidgetPreview {
         return ScrollView(context).apply { addView(column) }
     }
 
-    /** "wide 140dp +event: clock 34, temp 24, no date". What the widget below it was told to do. */
+    /** "wide 140dp +event: clock 34, temp 24, date beside". What the widget below it was told to do. */
     private fun captionOf(shape: WidgetShape, heightDp: Int, withEvent: Boolean, fit: WidgetFit?): String {
         val parts = StringBuilder("${shape.key} ${heightDp}dp")
         if (withEvent) parts.append(" +event")
         if (fit != null) {
             parts.append(": clock ${fit.clockSp}, temp ${fit.tempSp}")
-            if (!fit.showDate) parts.append(", no date")
+            when (fit.date) {
+                DateSpot.BELOW -> Unit
+                DateSpot.BESIDE -> parts.append(", date beside")
+                DateSpot.HIDDEN -> parts.append(", no date")
+            }
             if (withEvent && !fit.showEvent) parts.append(", no event")
         }
         return parts.toString()

@@ -44,9 +44,9 @@ class WidgetFitTest {
     @Test
     fun aRoomyWidgetKeepsEverythingAtFullSize() {
         val wide = fits(WidgetShape.WIDE, true, 223)
-        assertEquals(WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true), wide)
+        assertEquals(WidgetFit(44, 26, 12, 12, DateSpot.BELOW, showEvent = true), wide)
         val small = fits(WidgetShape.SMALL, true, 223)
-        assertEquals(WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true), small)
+        assertEquals(WidgetFit(32, 24, 12, 12, DateSpot.BELOW, showEvent = true), small)
     }
 
     @Test
@@ -56,8 +56,8 @@ class WidgetFitTest {
                 for (h in heights.drop(1)) {
                     val taller = fits(shape, hasEvent, h)
                     val shorter = fits(shape, hasEvent, h - 1)
-                    // Dropping the date or the event line frees room, so the rest may grow back at that step.
-                    if (taller.showDate != shorter.showDate || taller.showEvent != shorter.showEvent) continue
+                    // Moving the date or dropping the event line frees room, so the rest may grow back at that step.
+                    if (taller.date != shorter.date || taller.showEvent != shorter.showEvent) continue
                     val tag = "$shape event=$hasEvent from ${h}dp to ${h - 1}dp"
                     assertTrue("$tag clock", shorter.clockSp <= taller.clockSp)
                     assertTrue("$tag temp", shorter.tempSp <= taller.tempSp)
@@ -69,13 +69,28 @@ class WidgetFitTest {
     }
 
     @Test
-    fun theDateGoesBeforeTheEventLine() {
-        // Between these heights the Wide has room for the event but not for the date as well.
+    fun aShortWideMovesTheDateBesideTheClockToKeepTheEventLine() {
+        // At this height there is no room for the date under the clock as well as the event line.
         val squeezed = fits(WidgetShape.WIDE, true, 139)
-        assertFalse(squeezed.showDate)
+        assertEquals(DateSpot.BESIDE, squeezed.date)
         assertTrue(squeezed.showEvent)
-        // The same height with no event keeps the date.
-        assertTrue(fits(WidgetShape.WIDE, false, 139).showDate)
+        // The same height with no event keeps the date under the clock.
+        assertEquals(DateSpot.BELOW, fits(WidgetShape.WIDE, false, 139).date)
+    }
+
+    @Test
+    fun theWideAlwaysShowsTheDate() {
+        for (hasEvent in listOf(true, false)) {
+            for (h in heights) assertTrue("event=$hasEvent at ${h}dp", fits(WidgetShape.WIDE, hasEvent, h).date != DateSpot.HIDDEN)
+        }
+    }
+
+    @Test
+    fun onlyTheWideHasRoomBesideItsClock() {
+        // The Square's clock shares the top with the picture, so a short Square drops the date instead.
+        for (hasEvent in listOf(true, false)) {
+            for (h in heights) assertTrue("event=$hasEvent at ${h}dp", fits(WidgetShape.SMALL, hasEvent, h).date != DateSpot.BESIDE)
+        }
     }
 
     @Test
@@ -93,6 +108,7 @@ class WidgetFitTest {
         val wide = fits(WidgetShape.WIDE, true, 139)
         assertTrue(wide.showEvent)
         assertEquals(34, wide.clockSp)
+        assertEquals(DateSpot.BESIDE, wide.date)
     }
 
     @Test
