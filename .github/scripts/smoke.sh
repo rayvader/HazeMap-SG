@@ -13,6 +13,21 @@ mkdir -p "$OUT"
 adb logcat -c || true
 adb install -r "$APK"
 
+# Just after the emulator boots the launcher can be slow enough for Android to ask "Pixel Launcher isn't
+# responding". The dialog sits over the app, so every screenshot and tap after it misses. Tap its Wait button.
+clear_anr() {
+  local xy
+  for _ in 1 2 3; do
+    adb shell uiautomator dump /sdcard/anr.xml > /dev/null 2>&1 || return 0
+    adb pull /sdcard/anr.xml /tmp/anr.xml > /dev/null 2>&1 || return 0
+    grep -q "aerr_wait" /tmp/anr.xml || return 0
+    xy=$(python3 .github/scripts/ui_probe.py bounds /tmp/anr.xml aerr_wait) || return 0
+    echo "A not-responding dialog is on screen. Tapping Wait at $xy"
+    adb shell input tap $xy
+    sleep 2
+  done
+}
+
 # shot <file> <wait seconds> <am start extras...>
 shot() {
   local name=$1 wait=$2
@@ -20,6 +35,7 @@ shot() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" "$@"
   sleep "$wait"
+  clear_anr
   adb exec-out screencap -p > "$OUT/$name.png"
 }
 
@@ -29,6 +45,9 @@ shot() {
 # these shots show how each one packs its text. Rows split by "/", widgets by ",", "+e" adds an event line.
 # The screen is about 390 dp wide, so a row holds one Wide or Strip (362 dp), or two Squares (180 dp).
 fit_shot() { shot "$1" 4 --es widget_preview "$2"; }
+# Let the launcher's boot-time "not responding" come first, then clear it, so it is not on the pictures.
+sleep 10
+clear_anr
 fit_shot fit-1-wide-event "wide@110+e/wide@125+e/wide@140+e/wide@160+e"
 fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
 fit_shot fit-3-small "small@110+e,small@140+e/small@160+e,small@190+e/small@223+e,small@140"

@@ -57,8 +57,10 @@ internal object WidgetPreview {
 
                 val remote = WidgetUpdater.views(context, shape, model, id++, if (withEvent) line else null, now, heightDp)
                 val frame = FrameLayout(context)
+                // The application context, as a home screen inflates it. An activity's context would swap the
+                // TextViews for AppCompat's, which RemoteViews cannot set a background on.
                 frame.addView(
-                    remote.apply(context, frame),
+                    remote.apply(context.applicationContext, frame),
                     FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 )
                 val cell = LinearLayout(context).apply {
