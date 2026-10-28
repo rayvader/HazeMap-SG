@@ -3,7 +3,6 @@ package io.github.rayvader.hazemap
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 /** A city outside the home screens, found by Open-Meteo's place search. */
 data class Place(
@@ -39,13 +38,8 @@ data class PlaceWeather(
     val code: Int?,
     val isDay: Boolean,
     val timezone: String,
-    val days: List<PlaceDay>,
-    /** The weather hour by hour, for an event at the place. Empty in a copy saved before hours were asked for. */
-    val hours: List<PlaceHour> = emptyList()
+    val days: List<PlaceDay>
 )
-
-/** One hour of a place's forecast, from [startMillis]. */
-data class PlaceHour(val startMillis: Long, val code: Int?, val isDay: Boolean)
 
 /** The short reading shown beside a place in the list. */
 data class PlaceGlance(val tempC: Double?, val code: Int?, val isDay: Boolean)
@@ -167,7 +161,6 @@ object PlaceParsers {
                 )
             }
         }
-        val timezone = root.optString("timezone").ifBlank { "UTC" }
         return PlaceWeather(
             tempC = current?.numberOrNull("temperature_2m"),
             humidity = current?.numberOrNull("relative_humidity_2m")?.let { Math.round(it).toInt() },
@@ -175,29 +168,9 @@ object PlaceParsers {
             windFromDeg = current?.numberOrNull("wind_direction_10m")?.let { Math.round(it).toInt() },
             code = current?.intOrNull("weather_code"),
             isDay = current?.optInt("is_day", 1) != 0,
-            timezone = timezone,
-            days = days,
-            hours = hoursOf(root.optJSONObject("hourly"), timezone)
+            timezone = root.optString("timezone").ifBlank { "UTC" },
+            days = days
         )
-    }
-
-    /** Open-Meteo gives each hour as the place's own clock time, "2026-10-28T15:00". */
-    private fun hoursOf(hourly: JSONObject?, timezone: String): List<PlaceHour> {
-        if (hourly == null) return emptyList()
-        val times = hourly.optJSONArray("time") ?: return emptyList()
-        val codes = hourly.optJSONArray("weather_code")
-        val dayFlags = hourly.optJSONArray("is_day")
-        val zone = TimeFmt.zoneOrDefault(timezone)
-        val out = ArrayList<PlaceHour>()
-        for (i in 0 until times.length()) {
-            val start = try {
-                LocalDateTime.parse(times.getString(i)).atZone(zone).toInstant().toEpochMilli()
-            } catch (e: Exception) {
-                continue
-            }
-            out.add(PlaceHour(start, codes?.intAt(i), dayFlags?.intAt(i)?.let { it != 0 } ?: true))
-        }
-        return out
     }
 
     private fun JSONObject.numberOrNull(key: String): Double? =

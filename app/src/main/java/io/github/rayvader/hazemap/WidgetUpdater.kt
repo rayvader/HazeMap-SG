@@ -63,13 +63,17 @@ class HazeWidgetSmall : HazeWidgetProvider()
 class HazeWidgetWide : HazeWidgetProvider()
 class HazeWidgetStrip : HazeWidgetProvider()
 
-/** Redraws every widget: when the shown event starts or ends, and after the calendars are ticked. */
+/**
+ * Redraws every widget from what is saved on the phone, with no request to the network: when the shown
+ * event starts or ends, after the calendars are ticked, and when a calendar changes. Only the event
+ * line changes, so there is no weather to fetch.
+ */
 open class WidgetRefreshReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.Default).launch {
             try {
-                withTimeoutOrNull(WidgetUpdater.BUDGET_MS) { WidgetUpdater.update(context) }
+                withTimeoutOrNull(WidgetUpdater.BUDGET_MS) { WidgetUpdater.paintFromDisk(context) }
             } finally {
                 pending.finish()
             }
@@ -94,13 +98,6 @@ object WidgetUpdater {
     const val BUDGET_MS = 9_000L
 
     private const val TAG = "HazeWidget"
-    private const val MINUTE_MS = 60_000L
-
-    /** Past this, the 2-hour forecast is over by the event's time: NEA's 24-hour forecast is needed. */
-    private const val PAST_TWO_HOUR_MS = 90 * MINUTE_MS
-
-    /** Past this, the 24-hour forecast may not reach either: the 4-day outlook is needed too. */
-    private const val PAST_ONE_DAY_MS = 18 * 60 * MINUTE_MS
 
     /** Keeps the event line's tap targets apart from each widget's own. */
     private const val EVENT_REQUEST_BASE = 1_000_000
@@ -111,23 +108,10 @@ object WidgetUpdater {
         val psi: ReadingSet?
     )
 
-    /**
-     * Everything known for the places the widgets show: Singapore's documents, each city's weather,
-     * and the longer NEA forecasts an event further off needs.
-     */
+    /** Everything known for the places the widgets show: Singapore's documents, and each city's weather. */
     private class Data(
         val singapore: Docs?,
-        val cities: Map<Long, Loaded<PlaceWeather>>,
-        val nextDay: Forecast24?,
-        val outlook: List<DayForecast>?
-    )
-
-    /** What to load, decided once per refresh, so nothing is asked for that no widget shows. */
-    private class Needs(
-        val singapore: Boolean,
-        val places: List<Place>,
-        val nextDay: Boolean,
-        val outlook: Boolean
+        val cities: Map<Long, Loaded<PlaceWeather>>
     )
 
     /** One widget on the home screen. */
@@ -140,9 +124,7 @@ object WidgetUpdater {
     internal class EventLine(
         val event: CalendarEvent,
         /** "3 pm Lunch". */
-        val text: String,
-        /** The weather at the event's place and time, or null when no forecast reaches it. */
-        val condition: Condition?
+        val text: String
     )
 
     suspend fun update(context: Context) = refresh(context, fetch = true)
@@ -161,65 +143,29 @@ object WidgetUpdater {
         val store = WidgetTargetStore(app)
         store.keepOnly(placed.map { it.id })
         val targets = placed.associate { it.id to store.get(it.id) }
+        // Only what some widget shows is loaded: no NEA request for city widgets, no city request for Singapore ones.
+        val wantSingapore = targets.values.any { it is WidgetTarget.Singapore }
+        val places = targets.values.filterIsInstance<WidgetTarget.City>().map { it.place }.distinctBy { it.id }
         val area = savedArea(app)
         val now = System.currentTimeMillis()
 
-        // The next event is the same on every widget. Its weather comes from the place it names,
-        // else from the place the widget shows.
+        // The next event on the ticked calendars: the same on every widget that has room for it.
         val event = if (placed.any { it.shape.hasEventLine }) {
             withContext(Dispatchers.IO) { PhoneCalendars.nextEvent(app, now) }
         } else {
             null
         }
-        val eventPlaces: Map<Int, EventPlace> = if (event == null) {
-            emptyMap()
-        } else {
-            val cities = (PlaceStore(app).all() + targets.values.filterIsInstance<WidgetTarget.City>().map { it.place })
-                .distinctBy { it.id }
-            placed.filter { it.shape.hasEventLine }
-                .associate { w -> w.id to eventPlace(event, targets.getValue(w.id), cities, area) }
-        }
-        val needs = needsFor(targets.values, event, eventPlaces.values, now)
 
         val repo = WeatherRepository.get(app)
         // Paint what is already on disk, so a widget is never empty while the network answers.
-        val cached = withContext(Dispatchers.IO) { readDisk(repo, needs) }
-        draw(app, manager, placed, targets, area, cached, event, eventPlaces, now)
-        if (fetch) draw(app, manager, placed, targets, area, fetchAll(repo, needs, cached), event, eventPlaces, now)
+        val cached = withContext(Dispatchers.IO) { readDisk(repo, wantSingapore, places) }
+        draw(app, manager, placed, targets, area, cached, event, now)
+        if (fetch) draw(app, manager, placed, targets, area, fetchAll(repo, wantSingapore, places, cached), event, now)
         scheduleNextChange(app, event, now)
     }
 
-    private fun eventPlace(event: CalendarEvent, target: WidgetTarget, cities: List<Place>, area: Area): EventPlace =
-        EventLogic.placeFor(event.location, cities) ?: when (target) {
-            is WidgetTarget.Singapore -> EventPlace.SingaporeArea(area)
-            is WidgetTarget.City -> EventPlace.City(target.place)
-        }
-
-    /**
-     * Only what some widget shows is loaded: no NEA request for city widgets, no city request for
-     * Singapore ones, and the longer NEA forecasts only for an event that is further off.
-     */
-    private fun needsFor(
-        targets: Collection<WidgetTarget>,
-        event: CalendarEvent?,
-        eventPlaces: Collection<EventPlace>,
-        now: Long
-    ): Needs {
-        val singaporeEvent = event != null && eventPlaces.any { it is EventPlace.SingaporeArea }
-        val later = event != null && (event.allDay || event.beginMillis > now + PAST_TWO_HOUR_MS)
-        val muchLater = event != null && (event.allDay || event.beginMillis > now + PAST_ONE_DAY_MS)
-        val places = targets.filterIsInstance<WidgetTarget.City>().map { it.place } +
-            eventPlaces.filterIsInstance<EventPlace.City>().map { it.place }
-        return Needs(
-            singapore = targets.any { it is WidgetTarget.Singapore } || singaporeEvent,
-            places = places.distinctBy { it.id },
-            nextDay = singaporeEvent && later,
-            outlook = singaporeEvent && muchLater
-        )
-    }
-
-    private fun readDisk(repo: WeatherRepository, needs: Needs): Data = Data(
-        singapore = if (needs.singapore) {
+    private fun readDisk(repo: WeatherRepository, wantSingapore: Boolean, places: List<Place>): Data = Data(
+        singapore = if (wantSingapore) {
             Docs(
                 repo.peek(Endpoints.FORECAST_2H)?.value,
                 repo.peek(Endpoints.TEMPERATURE)?.value,
@@ -228,13 +174,16 @@ object WidgetUpdater {
         } else {
             null
         },
-        cities = needs.places.mapNotNull { p -> repo.peek(Endpoints.placeForecast(p))?.let { p.id to it } }.toMap(),
-        nextDay = if (needs.nextDay) repo.peek(Endpoints.FORECAST_24H)?.value else null,
-        outlook = if (needs.outlook) repo.peek(Endpoints.OUTLOOK)?.value else null
+        cities = places.mapNotNull { p -> repo.peek(Endpoints.placeForecast(p))?.let { p.id to it } }.toMap()
     )
 
-    private suspend fun fetchAll(repo: WeatherRepository, needs: Needs, cached: Data): Data = coroutineScope {
-        val singapore = if (needs.singapore) {
+    private suspend fun fetchAll(
+        repo: WeatherRepository,
+        wantSingapore: Boolean,
+        places: List<Place>,
+        cached: Data
+    ): Data = coroutineScope {
+        val singapore = if (wantSingapore) {
             async {
                 val old = cached.singapore
                 val f = async { tryLoad(repo, Endpoints.FORECAST_2H)?.value ?: old?.forecast }
@@ -245,23 +194,19 @@ object WidgetUpdater {
         } else {
             null
         }
-        // With these two, at most five data.gov.sg requests: the most it takes in 10 seconds.
-        val nextDay = if (needs.nextDay) async { tryLoad(repo, Endpoints.FORECAST_24H)?.value ?: cached.nextDay } else null
-        val outlook = if (needs.outlook) async { tryLoad(repo, Endpoints.OUTLOOK)?.value ?: cached.outlook } else null
-        val cities = needs.places.map { place ->
+        val cities = places.map { place ->
             async { place.id to (tryLoad(repo, Endpoints.placeForecast(place)) ?: cached.cities[place.id]) }
         }
         Data(
             singapore = singapore?.await(),
-            cities = cities.awaitAll().mapNotNull { (id, loaded) -> loaded?.let { id to it } }.toMap(),
-            nextDay = nextDay?.await(),
-            outlook = outlook?.await()
+            cities = cities.awaitAll().mapNotNull { (id, loaded) -> loaded?.let { id to it } }.toMap()
         )
     }
 
     /**
      * Redraws the widgets when the shown event starts or ends, or at midnight, so the line never
-     * shows a finished event for long. Not a wake-up alarm: the line only matters with the screen on.
+     * shows a finished event for long. Not a wake-up alarm: the line only matters with the screen on,
+     * and the redraw needs no network.
      */
     private fun scheduleNextChange(context: Context, event: CalendarEvent?, now: Long) {
         val alarms = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
@@ -278,7 +223,7 @@ object WidgetUpdater {
         alarms.set(AlarmManager.RTC, EventLogic.nextChangeMillis(event, now, ZoneId.systemDefault()) + 1_000L, redraw)
     }
 
-    /** Asks for one fresh update of every widget, with the time a receiver is given for it. */
+    /** Asks for one redraw of every widget from the phone's saved data, with the time a receiver is given. */
     internal fun requestRefreshAll(context: Context) {
         context.sendBroadcast(Intent(context, WidgetRefreshReceiver::class.java))
     }
@@ -335,29 +280,18 @@ object WidgetUpdater {
         area: Area,
         data: Data,
         event: CalendarEvent?,
-        eventPlaces: Map<Int, EventPlace>,
         now: Long
     ) {
+        // Times follow the phone's clock, as the Calendar app shows them.
+        val text = event?.let { EventLogic.lineText(it, now, ZoneId.systemDefault()) }
         for (w in placed) {
             val target = targets.getValue(w.id)
             val model = modelFor(target, area, data)
-            val place = eventPlaces[w.id]
-            val line = if (event != null && place != null) eventLine(event, place, data, now) else null
+            val line = if (event != null && text != null && w.shape.hasEventLine) EventLine(event, text) else null
             // The smoke test reads these lines to find the id of each widget. No event details: they stay private.
             Log.i(TAG, "draw id=${w.id} shape=${w.shape.key} place=${model.placeName} zone=${model.zoneId} event=${line != null}")
             manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now))
         }
-    }
-
-    private fun eventLine(event: CalendarEvent, place: EventPlace, data: Data, now: Long): EventLine {
-        val condition = when (place) {
-            is EventPlace.SingaporeArea ->
-                EventLogic.singaporeWeather(event, place.area, now, data.singapore?.forecast, data.nextDay, data.outlook)
-                    ?.let { Condition.fromText(it) }
-            is EventPlace.City -> EventLogic.cityWeather(event, data.cities[place.place.id]?.value, now)
-        }
-        // Times follow the phone's clock, as the Calendar app shows them.
-        return EventLine(event, EventLogic.lineText(event, now, ZoneId.systemDefault()), condition)
     }
 
     private fun modelFor(target: WidgetTarget, area: Area, data: Data): WidgetModel = when (target) {
@@ -417,25 +351,19 @@ object WidgetUpdater {
         v.setContentDescription(R.id.wRoot, summaryOf(context, model, clock))
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
         // The strip has no event line in its layout: setting one there would stop it drawing.
-        if (shape.hasEventLine) showEvent(context, v, shape, event, widgetId)
+        if (shape.hasEventLine) showEvent(context, v, event, widgetId)
         return v
     }
 
-    /** "3 pm Lunch", after a small picture of its weather; the wide widget adds the weather in words. */
-    private fun showEvent(context: Context, v: RemoteViews, shape: WidgetShape, line: EventLine?, widgetId: Int) {
+    /** "3 pm Lunch" behind a small calendar picture. The row stays hidden when there is no event. */
+    private fun showEvent(context: Context, v: RemoteViews, line: EventLine?, widgetId: Int) {
         if (line == null) {
             v.setViewVisibility(R.id.wEventRow, View.GONE)
             return
         }
         v.setViewVisibility(R.id.wEventRow, View.VISIBLE)
-        val condition = line.condition
-        v.setImageViewResource(R.id.wEventIcon, if (condition == null) R.drawable.ic_event else Icons.forCondition(condition))
         v.setTextViewText(R.id.wEventText, line.text)
-        val word = if (condition != null && shape == WidgetShape.WIDE) EventLogic.word(condition) else null
-        v.setViewVisibility(R.id.wEventWeather, if (word == null) View.GONE else View.VISIBLE)
-        v.setTextViewText(R.id.wEventWeather, if (word == null) "" else " · $word")
-        val spoken = listOfNotNull(line.text, condition?.let { EventLogic.word(it) }).joinToString(". ")
-        v.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc, spoken))
+        v.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc, line.text))
         eventIntent(context, line.event, widgetId)?.let { v.setOnClickPendingIntent(R.id.wEventRow, it) }
     }
 

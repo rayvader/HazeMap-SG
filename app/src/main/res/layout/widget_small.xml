@@ -165,8 +165,7 @@
         android:paddingEnd="12dp"
         android:paddingBottom="12dp">
 
-        <!-- The next event on the chosen calendars. Too narrow for the weather in words: its picture
-             stands in. Hidden until there is an event. -->
+        <!-- The next event on the chosen calendars. Hidden until there is one. -->
         <LinearLayout
             android:id="@+id/wEventRow"
             android:layout_width="wrap_content"
@@ -190,21 +189,14 @@
                 android:src="@drawable/ic_event"
                 android:tint="@color/white" />
 
+            <!-- A long title ends in "…" when the row runs out of room. -->
             <TextView
                 android:id="@+id/wEventText"
                 style="@style/WidgetText"
-                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="--"
                 android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/wEventWeather"
-                style="@style/WidgetText"
-                android:maxLines="1"
-                android:textSize="12sp"
-                android:visibility="gone" />
         </LinearLayout>
 
         <LinearLayout

@@ -63,7 +63,7 @@ class WidgetResourcesTest {
     fun everyLayoutHasTheViewsTheAppFillsIn() {
         // A view missing from one layout only fails on a phone, when the widget refuses to draw.
         val shared = listOf("wRoot", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
-        val eventLine = listOf("wEventRow", "wEventIcon", "wEventText", "wEventWeather")
+        val eventLine = listOf("wEventRow", "wEventIcon", "wEventText")
         for (shape in WidgetShape.entries) {
             val layout = "widget_${shape.key}"
             val wanted = shared +

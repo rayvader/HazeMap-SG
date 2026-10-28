@@ -16,7 +16,7 @@ import struct
 import sys
 import xml.etree.ElementTree as ET
 
-WIDGET_FIELDS = ("wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge", "wWhen", "wEventText", "wEventWeather")
+WIDGET_FIELDS = ("wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge", "wWhen", "wEventText")
 
 
 def nodes(path):

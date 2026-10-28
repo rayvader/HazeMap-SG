@@ -366,8 +366,8 @@ sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
 
-# ---- Widget calendar line: the next event from the ticked calendars, with its weather ----
-# Three phone calendars: one the Calendar app shows, one it hides, and one switched off in its account.
+# ---- Widget calendar line: the next event from the ticked calendars ----
+# Four phone calendars: one the Calendar app shows, two it hides, and one switched off in its account.
 # The shell user may write calendars, so no root is needed.
 cal_insert() {  # cal_insert <name> <account> <account type> <visible> <sync>
   adb shell "content insert --uri 'content://com.android.calendar/calendars?caller_is_syncadapter=true&account_name=$2&account_type=$3'" \
@@ -379,9 +379,13 @@ cal_id() {  # cal_id <name>: the calendar's id in the provider
   adb shell content query --uri content://com.android.calendar/calendars --projection _id:calendar_displayName \
     | tr -d '\r' | grep "calendar_displayName=$1\$" | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | head -1
 }
-event_insert() {  # event_insert <calendar id> <title> <place> <start ms> <end ms>
+event_insert() {  # event_insert <calendar id> <title> <start ms> <end ms>
   adb shell "content insert --uri content://com.android.calendar/events --bind calendar_id:i:$1 --bind title:s:$2" \
-    "--bind 'eventLocation:s:$3' --bind dtstart:l:$4 --bind dtend:l:$5 --bind eventTimezone:s:UTC"
+    "--bind dtstart:l:$3 --bind dtend:l:$4 --bind eventTimezone:s:UTC"
+}
+all_day_insert() {  # all_day_insert <calendar id> <title> <midnight UTC ms>: Android keeps these from midnight UTC
+  adb shell "content insert --uri content://com.android.calendar/events --bind calendar_id:i:$1 --bind title:s:$2" \
+    "--bind dtstart:l:$3 --bind dtend:l:$(( $3 + 86400000 )) --bind allDay:i:1 --bind eventTimezone:s:UTC"
 }
 # calendars_screen: open the Wide widget's own screen, then its Calendars row
 calendars_screen() {
@@ -418,13 +422,16 @@ adb shell input keyevent KEYCODE_HOME
 NOW_MS=$(( $(adb shell date +%s | tr -d '\r') * 1000 ))
 cal_insert Family smoke LOCAL 1 1
 cal_insert Gym smoke LOCAL 0 1
+cal_insert Holidays smoke LOCAL 0 1
 cal_insert Work work@example.com com.example 1 0
 FAMILY=$(cal_id Family)
 GYM=$(cal_id Gym)
-say "test calendars: Family='$FAMILY' Gym='$GYM' Work='$(cal_id Work)'"
-event_insert "$FAMILY" Lunch "Bedok Mall" $(( NOW_MS + 70 * 60000 )) $(( NOW_MS + 130 * 60000 ))
-event_insert "$GYM" Run "Changi Airport" $(( NOW_MS + 30 * 60000 )) $(( NOW_MS + 60 * 60000 ))
-say "phone time now: $(adb shell date +%H:%M | tr -d '\r') (24 h); Lunch at +70 min, Run at +30 min"
+HOLIDAYS=$(cal_id Holidays)
+say "test calendars: Family='$FAMILY' Gym='$GYM' Holidays='$HOLIDAYS' Work='$(cal_id Work)'"
+event_insert "$FAMILY" Lunch $(( NOW_MS + 70 * 60000 )) $(( NOW_MS + 130 * 60000 ))
+event_insert "$GYM" Run $(( NOW_MS + 30 * 60000 )) $(( NOW_MS + 60 * 60000 ))
+all_day_insert "$HOLIDAYS" Holiday $(( NOW_MS / 86400000 * 86400000 ))
+say "phone time now: $(adb shell date +%H:%M | tr -d '\r') (24 h); Lunch at +70 min, Run at +30 min, Holiday all day"
 
 calendars_screen
 adb exec-out screencap -p > "$OUT/55-calendars-ask.png"
@@ -458,6 +465,14 @@ tap Gym
 tap Family
 back_home
 say "--- widgets, nothing ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
+# An all-day event reads as a day: tick the Holidays calendar alone.
+calendars_screen
+tap Holidays
+back_home
+adb exec-out screencap -p > "$OUT/59-widgets-event-all-day.png"
+say "--- widgets, Holidays ticked (an all-day event) ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
