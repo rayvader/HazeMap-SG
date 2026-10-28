@@ -122,8 +122,8 @@ class WeatherLogicTest {
 
     @Test
     fun timeFormatting() {
-        assertEquals("10:45 am", TimeFmt.clock(now))
-        assertEquals("6:00 pm", TimeFmt.clock(periods[2].startMillis))
+        assertEquals("10:45", TimeFmt.clock(now))
+        assertEquals("18:00", TimeFmt.clock(periods[2].startMillis))
         assertEquals("Sun", TimeFmt.dayShort(now))
         assertEquals("Mon", TimeFmt.dayShort(1792339200000L))
         assertEquals("2026-10-18", TimeFmt.isoDate(now))

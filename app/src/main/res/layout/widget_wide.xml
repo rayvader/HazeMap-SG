@@ -144,14 +144,37 @@
         android:paddingStart="16dp"
         android:paddingTop="12dp">
 
-        <TextClock
-            android:id="@+id/wClock"
-            style="@style/WidgetText"
-            android:fontFamily="sans-serif-light"
-            android:format12Hour="h:mm"
-            android:format24Hour="H:mm"
-            android:includeFontPadding="false"
-            android:textSize="44sp" />
+        <!-- The clock. On a short widget the date sits beside it, where it costs no height (see WidgetFit). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="true"
+            android:orientation="horizontal">
+
+            <!-- Always 24-hour, whatever the phone is set to. -->
+            <TextClock
+                android:id="@+id/wClock"
+                style="@style/WidgetText"
+                android:fontFamily="sans-serif-light"
+                android:format12Hour="HH:mm"
+                android:format24Hour="HH:mm"
+                android:includeFontPadding="false"
+                android:textSize="44sp" />
+
+            <!-- Takes the room left before the picture; a long date ends in "…". -->
+            <TextClock
+                android:id="@+id/wDateSide"
+                style="@style/WidgetText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:ellipsize="end"
+                android:format12Hour="EEE d MMM"
+                android:format24Hour="EEE d MMM"
+                android:maxLines="1"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <TextClock
             android:id="@+id/wDate"

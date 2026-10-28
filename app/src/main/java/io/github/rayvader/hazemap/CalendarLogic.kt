@@ -91,8 +91,8 @@ object EventLogic {
     /** An event that began this recently still beats one that has been running a while. */
     private const val JUST_STARTED_MS = 15 * 60_000L
 
-    private val clockFmt = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
-    private val hourFmt = DateTimeFormatter.ofPattern("h a", Locale.ENGLISH)
+    /** 24-hour, like every time in the app (see [TimeFmt]). */
+    private val clockFmt = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
     /**
      * The event the line shows. Of the first day that still has an event, a timed event beats an
@@ -121,13 +121,13 @@ object EventLogic {
     private fun dayOf(e: CalendarEvent, today: Long, zone: ZoneId): Long =
         maxOf(if (e.allDay) e.firstDay else day(e.beginMillis, zone), today)
 
-    /** "Now", "3 pm", "3:30 pm", "Tmrw 9 am", "Fri 3 pm"; for an all-day event "Today", "Tmrw", "Fri". */
+    /** "Now", "15:00", "15:30", "Tmrw 09:00", "Fri 15:00"; for an all-day event "Today", "Tmrw", "Fri". */
     fun whenLabel(e: CalendarEvent, nowMillis: Long, zone: ZoneId): String {
         val today = day(nowMillis, zone)
         if (e.allDay) return dayWord(maxOf(e.firstDay, today), today)
         if (e.beginMillis <= nowMillis) return "Now"
         val start = Instant.ofEpochMilli(e.beginMillis).atZone(zone)
-        val clock = (if (start.minute == 0) hourFmt else clockFmt).format(start).lowercase(Locale.ENGLISH)
+        val clock = clockFmt.format(start)
         val startDay = start.toLocalDate().toEpochDay()
         return if (startDay == today) clock else "${dayWord(startDay, today)} $clock"
     }
@@ -139,7 +139,7 @@ object EventLogic {
         else -> LocalDate.ofEpochDay(date).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
     }
 
-    /** "3 pm Lunch". A title with no words reads "Event". */
+    /** "15:00 Lunch". A title with no words reads "Event". */
     fun lineText(e: CalendarEvent, nowMillis: Long, zone: ZoneId): String {
         val title = e.title.replace(Regex("\\s+"), " ").trim().ifEmpty { "Event" }
         return "${whenLabel(e, nowMillis, zone)} $title"

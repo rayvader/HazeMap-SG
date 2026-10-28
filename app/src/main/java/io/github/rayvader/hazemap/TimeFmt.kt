@@ -7,18 +7,20 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** All weather in the app is shown in Singapore time, whatever the phone's zone is. */
+/**
+ * All weather in the app is shown in Singapore time, whatever the phone's zone is. Every time is
+ * 24-hour, "18:00", in the app and on the widgets, whatever the phone is set to.
+ */
 object TimeFmt {
     val SGT: ZoneId = ZoneId.of("Asia/Singapore")
 
-    private val clockFmt = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
+    private val clockFmt = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH)
 
     /** NEA timestamps look like 2026-10-18T10:45:00+08:00. */
     fun parseIso(iso: String): Long = OffsetDateTime.parse(iso).toInstant().toEpochMilli()
 
-    /** "10:45 am" */
-    fun clock(millis: Long): String =
-        clockFmt.format(Instant.ofEpochMilli(millis).atZone(SGT)).lowercase(Locale.ENGLISH)
+    /** "10:45", "18:00" */
+    fun clock(millis: Long): String = clockFmt.format(Instant.ofEpochMilli(millis).atZone(SGT))
 
     /** The zone for an IANA id. An unknown id falls back to the phone's zone. */
     fun zoneOrDefault(zoneId: String): ZoneId =
@@ -28,9 +30,9 @@ object TimeFmt {
             ZoneId.systemDefault()
         }
 
-    /** The clock at a place, "9:15 pm". An unknown zone id falls back to the phone's zone. */
+    /** The clock at a place, "21:15". An unknown zone id falls back to the phone's zone. */
     fun clockIn(millis: Long, zoneId: String): String =
-        clockFmt.format(Instant.ofEpochMilli(millis).atZone(zoneOrDefault(zoneId))).lowercase(Locale.ENGLISH)
+        clockFmt.format(Instant.ofEpochMilli(millis).atZone(zoneOrDefault(zoneId)))
 
     /** "Mon" */
     fun dayShort(millis: Long): String =

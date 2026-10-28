@@ -427,7 +427,7 @@ adb exec-out screencap -p > "$OUT/47-widgets-tokyo.png"
 dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
 say "--- widgets, the Wide and the Strip showing Tokyo ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
-say "time now: Tokyo $(TZ=Asia/Tokyo date +%-I:%M), Singapore $(TZ=Asia/Singapore date +%-I:%M), phone $(adb shell date +%H:%M | tr -d '\r') (24 h)"
+say "time now: Tokyo $(TZ=Asia/Tokyo date +%H:%M), Singapore $(TZ=Asia/Singapore date +%H:%M), phone $(adb shell date +%H:%M | tr -d '\r')"
 adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
 # Tap the Tokyo widget: its description starts with the place name.
 dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo.") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
