@@ -389,7 +389,21 @@ calendars_screen() {
   tap widgetCalendarRow
   sleep 3
 }
-# back_home: from the Calendars screen, back to the widget screen, keep its place, go home
+# show_widgets: the widgets sit on the launcher's second page, and Home on the launcher jumps to the
+# first. Look, then swipe one page each way until a dump finds them.
+show_widgets() {
+  local swipe
+  for swipe in "" "900 1200 150 1200" "150 1200 900 1200"; do
+    if [ -n "$swipe" ]; then
+      adb shell input swipe $swipe 300
+      sleep 2
+    fi
+    dump && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | grep -q '^widget ' && return 0
+  done
+  say "FAIL no widgets on the launcher's pages"
+  return 1
+}
+# back_home: from the Calendars screen, back to the widget screen, keep its place, find the widgets
 back_home() {
   adb shell input keyevent KEYCODE_BACK
   sleep 2
@@ -398,6 +412,7 @@ back_home() {
   sleep 2
   adb shell input keyevent KEYCODE_HOME
   sleep 20
+  show_widgets
 }
 adb shell input keyevent KEYCODE_HOME
 NOW_MS=$(( $(adb shell date +%s | tr -d '\r') * 1000 ))
@@ -424,7 +439,8 @@ dump && say "calendars: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" 
   "notes: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarSub text)"
 back_home
 adb exec-out screencap -p > "$OUT/57-widgets-event.png"
-dump && say "--- widgets, Family ticked (as the Calendar app shows it) ---" && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+say "--- widgets, Family ticked (as the Calendar app shows it) ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
 # Tick Gym too: its run is sooner, so the line moves to it.
 calendars_screen
@@ -433,14 +449,16 @@ sleep 1
 dump && say "ticked now: $(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" calendarRow checked)"
 back_home
 adb exec-out screencap -p > "$OUT/58-widgets-event-gym.png"
-dump && say "--- widgets, Family and Gym ticked ---" && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+say "--- widgets, Family and Gym ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
 # Untick both: the line goes away.
 calendars_screen
 tap Gym
 tap Family
 back_home
-dump && say "--- widgets, nothing ticked ---" && python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+say "--- widgets, nothing ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
 adb shell settings put global animator_duration_scale 1
