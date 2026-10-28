@@ -75,24 +75,26 @@ and add it again. Each widget keeps its own place, so a Square can show Singapor
 Tokyo. Tapping a city widget opens that city's page. A widget keeps its city even if you take the city
 off My places.
 
-**Next event** — the Wide and Square widgets can show your next calendar event with its weather, such
-as "3 pm Lunch · Rain". On the widget's screen, open Calendars, allow calendar access, and tick the
-calendars to use. The list starts with the ones your Calendar app shows; a calendar switched off in its
-account has no events on the phone and cannot be ticked. One list serves every widget.
+**Next event** — the Wide and Square widgets can show your next calendar event, such as "3 pm Lunch".
+On the widget's screen, open Calendars, allow calendar access, and tick the calendars to use. The list
+starts with the ones your Calendar app shows; a calendar switched off in its account has no events on
+the phone and cannot be ticked. One list serves every widget. With no event in the next week there is no
+line at all.
 
-| Event | Weather it shows |
-|---|---|
-| Names a Singapore area ("Bedok Mall") | that area |
-| Names a saved city ("Tokyo Station") | that city |
-| Anything else, or no place | the place the widget shows |
+The line shows the first day that still has an event. On that day a timed event beats an all-day one,
+and one about to start beats one that has been running a while. Cancelled and declined events are
+skipped. Times follow the phone's clock, like your Calendar app. Tap the line to open the event in your
+Calendar app. It changes as an event starts and ends, and when a calendar changes.
 
-In Singapore the weather comes from the 2-hour forecast, then the 24-hour forecast for the region, then
-the 4-day outlook; past that the line shows the event alone. A city uses that hour there. The line looks
-a week ahead. A timed event beats an all-day one on the same day, and one about to start beats one that
-has been running a while. Times follow the phone's clock, like your Calendar app. The Wide widget writes
-the weather in words; the Square shows its picture. Tap the line to open the event in your Calendar app.
-The line changes as an event starts and ends, and when a calendar changes. Event details stay on the
-phone: places are matched on the phone, and only weather is fetched.
+It is only the event: no weather, and no network. The app reads each event's title and time on the
+phone, and never sends them anywhere.
+
+**Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
+140 dp on some other phones. The widget asks for its height and packs its text to fit. A short Wide drops
+the date first, then shrinks the clock and the temperature, and only then drops the event line (below
+about 120 dp). A Square shows the event only from about 168 dp up: its line sits under the sky picture
+and would cover it on a shorter widget. A larger text size in Settings counts as less height. If the home screen does not say how tall a widget is, it is
+drawn as the shortest one. The widgets cannot be resized, so they settle on a size when you add them.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and
@@ -159,6 +161,10 @@ Locally: `./gradlew testDebugUnitTest assembleRelease`; the APK lands in `app/bu
 The 37 unit tests include the parsers, run against real NEA and RainViewer responses saved in
 `app/src/test/resources/fixtures`. The app reads three launch extras so the smoke test can reach a
 screen directly: `tab` (`now`, `rain`, `haze`), `source` (`radar`, `gauges`) and `zoom`.
+
+The emulator is a Pixel, whose home screen gives widgets plenty of height, so the smoke test also draws the
+widgets at exact short heights inside the app (the `widget_preview` extra) and keeps those pictures as
+`fit-*.png`. To run only that part, start the workflow by hand with the input `only` set to `widget-fit`.
 
 ## Code map
 

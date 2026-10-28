@@ -10,8 +10,40 @@ APK=$(ls HazeMapSG-*.apk | head -1)
 OUT=smoke
 mkdir -p "$OUT"
 
+# Right after the emulator boots it is still starting its apps (a load average of 10 on a few cores), and the
+# launcher can stop responding. Wait for the load to drop before installing, for 2 minutes at most.
+load=""
+for _ in $(seq 1 24); do
+  load=$(adb shell cat /proc/loadavg | cut -d' ' -f1) || load=""
+  awk -v l="${load:-0}" 'BEGIN { exit !(l < 3.0) }' && break
+  sleep 5
+done
+echo "Load average before the test: ${load:-unknown}"
+
 adb logcat -c || true
 adb install -r "$APK"
+
+# While it is busy Android can ask "Pixel Launcher isn't responding". The dialog sits over the app, so every
+# screenshot and tap after it misses. A launcher that has hung asks again 5 seconds after Wait, so it is
+# closed instead (the system starts a fresh one when it is needed); any other app gets more time.
+# dismiss_anr <ui dump>: if the dump shows the dialog, tap its button and succeed; otherwise do nothing and fail.
+dismiss_anr() {
+  local button=aerr_wait xy
+  grep -q "aerr_wait" "$1" || return 1
+  grep -q "Launcher" "$1" && button=aerr_close
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$1" "$button") || return 1
+  echo "A not-responding dialog is on screen. Tapping $button at $xy"
+  adb shell input tap $xy
+  sleep 2
+}
+
+clear_anr() {
+  for _ in 1 2 3; do
+    adb shell uiautomator dump /sdcard/anr.xml > /dev/null 2>&1 || return 0
+    adb pull /sdcard/anr.xml /tmp/anr.xml > /dev/null 2>&1 || return 0
+    dismiss_anr /tmp/anr.xml || return 0
+  done
+}
 
 # shot <file> <wait seconds> <am start extras...>
 shot() {
@@ -20,8 +52,41 @@ shot() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" "$@"
   sleep "$wait"
+  clear_anr
   adb exec-out screencap -p > "$OUT/$name.png"
 }
+
+# ---- Widget fit: the widgets drawn at exact sizes inside the app ----
+# A phone's home screen can give a two-row widget 140 dp or less, while the emulator's gives about 220.
+# So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
+# these shots show how each one packs its text. Rows split by "/", widgets by ",", "+e" adds an event line.
+# The screen is about 390 dp wide, so a row holds one Wide or Strip (362 dp), or two Squares (180 dp).
+fit_shot() { shot "$1" 4 --es widget_preview "$2"; }
+# Let the launcher's boot-time "not responding" come first, then clear it, so it is not on the pictures.
+sleep 10
+clear_anr
+fit_shot fit-1-wide-event "wide@110+e/wide@125+e/wide@140+e/wide@160+e"
+fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
+fit_shot fit-3-small "small@110+e,small@140+e/small@170+e,small@190+e/small@223+e,small@140"
+fit_shot fit-4-strip "strip@70/strip@55"
+# The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
+fit_shot fit-5-wide-edges "wide@170+e/wide@146+e/wide@128+e/wide@119+e"
+fit_shot fit-6-wide-edges-no-event "wide@146/wide@122/wide@112/wide@110"
+fit_shot fit-7-small-edges "small@178+e,small@168+e/small@167+e,small@152/small@134,small@117/small@110"
+# Bigger text, as a person can set it in Settings: the same short widgets again.
+adb shell settings put system font_scale 1.15
+fit_shot fit-8-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@200+e"
+# Stop the app first, or the new text size would redraw the pictures and log them a second time.
+adb shell am force-stop "$PKG"
+adb shell settings put system font_scale 1.0
+adb logcat -d -s HazeWidget:I | grep " preview " | sed 's/^.* I HazeWidget: //' > "$OUT/fit.txt" || true
+cat "$OUT/fit.txt"
+# A crash while drawing would leave a blank screenshot: keep its trace beside it.
+adb logcat -d -s AndroidRuntime:E > "$OUT/fit-crash.txt" || true
+if [ "${SMOKE_ONLY:-}" = widget-fit ]; then
+  echo "Only the widget fit was asked for. Screenshots in $OUT/"
+  exit 0
+fi
 
 # data.gov.sg allows 5 quick calls per 10 s, so the Now tab needs a little over 10 s to fill in.
 shot 1-now 30 --es tab now
@@ -43,8 +108,12 @@ say() { echo "$*" | tee -a "$LOG"; }
 
 dump() {
   for _ in 1 2 3; do
-    adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1 && return 0
-    sleep 1
+    if adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1; then
+      # A not-responding dialog hides the screen behind it: clear it and look again.
+      dismiss_anr "$OUT/ui.xml" >> "$LOG" || return 0
+    else
+      sleep 1
+    fi
   done
   return 1
 }
@@ -366,8 +435,8 @@ sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
 
-# ---- Widget calendar line: the next event from the ticked calendars, with its weather ----
-# Three phone calendars: one the Calendar app shows, one it hides, and one switched off in its account.
+# ---- Widget calendar line: the next event from the ticked calendars ----
+# Four phone calendars: one the Calendar app shows, two it hides, and one switched off in its account.
 # The shell user may write calendars, so no root is needed.
 cal_insert() {  # cal_insert <name> <account> <account type> <visible> <sync>
   adb shell "content insert --uri 'content://com.android.calendar/calendars?caller_is_syncadapter=true&account_name=$2&account_type=$3'" \
@@ -379,9 +448,13 @@ cal_id() {  # cal_id <name>: the calendar's id in the provider
   adb shell content query --uri content://com.android.calendar/calendars --projection _id:calendar_displayName \
     | tr -d '\r' | grep "calendar_displayName=$1\$" | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | head -1
 }
-event_insert() {  # event_insert <calendar id> <title> <place> <start ms> <end ms>
+event_insert() {  # event_insert <calendar id> <title> <start ms> <end ms>
   adb shell "content insert --uri content://com.android.calendar/events --bind calendar_id:i:$1 --bind title:s:$2" \
-    "--bind 'eventLocation:s:$3' --bind dtstart:l:$4 --bind dtend:l:$5 --bind eventTimezone:s:UTC"
+    "--bind dtstart:l:$3 --bind dtend:l:$4 --bind eventTimezone:s:UTC"
+}
+all_day_insert() {  # all_day_insert <calendar id> <title> <midnight UTC ms>: Android keeps these from midnight UTC
+  adb shell "content insert --uri content://com.android.calendar/events --bind calendar_id:i:$1 --bind title:s:$2" \
+    "--bind dtstart:l:$3 --bind dtend:l:$(( $3 + 86400000 )) --bind allDay:i:1 --bind eventTimezone:s:UTC"
 }
 # calendars_screen: open the Wide widget's own screen, then its Calendars row
 calendars_screen() {
@@ -418,13 +491,16 @@ adb shell input keyevent KEYCODE_HOME
 NOW_MS=$(( $(adb shell date +%s | tr -d '\r') * 1000 ))
 cal_insert Family smoke LOCAL 1 1
 cal_insert Gym smoke LOCAL 0 1
+cal_insert Holidays smoke LOCAL 0 1
 cal_insert Work work@example.com com.example 1 0
 FAMILY=$(cal_id Family)
 GYM=$(cal_id Gym)
-say "test calendars: Family='$FAMILY' Gym='$GYM' Work='$(cal_id Work)'"
-event_insert "$FAMILY" Lunch "Bedok Mall" $(( NOW_MS + 70 * 60000 )) $(( NOW_MS + 130 * 60000 ))
-event_insert "$GYM" Run "Changi Airport" $(( NOW_MS + 30 * 60000 )) $(( NOW_MS + 60 * 60000 ))
-say "phone time now: $(adb shell date +%H:%M | tr -d '\r') (24 h); Lunch at +70 min, Run at +30 min"
+HOLIDAYS=$(cal_id Holidays)
+say "test calendars: Family='$FAMILY' Gym='$GYM' Holidays='$HOLIDAYS' Work='$(cal_id Work)'"
+event_insert "$FAMILY" Lunch $(( NOW_MS + 70 * 60000 )) $(( NOW_MS + 130 * 60000 ))
+event_insert "$GYM" Run $(( NOW_MS + 30 * 60000 )) $(( NOW_MS + 60 * 60000 ))
+all_day_insert "$HOLIDAYS" Holiday $(( NOW_MS / 86400000 * 86400000 ))
+say "phone time now: $(adb shell date +%H:%M | tr -d '\r') (24 h); Lunch at +70 min, Run at +30 min, Holiday all day"
 
 calendars_screen
 adb exec-out screencap -p > "$OUT/55-calendars-ask.png"
@@ -458,6 +534,14 @@ tap Gym
 tap Family
 back_home
 say "--- widgets, nothing ticked ---"
+python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
+# An all-day event reads as a day: tick the Holidays calendar alone.
+calendars_screen
+tap Holidays
+back_home
+adb exec-out screencap -p > "$OUT/59-widgets-event-all-day.png"
+say "--- widgets, Holidays ticked (an all-day event) ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----

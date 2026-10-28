@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Which phone calendars the widget line reads. Before the first tick it uses the calendars the
- * Calendar app shows. Each tick is saved at once and shows on the widgets.
+ * Calendar app shows. Each tick is saved at once and shows on the widgets. Nothing is fetched.
  */
 class CalendarsActivity : AppCompatActivity() {
 
@@ -34,16 +34,8 @@ class CalendarsActivity : AppCompatActivity() {
     /** "Don't allow" was pressed here. If Android then stops asking, only Settings can turn access on. */
     private var refused = false
 
-    /** Something changed that the widgets should fetch fresh weather for once this screen closes. */
-    private var changed = false
-
     private val askAccess = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            changed = true
-            repaintWidgets()
-        } else {
-            refused = true
-        }
+        if (granted) repaintWidgets() else refused = true
         render()
     }
 
@@ -59,14 +51,6 @@ class CalendarsActivity : AppCompatActivity() {
         super.onResume()
         // Access can be turned on or off in Settings while this screen is away.
         render()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (changed) {
-            changed = false
-            WidgetUpdater.requestRefreshAll(applicationContext)
-        }
     }
 
     private fun mustUseSettings(): Boolean =
@@ -146,17 +130,17 @@ class CalendarsActivity : AppCompatActivity() {
                 row.calendarCheck.isChecked = on
                 if (on) chosen.add(cal.id) else chosen.remove(cal.id)
                 PhoneCalendars.save(this, chosen.toSet())
-                changed = true
                 repaintWidgets()
             }
         }
         b.calendarsList.addView(row.root)
     }
 
-    /** Shows the new choice on the widgets at once, from what is already saved on the phone. */
-    private fun repaintWidgets() {
-        lifecycleScope.launch { WidgetUpdater.paintFromDisk(applicationContext) }
-    }
+    /**
+     * Shows the new choice on the widgets at once, from what is already saved on the phone. A broadcast
+     * rather than this screen's own coroutine, so leaving the screen cannot cut the redraw short.
+     */
+    private fun repaintWidgets() = WidgetUpdater.requestRefreshAll(applicationContext)
 
     private companion object {
         const val OPAQUE = 0xFF000000.toInt()

@@ -129,13 +129,15 @@
             android:visibility="gone" />
     </FrameLayout>
 
+    <!-- The clock and the date. Its top space is padding, because the app trims it on a short widget. -->
     <LinearLayout
+        android:id="@+id/wTopBlock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginStart="14dp"
-        android:layout_marginTop="12dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp">
 
         <TextClock
             android:id="@+id/wClock"
@@ -156,7 +158,9 @@
             android:layout_marginTop="1dp" />
     </LinearLayout>
 
+    <!-- The next event, the temperature, the place and the PSI. Its bottom space is trimmed on a short widget. -->
     <LinearLayout
+        android:id="@+id/wBottomBlock"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -165,20 +169,19 @@
         android:paddingEnd="12dp"
         android:paddingBottom="12dp">
 
-        <!-- The next event on the chosen calendars. Too narrow for the weather in words: its picture
-             stands in. Hidden until there is an event. -->
+        <!-- The next event on the chosen calendars. Hidden until there is one. -->
         <LinearLayout
             android:id="@+id/wEventRow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="4dp"
             android:background="@drawable/widget_event_bg"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="7dp"
-            android:paddingTop="3dp"
+            android:paddingTop="2dp"
             android:paddingEnd="9dp"
-            android:paddingBottom="3dp"
+            android:paddingBottom="2dp"
             android:visibility="gone">
 
             <ImageView
@@ -190,21 +193,14 @@
                 android:src="@drawable/ic_event"
                 android:tint="@color/white" />
 
+            <!-- A long title ends in "…" when the row runs out of room. -->
             <TextView
                 android:id="@+id/wEventText"
                 style="@style/WidgetText"
-                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="--"
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/wEventWeather"
-                style="@style/WidgetText"
-                android:maxLines="1"
-                android:textSize="12sp"
-                android:visibility="gone" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <LinearLayout

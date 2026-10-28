@@ -37,13 +37,11 @@ data class PhoneCalendar(
     }
 }
 
-/** One event, or one time of a repeating event. */
+/** One event, or one time of a repeating event. Only what the widget line shows is read. */
 data class CalendarEvent(
     val eventId: Long,
     val calendarId: Long,
     val title: String,
-    /** Where it is, as typed in the calendar. May be empty. */
-    val location: String,
     val beginMillis: Long,
     val endMillis: Long,
     val allDay: Boolean
@@ -55,12 +53,6 @@ data class CalendarEvent(
     val dayAfter: Long get() = maxOf(utcDay(endMillis), firstDay + 1)
 
     private fun utcDay(millis: Long): Long = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toEpochDay()
-}
-
-/** Where an event's weather comes from. */
-sealed interface EventPlace {
-    data class SingaporeArea(val area: Area) : EventPlace
-    data class City(val place: Place) : EventPlace
 }
 
 /** Which of the phone's calendars the widget line reads. */
@@ -90,7 +82,7 @@ object CalendarChoice {
     )
 }
 
-/** The next event on the widget line, and the weather for it. */
+/** The next event on the widget line, and how it reads. */
 object EventLogic {
 
     /** How far ahead the line looks. */
@@ -98,10 +90,6 @@ object EventLogic {
 
     /** An event that began this recently still beats one that has been running a while. */
     private const val JUST_STARTED_MS = 15 * 60_000L
-    private const val HOUR_MS = 3_600_000L
-
-    /** Names of Singapore areas that are everyday words too. They count only next to "Singapore". */
-    private val COMMON_WORDS = setOf("City")
 
     private val clockFmt = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
     private val hourFmt = DateTimeFormatter.ofPattern("h a", Locale.ENGLISH)
@@ -155,88 +143,6 @@ object EventLogic {
     fun lineText(e: CalendarEvent, nowMillis: Long, zone: ZoneId): String {
         val title = e.title.replace(Regex("\\s+"), " ").trim().ifEmpty { "Event" }
         return "${whenLabel(e, nowMillis, zone)} $title"
-    }
-
-    /**
-     * The place an event names: a saved city, else a Singapore forecast area, matched as whole words.
-     * Null when it names neither; the widget then uses its own place. Nothing leaves the phone.
-     */
-    fun placeFor(location: String, cities: List<Place>, areas: List<Area> = Areas.all): EventPlace? {
-        val text = location.trim()
-        if (text.isEmpty()) return null
-        val city = cities.firstOrNull { hasWord(text, it.name) }
-        if (city != null) return EventPlace.City(city)
-        val inSingapore = hasWord(text, "Singapore")
-        // The longest name first, so a long name is never taken for a short one inside it.
-        val area = areas.sortedByDescending { it.name.length }
-            .firstOrNull { hasWord(text, it.name) && (inSingapore || it.name !in COMMON_WORDS) }
-        return area?.let { EventPlace.SingaporeArea(it) }
-    }
-
-    private fun hasWord(text: String, word: String): Boolean =
-        word.isNotBlank() &&
-            Regex("(?<![\\p{L}\\p{N}])" + Regex.escape(word) + "(?![\\p{L}\\p{N}])", RegexOption.IGNORE_CASE)
-                .containsMatchIn(text)
-
-    /**
-     * NEA's words for an area at the event's time: the 2-hour forecast while it lasts, then the
-     * 24-hour forecast for the area's region, then the 4-day outlook. Null past all of them.
-     */
-    fun singaporeWeather(
-        e: CalendarEvent,
-        area: Area,
-        nowMillis: Long,
-        twoHour: Forecast2h?,
-        nextDay: Forecast24?,
-        outlook: List<DayForecast>?
-    ): String? {
-        val today = day(nowMillis, TimeFmt.SGT)
-        // A 24-hour forecast saved yesterday says nothing about today.
-        val freshDay = nextDay?.takeIf { d -> d.periods.any { it.endMillis > nowMillis } }
-        if (e.allDay) {
-            val date = maxOf(e.firstDay, today)
-            if (date == today && freshDay != null) return freshDay.general
-            return outlook?.firstOrNull { day(it.dateMillis, TimeFmt.SGT) == date }?.forecast
-        }
-        // A running event gets the weather for now, not for when it began.
-        val at = maxOf(e.beginMillis, nowMillis)
-        if (twoHour != null && at < twoHour.validUntilMillis) {
-            val text = twoHour.forArea(area.name)
-            if (text != null) return text
-        }
-        val period = freshDay?.periods?.firstOrNull { at >= it.startMillis && at < it.endMillis }
-        val regional = period?.byRegion?.get(area.region.key)
-        if (regional != null) return regional
-        val date = day(at, TimeFmt.SGT)
-        return outlook?.firstOrNull { day(it.dateMillis, TimeFmt.SGT) == date }?.forecast
-    }
-
-    /** The weather at a saved city at the event's time: that hour if known, else that day. */
-    fun cityWeather(e: CalendarEvent, weather: PlaceWeather?, nowMillis: Long): Condition? {
-        if (weather == null) return null
-        val zone = TimeFmt.zoneOrDefault(weather.timezone)
-        val at = maxOf(e.beginMillis, nowMillis)
-        if (!e.allDay) {
-            val hour = weather.hours.firstOrNull { at >= it.startMillis && at < it.startMillis + HOUR_MS }
-            val code = hour?.code
-            if (hour != null && code != null) return Wmo.condition(code, hour.isDay)
-        }
-        val date = if (e.allDay) maxOf(e.firstDay, day(nowMillis, zone)) else day(at, zone)
-        val code = weather.days.firstOrNull { it.date.toEpochDay() == date }?.code ?: return null
-        return Wmo.condition(code, true)
-    }
-
-    /** A word or two for the line. */
-    fun word(c: Condition): String = when (c) {
-        Condition.SUN -> "Sunny"
-        Condition.MOON -> "Clear"
-        Condition.PARTLY -> "Partly cloudy"
-        Condition.CLOUD -> "Cloudy"
-        Condition.RAIN -> "Rain"
-        Condition.STORM -> "Thunder"
-        Condition.HAZE -> "Hazy"
-        Condition.WIND -> "Windy"
-        Condition.SNOW -> "Snow"
     }
 
     /**

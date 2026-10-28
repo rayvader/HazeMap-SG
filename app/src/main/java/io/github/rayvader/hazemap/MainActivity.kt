@@ -60,6 +60,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The emulator test draws widgets at exact sizes here, to look at short ones without a short phone.
+        intent.getStringExtra(EXTRA_WIDGET_PREVIEW)?.let {
+            setContentView(WidgetPreview.build(this, it))
+            return
+        }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         restored = savedInstanceState
@@ -400,6 +405,12 @@ class MainActivity : AppCompatActivity() {
          * back to the real one. Used by the emulator smoke test.
          */
         const val EXTRA_WIDGET_SCENE = "widget_scene"
+
+        /**
+         * Shows widgets drawn at exact sizes instead of the app, such as "wide@140+e,wide@160/small@140":
+         * rows split by "/", widgets by ",", "+e" adds an event line. Used by the emulator smoke test.
+         */
+        const val EXTRA_WIDGET_PREVIEW = "widget_preview"
 
         private const val LOCATION_TIMEOUT_MS = 10_000L
         private const val KEY_AREA = Prefs.KEY_AREA

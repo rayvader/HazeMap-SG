@@ -81,13 +81,13 @@
 
     <!-- Calendars for the widget line -->
     <string name="calendars_title">Calendars</string>
-    <string name="calendars_intro">Your next event shows on the Wide and Square widgets, with the weather for it. Tick the calendars to use.</string>
+    <string name="calendars_intro">Your next event shows on the Wide and Square widgets. Tick the calendars to use.</string>
     <string name="calendars_allow">Allow calendar access</string>
     <string name="calendars_open_settings">Open settings</string>
     <string name="calendars_empty">No calendars on this phone.</string>
     <string name="calendars_this_phone">On this phone</string>
     <string name="calendars_switched_off">Switched off</string>
-    <string name="calendars_private">Event details stay on the phone. Only weather is fetched.</string>
+    <string name="calendars_private">Events are read on the phone and never sent anywhere.</string>
 
     <!-- Saved places -->
     <string name="places_title">My places</string>

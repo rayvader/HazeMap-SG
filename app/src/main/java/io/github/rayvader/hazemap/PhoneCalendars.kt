@@ -64,11 +64,11 @@ object PhoneCalendars {
             ContentUris.appendId(it, fromMillis)
             ContentUris.appendId(it, toMillis)
         }.build()
+        // Only what the line shows: no place, no notes, no guests.
         val projection = arrayOf(
             CalendarContract.Instances.EVENT_ID,
             CalendarContract.Instances.CALENDAR_ID,
             CalendarContract.Instances.TITLE,
-            CalendarContract.Instances.EVENT_LOCATION,
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.END,
             CalendarContract.Instances.ALL_DAY
@@ -89,10 +89,9 @@ object PhoneCalendars {
                                 eventId = c.getLong(0),
                                 calendarId = c.getLong(1),
                                 title = c.getString(2).orEmpty(),
-                                location = c.getString(3).orEmpty(),
-                                beginMillis = c.getLong(4),
-                                endMillis = c.getLong(5),
-                                allDay = c.getInt(6) != 0
+                                beginMillis = c.getLong(3),
+                                endMillis = c.getLong(4),
+                                allDay = c.getInt(5) != 0
                             )
                         )
                     }

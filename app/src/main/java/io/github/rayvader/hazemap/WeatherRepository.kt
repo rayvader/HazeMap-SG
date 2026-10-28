@@ -47,9 +47,7 @@ object Endpoints {
     /** Current weather and the next days for one place. Open-Meteo is not rate limited like data.gov.sg. */
     fun placeForecast(p: Place): Endpoint<PlaceWeather> = Endpoint(
         url = "$OPEN_METEO?latitude=${coord(p.lat)}&longitude=${coord(p.lon)}" +
-            "&$OPEN_METEO_CURRENT_PAGE&daily=weather_code,temperature_2m_max,temperature_2m_min" +
-            // Hours, for the weather at the time of a calendar event there.
-            "&hourly=weather_code,is_day&forecast_days=5",
+            "&$OPEN_METEO_CURRENT_PAGE&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5",
         // The version keeps a copy saved before wind was asked for from being shown as if it had none.
         cacheKey = "place-forecast-v3-${p.id}",
         ttlMs = 15 * MIN,
