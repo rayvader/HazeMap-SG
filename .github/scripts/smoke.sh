@@ -52,9 +52,13 @@ fit_shot fit-1-wide-event "wide@110+e/wide@125+e/wide@140+e/wide@160+e"
 fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
 fit_shot fit-3-small "small@110+e,small@140+e/small@160+e,small@190+e/small@223+e,small@140"
 fit_shot fit-4-strip "strip@70/strip@55"
+# The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
+fit_shot fit-5-wide-edges "wide@170+e/wide@146+e/wide@128+e/wide@119+e"
+fit_shot fit-6-wide-edges-no-event "wide@146/wide@122/wide@112/wide@110"
+fit_shot fit-7-small-edges "small@178+e,small@162+e/small@144+e,small@134+e/small@152,small@134/small@117,small@110"
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
-fit_shot fit-5-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@160+e"
+fit_shot fit-8-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@160+e"
 adb shell settings put system font_scale 1.0
 adb logcat -d -s HazeWidget:I | grep " preview " | sed 's/^.* I HazeWidget: //' > "$OUT/fit.txt" || true
 cat "$OUT/fit.txt"

@@ -5,7 +5,8 @@ package io.github.rayvader.hazemap
  * everything, so the least useful part goes first: the date, then the event line. The clock and the
  * numbers shrink as the room does, and the space at the top and bottom is trimmed.
  *
- * Heights are in dp. Zero means the home screen has not said yet, which counts as plenty of room.
+ * Heights are in dp. Zero means the home screen has not said yet, which counts as the shortest a widget
+ * can be: text that fits there fits anywhere, while a guess of plenty of room would overlap on a short one.
  */
 data class WidgetFit(
     val clockSp: Int,
@@ -18,7 +19,8 @@ data class WidgetFit(
 
 object WidgetFits {
 
-    private const val PLENTY = 1000
+    /** The least height a home screen gives a widget: the `minHeight` in res/xml/widget_*_info.xml. */
+    private const val SHORTEST_DP = 110
 
     /**
      * The height the home screen gives a widget right now, in dp. It reports two heights: the one with
@@ -37,7 +39,8 @@ object WidgetFits {
      * as that much shorter. A smaller setting gains nothing, to stay on the safe side.
      */
     fun of(shape: WidgetShape, heightDp: Int, hasEvent: Boolean, fontScale: Float = 1f): WidgetFit? {
-        val h = if (heightDp <= 0) PLENTY else (heightDp / fontScale.coerceAtLeast(1f)).toInt()
+        val known = if (heightDp > 0) heightDp else SHORTEST_DP
+        val h = (known / fontScale.coerceAtLeast(1f)).toInt()
         return when (shape) {
             WidgetShape.WIDE -> wide(h, hasEvent)
             WidgetShape.SMALL -> small(h, hasEvent)
@@ -53,6 +56,7 @@ object WidgetFits {
         hasEvent && h >= 170 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true)
         hasEvent && h >= 146 -> WidgetFit(40, 26, 12, 12, showDate = false, showEvent = true)
         hasEvent && h >= 128 -> WidgetFit(34, 24, 8, 8, showDate = false, showEvent = true)
+        hasEvent && h >= 119 -> WidgetFit(30, 22, 6, 6, showDate = false, showEvent = true)
         h >= 146 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = false)
         h >= 122 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = false)
         h >= 112 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = false)
@@ -64,6 +68,7 @@ object WidgetFits {
         hasEvent && h >= 178 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true)
         hasEvent && h >= 162 -> WidgetFit(32, 24, 12, 12, showDate = false, showEvent = true)
         hasEvent && h >= 144 -> WidgetFit(26, 22, 8, 8, showDate = false, showEvent = true)
+        hasEvent && h >= 134 -> WidgetFit(22, 20, 6, 6, showDate = false, showEvent = true)
         h >= 152 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = false)
         h >= 134 -> WidgetFit(26, 22, 8, 8, showDate = true, showEvent = false)
         h >= 117 -> WidgetFit(26, 22, 8, 8, showDate = false, showEvent = false)
