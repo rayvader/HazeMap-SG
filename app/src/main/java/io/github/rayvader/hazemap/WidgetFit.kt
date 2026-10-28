@@ -63,12 +63,14 @@ object WidgetFits {
         else -> WidgetFit(26, 22, 6, 6, showDate = false, showEvent = false)
     }
 
-    /** The Square widget, which has less width, so the event line costs it more height. */
+    /**
+     * The Square widget. Its event line is as wide as the widget and sits above the temperature, so on a
+     * shorter widget it would run over the sky picture in the top right corner. The line shows only
+     * where it clears the picture (the emulator drawings put that at 168 dp), not wherever the text fits.
+     */
     private fun small(h: Int, hasEvent: Boolean): WidgetFit = when {
         hasEvent && h >= 178 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true)
-        hasEvent && h >= 162 -> WidgetFit(32, 24, 12, 12, showDate = false, showEvent = true)
-        hasEvent && h >= 144 -> WidgetFit(26, 22, 8, 8, showDate = false, showEvent = true)
-        hasEvent && h >= 134 -> WidgetFit(22, 20, 6, 6, showDate = false, showEvent = true)
+        hasEvent && h >= 168 -> WidgetFit(32, 24, 12, 12, showDate = false, showEvent = true)
         h >= 152 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = false)
         h >= 134 -> WidgetFit(26, 22, 8, 8, showDate = true, showEvent = false)
         h >= 117 -> WidgetFit(26, 22, 8, 8, showDate = false, showEvent = false)

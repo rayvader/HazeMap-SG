@@ -82,8 +82,9 @@ class WidgetFitTest {
     fun theEventLineGoesOnlyWhenThereIsNoRoomForIt() {
         assertTrue(fits(WidgetShape.WIDE, true, 119).showEvent)
         assertFalse(fits(WidgetShape.WIDE, true, 118).showEvent)
-        assertTrue(fits(WidgetShape.SMALL, true, 134).showEvent)
-        assertFalse(fits(WidgetShape.SMALL, true, 133).showEvent)
+        // The Square's line would cover its sky picture on anything shorter, so it needs more height than the text does.
+        assertTrue(fits(WidgetShape.SMALL, true, 168).showEvent)
+        assertFalse(fits(WidgetShape.SMALL, true, 167).showEvent)
     }
 
     @Test
