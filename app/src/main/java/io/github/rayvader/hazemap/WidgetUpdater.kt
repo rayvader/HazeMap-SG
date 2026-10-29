@@ -356,7 +356,8 @@ object WidgetUpdater {
         val v = RemoteViews(context.packageName, shape.layout)
         val scene = forceScene ?: sceneOverride ?: model.scene(nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
-        // A short widget moves or drops the date, then the event line, and shrinks the rest; the Strip has no fit.
+        // A short widget drops the event line (and, if even that is not enough, the date) and shrinks the rest;
+        // the Strip has no fit.
         val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale)
         if (fit != null) applyFit(context, v, shape, fit)
 
@@ -369,8 +370,6 @@ object WidgetUpdater {
         // The clock and date tick by themselves, in the time of the place the widget shows.
         v.setString(R.id.wClock, "setTimeZone", model.zoneId)
         v.setString(R.id.wDate, "setTimeZone", model.zoneId)
-        // Only the Wide has a second date, beside its clock, for when it is short.
-        if (shape == WidgetShape.WIDE) v.setString(R.id.wDateSide, "setTimeZone", model.zoneId)
 
         v.setTextViewText(R.id.wTemp, model.tempText)
         v.setTextViewText(R.id.wCondition, model.conditionText)
@@ -395,7 +394,7 @@ object WidgetUpdater {
         return v
     }
 
-    /** Sizes the clock and the numbers, trims the space at the top and bottom, and puts the date where it fits. */
+    /** Sizes the clock and the numbers, trims the space at the top and bottom, and shows the date when there is room. */
     private fun applyFit(context: Context, v: RemoteViews, shape: WidgetShape, fit: WidgetFit) {
         val density = context.resources.displayMetrics.density
         fun px(dp: Int) = (dp * density).roundToInt()
@@ -414,11 +413,7 @@ object WidgetUpdater {
             if (rtl) start else end,
             px(fit.padBottomDp)
         )
-        v.setViewVisibility(R.id.wDate, if (fit.date == DateSpot.BELOW) View.VISIBLE else View.GONE)
-        // Only the Wide has the date beside its clock; the Square's fits never ask for it.
-        if (shape == WidgetShape.WIDE) {
-            v.setViewVisibility(R.id.wDateSide, if (fit.date == DateSpot.BESIDE) View.VISIBLE else View.GONE)
-        }
+        v.setViewVisibility(R.id.wDate, if (fit.showDate) View.VISIBLE else View.GONE)
     }
 
     /** "15:00 Lunch" behind a small calendar picture. The row stays hidden when there is no event. */

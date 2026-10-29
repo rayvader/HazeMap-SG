@@ -2,6 +2,7 @@ package io.github.rayvader.hazemap
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
@@ -89,7 +90,7 @@ class WidgetResourcesTest {
         for (shape in WidgetShape.entries) {
             val layout = "widget_${shape.key}"
             val wanted = shared +
-                (if (shape == WidgetShape.WIDE) listOf("wDateSide") else listOf("wWhen")) +
+                (if (shape == WidgetShape.WIDE) emptyList() else listOf("wWhen")) +
                 (if (shape.hasEventLine) eventLine else emptyList()) +
                 (if (WidgetFits.of(shape, 100, false) != null) trimmed else emptyList())
             val have = views(layout).mapNotNull { it.attr("id") }.toSet()
@@ -127,8 +128,7 @@ class WidgetResourcesTest {
     @Test
     fun theClockAndDateAreRealClocksSoTheyCanTakeATimeZone() {
         for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
-            val ids = listOf("wClock", "wDate") + (if (layout == "widget_wide") listOf("wDateSide") else emptyList())
-            for (id in ids) {
+            for (id in listOf("wClock", "wDate")) {
                 val view = views(layout).single { it.attr("id") == "@+id/$id" }
                 assertEquals("$layout $id", "TextClock", view.localName)
             }
@@ -146,10 +146,14 @@ class WidgetResourcesTest {
     }
 
     @Test
-    fun theDateBesideTheClockIsHiddenUntilTheAppAsks() {
+    fun theDateIsInEveryLayoutUnderTheClockAndShownUntilTheAppAsksOtherwise() {
         // The widget picker's preview, drawn before the app knows the height, shows the date under the clock.
-        val side = views("widget_wide").single { it.attr("id") == "@+id/wDateSide" }
-        assertEquals("gone", side.attr("visibility"))
+        for (layout in listOf("widget_small", "widget_wide")) {
+            val top = views(layout).single { it.attr("id") == "@+id/wTopBlock" }
+            val order = top.children().mapNotNull { it.attr("id") }
+            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), order.take(2))
+            assertNull(layout, top.children().single { it.attr("id") == "@+id/wDate" }.attr("visibility"))
+        }
     }
 
     @Test

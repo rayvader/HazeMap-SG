@@ -70,9 +70,13 @@ fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
 fit_shot fit-3-small "small@110+e,small@140+e/small@170+e,small@190+e/small@223+e,small@140"
 fit_shot fit-4-strip "strip@70/strip@55"
 # The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
-fit_shot fit-5-wide-edges "wide@170+e/wide@146+e/wide@128+e/wide@119+e"
-fit_shot fit-6-wide-edges-no-event "wide@146/wide@122/wide@112/wide@110"
-fit_shot fit-7-small-edges "small@178+e,small@168+e/small@167+e,small@152/small@134,small@117/small@110"
+fit_shot fit-5-wide-edges "wide@170+e/wide@166+e/wide@149+e/wide@138+e"
+# 137 is where the event line goes: the date stays under the clock.
+fit_shot fit-6-wide-edges-no-event "wide@146/wide@137+e/wide@122/wide@112"
+fit_shot fit-7-small-edges "small@178+e,small@164+e/small@163+e,small@152/small@134,small@122/small@121,small@110"
+# The Wide a real phone gave 139 dp, then the shortest ones: the least a home screen offers is 110, and
+# bigger text counts as less (106 and 105 are where the date has to give way).
+fit_shot fit-12-wide-shortest "wide@139+e/wide@110/wide@106/wide@105"
 # Every night sky as a Square, then the text on four of them in a Wide ("+s=" picks the sky).
 fit_shot fit-9-night-skies "small@150+s=night,small@150+s=partly_night/small@150+s=cloud_night,small@150+s=rain_night/small@150+s=storm_night,small@150+s=haze_night/small@150+s=wind_night"
 fit_shot fit-10-night-wide "wide@140+e+s=partly_night/wide@140+e+s=rain_night/wide@140+e+s=haze_night/wide@140+e+s=storm_night"

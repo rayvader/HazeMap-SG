@@ -103,7 +103,7 @@ internal object WidgetPreview {
         return ScrollView(context).apply { addView(column) }
     }
 
-    /** "wide 140dp +event: clock 34, temp 24, date beside". What the widget below it was told to do. */
+    /** "small 115dp: clock 22, temp 20, no date". What the widget below it was told to do. */
     private fun captionOf(
         shape: WidgetShape,
         heightDp: Int,
@@ -116,11 +116,7 @@ internal object WidgetPreview {
         if (withEvent) parts.append(" +event")
         if (fit != null) {
             parts.append(": clock ${fit.clockSp}, temp ${fit.tempSp}")
-            when (fit.date) {
-                DateSpot.BELOW -> Unit
-                DateSpot.BESIDE -> parts.append(", date beside")
-                DateSpot.HIDDEN -> parts.append(", no date")
-            }
+            if (!fit.showDate) parts.append(", no date")
             if (withEvent && !fit.showEvent) parts.append(", no event")
         }
         if (city != null) parts.append(" | $city")

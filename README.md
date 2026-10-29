@@ -93,13 +93,14 @@ It is only the event: no weather, and no network. The app reads each event's tit
 phone, and never sends them anywhere.
 
 **Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
-140 dp on some other phones. The widget asks for its height and packs its text to fit. A short Wide moves
-the date beside the clock, then shrinks the clock and the temperature, and only then drops the event line
-(below about 120 dp). It always shows the date. A Square shows the event only from about 168 dp up: its
-line sits under the sky picture and would cover it on a shorter widget. A short Square has no room beside
-its clock, so it drops the date. A larger text size in Settings counts as less height. If the home screen
-does not say how tall a widget is, it is drawn as the shortest one. The widgets cannot be resized, so they
-settle on a size when you add them.
+140 dp on some other phones. The widget asks for its height and packs its text to fit. The date always
+sits under the clock. A short Wide shrinks the clock and the temperature, and drops the event line when
+there is no room for it (below about 138 dp). A Square shows the event only from about 164 dp up: its
+line sits under the sky picture and would cover it on a shorter widget. The date goes only where even the
+smallest clock leaves no room for it: on a Square below about 122 dp, and on a Wide at its shortest height
+with a larger text size. A larger text size in Settings counts as less height. If the home screen does not
+say how tall a widget is, it is drawn as the shortest one. The widgets cannot be resized, so they settle
+on a size when you add them.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. After dark each of them has a night version, lit by a soft glow of the moon: a clear sky
@@ -128,7 +129,8 @@ The sky looks the same in light and dark mode.
   is shown at once, and each card updates as its data arrives.
 - Offline, the app shows the last saved forecast, haze and rain-gauge readings, and map tiles you
   have already viewed. Radar pictures are not saved: the radar shows "Couldn't load the radar. Tap to retry."
-- The app fetches only while it is open. There is no background work.
+- The app fetches only while it is open. The one exception is the widgets, which Android refreshes about
+  every 30 minutes (see Widgets above).
 - Times are always Singapore time.
 - The area picker sets the forecast region by the nearest NEA region label, which is an approximation
   of NEA's actual region borders.
