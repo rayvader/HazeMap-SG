@@ -55,13 +55,14 @@ except what any web request does.
 
 **Widgets** — three home screen widgets with a sky that matches the weather. Each one shows Singapore
 or one of your saved cities. It has a clock and the date, the temperature, the weather now, the place
-name, and a pill with the time of the reading. Every time, on the widgets and in the app, is 24-hour
-(15:00), whatever the phone is set to:
+name, and a pill with the PSI (the humidity for a city). The Square and the Strip also show the time of
+the reading beside the pill; the Wide leaves it out, to give its clock the room. Every time, on the
+widgets and in the app, is 24-hour (15:00), whatever the phone is set to:
 
 | Widget | Size | Layout |
 |---|---|---|
 | Square | 2x2 | clock and picture on top; temperature, weather, place, pill and its time below |
-| Wide | 4x2 | big clock and big picture; "Bedok · PSI at 14:00" under the weather |
+| Wide | 4x2 | big clock and big picture; "27° Light Rain · Bedok" on one line, and the pill beside it |
 | Strip | 4x1 | clock, picture, weather and pill in one row |
 
 | Shows | Place | Temperature | Weather | Pill | Clock |
@@ -94,15 +95,17 @@ phone, and never sends them anywhere.
 
 **Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
 140 dp on some other phones. The widget asks for its height and packs its text to fit. The date always
-sits under the clock. To keep the event line as well, a short Wide shrinks the clock, the temperature and
-the space around them, and drops the line only when there is still no room (below about 121 dp). A Square
-shows the event only from about 170 dp up: its line sits under the sky picture and would cover it on a
-shorter widget. The date goes only where even the smallest clock leaves no room for it: on a Square below
-about 122 dp, and on a Wide at its shortest height with a larger text size. A larger text size in Settings
-counts as less height, by as much as the text grows; the space around the text stays the same. A 139 dp
-Wide keeps the date and the event line up to 115% text. If the home screen does not say how tall a widget
-is, it is drawn as the shortest one. The widgets cannot be resized, so they settle on a size when you add
-them.
+sits under the clock. The Wide has its temperature, weather and place on one line, so its clock gets the
+rest: as big as the height allows, from 60 sp on a tall one down to 22 sp on the shortest, and the same
+size with or without an event line. It keeps the event line down to about 108 dp. A Square shows the
+event only from about 170 dp up: its line sits under the sky picture and would cover it on a shorter
+widget. The date goes only where even the smallest clock leaves no room for it: on a Square below about
+122 dp, and on a Wide only at its shortest height with much larger text. A larger text size in Settings
+counts as less height, by as much as the text grows; the space around the text stays the same. A big
+clock also shrinks for very large text, so that it stays on one line. A 139 dp Wide has a 42 sp clock,
+the date and the event line, and keeps all three at 115% text with a 32 sp clock. If the home screen does
+not say how tall a widget is, it is drawn as the shortest one. The widgets cannot be resized, so they
+settle on a size when you add them.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
 haze and windy. After dark each of them has a night version, lit by a soft glow of the moon: a clear sky

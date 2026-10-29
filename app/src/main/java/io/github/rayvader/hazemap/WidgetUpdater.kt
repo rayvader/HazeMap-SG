@@ -374,13 +374,10 @@ object WidgetUpdater {
         v.setTextViewText(R.id.wTemp, model.tempText)
         v.setTextViewText(R.id.wCondition, model.conditionText)
 
-        // The wide widget puts the time after the place; the others show it beside the pill.
-        if (shape == WidgetShape.WIDE) {
-            v.setTextViewText(R.id.wPlace, placeLine(context, model, clock))
-        } else {
-            v.setTextViewText(R.id.wPlace, model.placeLabel)
-            v.setTextViewText(R.id.wWhen, clock ?: "--")
-        }
+        // The Square and the Strip show the time of the reading beside the pill. The Wide leaves it out:
+        // its place shares a line with the temperature and the weather, and the room goes to the clock.
+        v.setTextViewText(R.id.wPlace, model.placeLabel)
+        if (shape != WidgetShape.WIDE) v.setTextViewText(R.id.wWhen, clock ?: "--")
 
         val badge = badgeOf(context, model)
         v.setTextViewText(R.id.wBadge, badge.text)
@@ -455,14 +452,6 @@ object WidgetUpdater {
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-    }
-
-    /** "Bedok · PSI at 14:00". Without a PSI, or in a city, it is the place and the time of the reading. */
-    private fun placeLine(context: Context, model: WidgetModel, clock: String?): String = when {
-        clock == null -> model.placeLabel
-        model is SingaporeModel && model.psi != null ->
-            context.getString(R.string.widget_place_psi_time, model.placeLabel, clock)
-        else -> context.getString(R.string.widget_place_time, model.placeLabel, clock)
     }
 
     /** The pill: the PSI in its band colour for Singapore, the humidity for a city (it has no PSI). */

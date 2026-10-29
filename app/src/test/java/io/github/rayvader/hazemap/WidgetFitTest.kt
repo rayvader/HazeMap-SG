@@ -44,7 +44,7 @@ class WidgetFitTest {
     @Test
     fun aRoomyWidgetKeepsEverythingAtFullSize() {
         val wide = fits(WidgetShape.WIDE, true, 223)
-        assertEquals(WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true), wide)
+        assertEquals(WidgetFit(60, 26, 12, 12, showDate = true, showEvent = true), wide)
         val small = fits(WidgetShape.SMALL, true, 223)
         assertEquals(WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true), small)
     }
@@ -69,13 +69,27 @@ class WidgetFitTest {
     }
 
     @Test
-    fun aShortWideKeepsTheDateUnderTheClockAndLosesTheEventLineFirst() {
-        // Under 121 dp there is no room for the event line as well as the date, and the date is what stays.
-        val squeezed = fits(WidgetShape.WIDE, true, 120)
+    fun aVeryShortWideKeepsTheDateUnderTheClockAndLosesTheEventLineFirst() {
+        // Under 108 dp there is no room for the event line as well as the date, and the date is what stays.
+        val squeezed = fits(WidgetShape.WIDE, true, 107)
         assertTrue(squeezed.showDate)
         assertFalse(squeezed.showEvent)
         // The same height with no event looks the same.
-        assertEquals(squeezed, fits(WidgetShape.WIDE, false, 120))
+        assertEquals(squeezed, fits(WidgetShape.WIDE, false, 107))
+    }
+
+    @Test
+    fun theWideClockIsTheSameSizeWithOrWithoutAnEventLine() {
+        // The clock must not jump when the event line comes or goes; only the line itself does.
+        for (h in heights.filter { it >= 108 }) {
+            assertEquals("at ${h}dp", fits(WidgetShape.WIDE, true, h), fits(WidgetShape.WIDE, false, h).copy(showEvent = true))
+        }
+    }
+
+    @Test
+    fun theWideKeepsTheEventLineAtEveryHeightAHomeScreenOffers() {
+        // The temperature, weather and place share one line, so even the shortest Wide has room for the event line.
+        for (h in heights.filter { it >= 110 }) assertTrue("at ${h}dp", fits(WidgetShape.WIDE, true, h).showEvent)
     }
 
     @Test
@@ -91,10 +105,11 @@ class WidgetFitTest {
     @Test
     fun theWideDropsTheDateOnlyWhenBigTextLeavesNoRoomForItAtTheShortestHeight() {
         assertTrue(WidgetFits.of(WidgetShape.WIDE, 110, false, 1f)!!.showDate)
-        // 110 dp of 15% bigger text counts as 97 dp, where even the smallest clock and numbers need the room.
-        assertFalse(WidgetFits.of(WidgetShape.WIDE, 110, false, 1.15f)!!.showDate)
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 110, false, 1.15f)!!.showDate)
+        // 110 dp of 50% bigger text counts as 76 dp, where even the smallest clock and numbers need the room.
+        assertFalse(WidgetFits.of(WidgetShape.WIDE, 110, false, 1.5f)!!.showDate)
         // Taller, the same bigger text keeps it.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 140, false, 1.15f)!!.showDate)
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 140, false, 1.5f)!!.showDate)
     }
 
     @Test
@@ -108,8 +123,8 @@ class WidgetFitTest {
 
     @Test
     fun theEventLineGoesOnlyWhenThereIsNoRoomForIt() {
-        assertTrue(fits(WidgetShape.WIDE, true, 121).showEvent)
-        assertFalse(fits(WidgetShape.WIDE, true, 120).showEvent)
+        assertTrue(fits(WidgetShape.WIDE, true, 108).showEvent)
+        assertFalse(fits(WidgetShape.WIDE, true, 107).showEvent)
         // The Square's line would cover its sky picture on anything shorter, so it needs more height than the text does.
         assertTrue(fits(WidgetShape.SMALL, true, 170).showEvent)
         assertFalse(fits(WidgetShape.SMALL, true, 169).showEvent)
@@ -118,24 +133,41 @@ class WidgetFitTest {
     @Test
     fun aPhoneThatGivesAWideAboutTheHeightOfTheScreenshotShowsTheDateAndTheEvent() {
         // A real phone gave the Wide 139 dp; the event line overlapped the temperature there before the fit,
-        // and the date had to move beside the clock to make room. Now both fit, the date under the clock.
+        // and the date had to move beside the clock to make room. Now both fit, the date under the clock,
+        // and the clock is 42 sp (it was 30) now that the place shares the temperature's line.
         val wide = fits(WidgetShape.WIDE, true, 139)
         assertTrue(wide.showEvent)
         assertTrue(wide.showDate)
-        assertEquals(30, wide.clockSp)
+        assertEquals(42, wide.clockSp)
         // With 15% bigger text it keeps both as well, with a smaller clock.
         val bigText = WidgetFits.of(WidgetShape.WIDE, 139, true, 1.15f)!!
         assertTrue(bigText.showEvent)
         assertTrue(bigText.showDate)
+        assertEquals(32, bigText.clockSp)
     }
 
     @Test
     fun onlyTheTextGrowsWithTheTextSize() {
-        // 15% bigger text on a 139 dp Wide: its 12 dp of padding stay 12 dp, so it counts as 122 dp, not 120.
+        // 15% bigger text on a 148 dp Wide: the 8 dp that do not grow stay 8 dp, so it counts as 129 dp, not 128.
         assertEquals(
-            WidgetFits.of(WidgetShape.WIDE, 122, true, 1f),
-            WidgetFits.of(WidgetShape.WIDE, 139, true, 1.15f)
+            WidgetFits.of(WidgetShape.WIDE, 129, true, 1f),
+            WidgetFits.of(WidgetShape.WIDE, 148, true, 1.15f)
         )
+    }
+
+    @Test
+    fun aBigClockGivesWayToBigText() {
+        // The clock is about 2.4 dp wide for each sp and has 222 dp before the picture: with text 50% bigger a
+        // 60 sp clock would not fit on one line, so it shrinks to what does. Only a very tall widget gets that far.
+        for (scale in listOf(1f, 1.15f, 1.3f, 1.5f, 2f)) {
+            for (h in (60..420)) {
+                val clock = WidgetFits.of(WidgetShape.WIDE, h, true, scale)!!.clockSp
+                assertTrue("${h}dp at $scale: $clock sp", clock * scale <= 88f)
+            }
+        }
+        assertEquals(60, WidgetFits.of(WidgetShape.WIDE, 300, true, 1.3f)!!.clockSp)
+        assertEquals(58, WidgetFits.of(WidgetShape.WIDE, 300, true, 1.5f)!!.clockSp)
+        assertEquals(44, WidgetFits.of(WidgetShape.WIDE, 420, true, 2f)!!.clockSp)
     }
 
     @Test
@@ -147,9 +179,9 @@ class WidgetFitTest {
 
     @Test
     fun biggerTextCountsAsLessHeight() {
-        // 125 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 125, true, 1f)!!.showEvent)
-        assertFalse(WidgetFits.of(WidgetShape.WIDE, 125, true, 1.15f)!!.showEvent)
+        // 115 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 115, true, 1f)!!.showEvent)
+        assertFalse(WidgetFits.of(WidgetShape.WIDE, 115, true, 1.15f)!!.showEvent)
         // The same widget with more height still holds it.
         assertTrue(WidgetFits.of(WidgetShape.WIDE, 160, true, 1.15f)!!.showEvent)
     }
@@ -166,10 +198,12 @@ class WidgetFitTest {
     fun theSizesStayReadable() {
         for (shape in listOf(WidgetShape.WIDE, WidgetShape.SMALL)) {
             for (hasEvent in listOf(true, false)) {
-                for (h in heights) {
-                    val f = fits(shape, hasEvent, h)
-                    assertTrue("$shape ${h}dp clock", f.clockSp >= 22)
-                    assertTrue("$shape ${h}dp temp", f.tempSp >= 20)
+                for (scale in listOf(1f, 2f)) {
+                    for (h in heights) {
+                        val f = WidgetFits.of(shape, h, hasEvent, scale)!!
+                        assertTrue("$shape ${h}dp at $scale clock", f.clockSp >= 22)
+                        assertTrue("$shape ${h}dp at $scale temp", f.tempSp >= 20)
+                    }
                 }
             }
         }

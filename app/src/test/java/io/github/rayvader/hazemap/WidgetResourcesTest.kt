@@ -77,6 +77,27 @@ class WidgetResourcesTest {
         }
     }
 
+    @Test
+    fun theWideShowsTheTemperatureTheWeatherAndThePlaceOnOneLine() {
+        val row = views("widget_wide").single { parent -> parent.children().any { it.attr("id") == "@+id/wTemp" } }
+        assertEquals(
+            listOf("@+id/wTemp", "@+id/wCondition", "@+id/wPlace"),
+            row.children().mapNotNull { it.attr("id") }
+        )
+        assertEquals("horizontal", row.attr("orientation"))
+        // Their texts differ in size, so they sit on one baseline.
+        assertEquals("true", row.attr("baselineAligned"))
+        // The place takes what the temperature and the weather leave. A long weather phrase stops at maxWidth,
+        // so it cannot push the place out of the line; both end in "…" instead of wrapping.
+        val place = row.children().single { it.attr("id") == "@+id/wPlace" }
+        assertEquals("0dp", place.attr("layout_width"))
+        assertEquals("1", place.attr("layout_weight"))
+        val condition = row.children().single { it.attr("id") == "@+id/wCondition" }
+        assertNotNull(condition.attr("maxWidth"))
+        assertEquals("1", condition.attr("maxLines"))
+        assertEquals("end", condition.attr("ellipsize"))
+    }
+
     /** Every view in a layout, the root included. */
     private fun views(layout: String): List<Element> = parse("layout/$layout.xml").let { listOf(it) + it.descendants() }
 

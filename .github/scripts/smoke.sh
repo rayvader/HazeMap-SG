@@ -77,16 +77,21 @@ fit_shot fit-1-wide-event "wide@110+e/wide@125+e/wide@140+e/wide@160+e"
 fit_shot fit-2-wide-more "wide@140/wide@190+e/wide@223+e"
 fit_shot fit-3-small "small@110+e,small@140+e/small@170+e,small@190+e/small@223+e,small@140"
 fit_shot fit-4-strip "strip@70/strip@55"
-# The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
-fit_shot fit-5-wide-edges "wide@170+e/wide@166+e/wide@149+e/wide@138+e"
-# The short Wides that keep the event line with a smaller clock and numbers.
-fit_shot fit-15-wide-event-short "wide@133+e/wide@126+e/wide@124+e/wide@121+e"
-# 120 is where the event line goes: the date stays under the clock.
-fit_shot fit-6-wide-edges-no-event "wide@146/wide@120+e/wide@122/wide@112"
+# The shortest height of each way to pack the text (see WidgetFits), where it is tightest. The Wide's
+# clock is as big as its height allows, with the event line, down to 108 dp.
+fit_shot fit-5-wide-edges "wide@176+e/wide@169+e/wide@154+e"
+fit_shot fit-15-wide-event-short "wide@149+e/wide@138+e/wide@129+e/wide@120+e"
+fit_shot fit-19-wide-event-shortest "wide@115+e/wide@108+e/wide@107+e"
+# The same edges with no event: the clock stays the size it is with one.
+fit_shot fit-6-wide-edges-no-event "wide@169/wide@138/wide@120/wide@108"
 fit_shot fit-7-small-edges "small@178+e,small@170+e/small@169+e,small@152/small@134,small@122/small@121,small@110"
 # The Wide a real phone gave 139 dp, then the shortest ones: the least a home screen offers is 110, and
-# bigger text counts as less (106 and 105 are where the date has to give way).
-fit_shot fit-12-wide-shortest "wide@139+e/wide@110/wide@106/wide@105"
+# bigger text counts as less (82 and 81 dp are where the date has to give way).
+fit_shot fit-12-wide-shortest "wide@139+e/wide@110+e/wide@82/wide@81"
+# The temperature, weather and place share one line, so this is where it is tightest: the longest weather
+# phrases ("+lc"), a city with its country, and a narrower Wide ("+w=300" dp; the least it is offered is 250).
+fit_shot fit-21-one-line-singapore "wide@139+e/wide@139+e+lc/wide@139+e+w=300/wide@139+e+lc+w=270"
+fit_shot fit-22-one-line-cities "wide@139+e+c/wide@139+e+cl/wide@139+e+c+lc/wide@139+e+cl+w=300"
 # The Square's event line must clear every sky picture: the skies whose art reaches lowest (the night
 # thunderstorm's bolt, the star of the clear night, the haze lines), and the day skies, at 170 dp.
 fit_shot fit-13-small-event-skies "small@170+e+s=storm_night,small@170+e+s=night/small@170+e+s=haze_night,small@170+e+s=storm"
@@ -99,11 +104,16 @@ fit_shot fit-11-city-names "wide@140+e+c+s=rain_night/wide@140+cl/small@150+c,sm
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
 fit_shot fit-8-bigfont "wide@125+e/wide@139+e/wide@160+e/small@140,small@200+e"
-# The shortest height of each fit at this text size: the Wides with the event line, then the ones
-# without it and the Squares. Only the text grows, so 139 dp at 115% counts as 122 dp (see WidgetFits).
-fit_shot fit-16-bigfont-wide-edges "wide@138+e/wide@141+e/wide@144+e/wide@152+e"
-fit_shot fit-17-bigfont-no-event "wide@121/wide@127/wide@139/small@139,small@153"
+# The shortest height of each Wide fit at this text size, with the event line. Only the text grows, so
+# 139 dp at 115% counts as 121 dp (see WidgetFits): 202, 194, 176, 171, 158, 148, 137, 132 and 123 dp
+# are the lowest that still count as the fit of 176, 169, 154, 149, 138, 129, 120, 115 and 108 dp.
+fit_shot fit-16-bigfont-wide-edges "wide@202+e/wide@194+e/wide@176+e"
+fit_shot fit-20-bigfont-wide-short "wide@171+e/wide@158+e/wide@148+e/wide@137+e"
+fit_shot fit-23-bigfont-wide-shortest "wide@132+e/wide@123+e/wide@122+e"
+fit_shot fit-17-bigfont-no-event "wide@123/wide@139/small@139,small@153"
 fit_shot fit-18-bigfont-small "small@173,small@194+e/small@203+e"
+# A long weather phrase and a long city in one line, at this text size too.
+fit_shot fit-24-bigfont-one-line "wide@139+e+lc/wide@139+e+cl/wide@139+e+c+lc"
 # Stop the app first, or the new text size would redraw the pictures and log them a second time.
 adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0
