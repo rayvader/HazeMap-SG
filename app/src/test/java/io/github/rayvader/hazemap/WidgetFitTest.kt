@@ -44,9 +44,9 @@ class WidgetFitTest {
     @Test
     fun aRoomyWidgetKeepsEverythingAtFullSize() {
         val wide = fits(WidgetShape.WIDE, true, 223)
-        assertEquals(WidgetFit(44, 26, 12, 12, DateSpot.BELOW, showEvent = true), wide)
+        assertEquals(WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true), wide)
         val small = fits(WidgetShape.SMALL, true, 223)
-        assertEquals(WidgetFit(32, 24, 12, 12, DateSpot.BELOW, showEvent = true), small)
+        assertEquals(WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true), small)
     }
 
     @Test
@@ -56,8 +56,8 @@ class WidgetFitTest {
                 for (h in heights.drop(1)) {
                     val taller = fits(shape, hasEvent, h)
                     val shorter = fits(shape, hasEvent, h - 1)
-                    // Moving the date or dropping the event line frees room, so the rest may grow back at that step.
-                    if (taller.date != shorter.date || taller.showEvent != shorter.showEvent) continue
+                    // Dropping the event line frees room, so the rest may grow back at that step.
+                    if (taller.showEvent != shorter.showEvent) continue
                     val tag = "$shape event=$hasEvent from ${h}dp to ${h - 1}dp"
                     assertTrue("$tag clock", shorter.clockSp <= taller.clockSp)
                     assertTrue("$tag temp", shorter.tempSp <= taller.tempSp)
@@ -69,46 +69,60 @@ class WidgetFitTest {
     }
 
     @Test
-    fun aShortWideMovesTheDateBesideTheClockToKeepTheEventLine() {
-        // At this height there is no room for the date under the clock as well as the event line.
-        val squeezed = fits(WidgetShape.WIDE, true, 139)
-        assertEquals(DateSpot.BESIDE, squeezed.date)
-        assertTrue(squeezed.showEvent)
-        // The same height with no event keeps the date under the clock.
-        assertEquals(DateSpot.BELOW, fits(WidgetShape.WIDE, false, 139).date)
+    fun aShortWideKeepsTheDateUnderTheClockAndLosesTheEventLineFirst() {
+        // Under 138 dp there is no room for the event line as well as the date, and the date is what stays.
+        val squeezed = fits(WidgetShape.WIDE, true, 137)
+        assertTrue(squeezed.showDate)
+        assertFalse(squeezed.showEvent)
+        // The same height with no event looks the same.
+        assertEquals(squeezed, fits(WidgetShape.WIDE, false, 137))
     }
 
     @Test
-    fun theWideAlwaysShowsTheDate() {
+    fun theWideShowsTheDateAtEveryHeightAHomeScreenOffers() {
+        // 110 dp is the least a home screen gives it (minHeight in res/xml/widget_wide_info.xml).
         for (hasEvent in listOf(true, false)) {
-            for (h in heights) assertTrue("event=$hasEvent at ${h}dp", fits(WidgetShape.WIDE, hasEvent, h).date != DateSpot.HIDDEN)
+            for (h in heights.filter { it >= 110 }) {
+                assertTrue("event=$hasEvent at ${h}dp", fits(WidgetShape.WIDE, hasEvent, h).showDate)
+            }
         }
     }
 
     @Test
-    fun onlyTheWideHasRoomBesideItsClock() {
-        // The Square's clock shares the top with the picture, so a short Square drops the date instead.
+    fun theWideDropsTheDateOnlyWhenBigTextLeavesNoRoomForItAtTheShortestHeight() {
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 110, false, 1f)!!.showDate)
+        // 110 dp of 15% bigger text counts as 95 dp, where even the smallest clock and numbers need the room.
+        assertFalse(WidgetFits.of(WidgetShape.WIDE, 110, false, 1.15f)!!.showDate)
+        // Taller, the same bigger text keeps it.
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 140, false, 1.15f)!!.showDate)
+    }
+
+    @Test
+    fun theSquareDropsTheDateOnlyBelowTheHeightWhereItsSmallestClockLeavesRoomForIt() {
         for (hasEvent in listOf(true, false)) {
-            for (h in heights) assertTrue("event=$hasEvent at ${h}dp", fits(WidgetShape.SMALL, hasEvent, h).date != DateSpot.BESIDE)
+            for (h in heights.filter { it >= 110 }) {
+                assertEquals("event=$hasEvent at ${h}dp", h >= 122, fits(WidgetShape.SMALL, hasEvent, h).showDate)
+            }
         }
     }
 
     @Test
     fun theEventLineGoesOnlyWhenThereIsNoRoomForIt() {
-        assertTrue(fits(WidgetShape.WIDE, true, 119).showEvent)
-        assertFalse(fits(WidgetShape.WIDE, true, 118).showEvent)
+        assertTrue(fits(WidgetShape.WIDE, true, 138).showEvent)
+        assertFalse(fits(WidgetShape.WIDE, true, 137).showEvent)
         // The Square's line would cover its sky picture on anything shorter, so it needs more height than the text does.
-        assertTrue(fits(WidgetShape.SMALL, true, 168).showEvent)
-        assertFalse(fits(WidgetShape.SMALL, true, 167).showEvent)
+        assertTrue(fits(WidgetShape.SMALL, true, 170).showEvent)
+        assertFalse(fits(WidgetShape.SMALL, true, 169).showEvent)
     }
 
     @Test
-    fun aPhoneThatGivesAWideAboutTheHeightOfTheScreenshotShowsTheEvent() {
-        // A real phone gave the Wide 139 dp; the event line overlapped the temperature there before the fit.
+    fun aPhoneThatGivesAWideAboutTheHeightOfTheScreenshotShowsTheDateAndTheEvent() {
+        // A real phone gave the Wide 139 dp; the event line overlapped the temperature there before the fit,
+        // and the date had to move beside the clock to make room. Now both fit, the date under the clock.
         val wide = fits(WidgetShape.WIDE, true, 139)
         assertTrue(wide.showEvent)
-        assertEquals(34, wide.clockSp)
-        assertEquals(DateSpot.BESIDE, wide.date)
+        assertTrue(wide.showDate)
+        assertEquals(30, wide.clockSp)
     }
 
     @Test
@@ -120,11 +134,11 @@ class WidgetFitTest {
 
     @Test
     fun biggerTextCountsAsLessHeight() {
-        // 130 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 130, true, 1f)!!.showEvent)
-        assertFalse(WidgetFits.of(WidgetShape.WIDE, 130, true, 1.15f)!!.showEvent)
+        // 145 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 145, true, 1f)!!.showEvent)
+        assertFalse(WidgetFits.of(WidgetShape.WIDE, 145, true, 1.15f)!!.showEvent)
         // The same widget with more height still holds it.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 160, true, 1.15f)!!.showEvent)
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 170, true, 1.15f)!!.showEvent)
     }
 
     @Test
