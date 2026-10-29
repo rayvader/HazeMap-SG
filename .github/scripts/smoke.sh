@@ -434,8 +434,8 @@ say "--- widgets, the Wide and the Strip showing Tokyo ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
 say "time now: Tokyo $(TZ=Asia/Tokyo date +%H:%M), Singapore $(TZ=Asia/Singapore date +%H:%M), phone $(adb shell date +%H:%M | tr -d '\r')"
 adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
-# Tap the Tokyo widget: its description starts with the place name.
-dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo.") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
+# Tap the Tokyo widget: its description starts with the place and its country ("Tokyo, Japan. 11°. ...").
+dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
 sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
