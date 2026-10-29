@@ -73,13 +73,13 @@ fit_shot fit-4-strip "strip@70/strip@55"
 fit_shot fit-5-wide-edges "wide@170+e/wide@166+e/wide@149+e/wide@138+e"
 # 137 is where the event line goes: the date stays under the clock.
 fit_shot fit-6-wide-edges-no-event "wide@146/wide@137+e/wide@122/wide@112"
-fit_shot fit-7-small-edges "small@178+e,small@168+e/small@167+e,small@152/small@134,small@122/small@121,small@110"
+fit_shot fit-7-small-edges "small@178+e,small@170+e/small@169+e,small@152/small@134,small@122/small@121,small@110"
 # The Wide a real phone gave 139 dp, then the shortest ones: the least a home screen offers is 110, and
 # bigger text counts as less (106 and 105 are where the date has to give way).
 fit_shot fit-12-wide-shortest "wide@139+e/wide@110/wide@106/wide@105"
 # The Square's event line must clear every sky picture: the skies whose art reaches lowest (the night
-# thunderstorm's bolt, the star of the clear night, the haze lines), and the day skies, at 168 dp.
-fit_shot fit-13-small-event-skies "small@168+e+s=storm_night,small@168+e+s=night/small@168+e+s=haze_night,small@168+e+s=storm"
+# thunderstorm's bolt, the star of the clear night, the haze lines), and the day skies, at 170 dp.
+fit_shot fit-13-small-event-skies "small@170+e+s=storm_night,small@170+e+s=night/small@170+e+s=haze_night,small@170+e+s=storm"
 fit_shot fit-14-day-skies "small@150+s=sun,small@150+s=partly/small@150+s=cloud,small@150+s=rain/small@150+s=storm,small@150+s=haze/small@150+s=wind"
 # Every night sky as a Square, then the text on four of them in a Wide ("+s=" picks the sky).
 fit_shot fit-9-night-skies "small@150+s=night,small@150+s=partly_night/small@150+s=cloud_night,small@150+s=rain_night/small@150+s=storm_night,small@150+s=haze_night/small@150+s=wind_night"

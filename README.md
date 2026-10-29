@@ -95,7 +95,7 @@ phone, and never sends them anywhere.
 **Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
 140 dp on some other phones. The widget asks for its height and packs its text to fit. The date always
 sits under the clock. A short Wide shrinks the clock and the temperature, and drops the event line when
-there is no room for it (below about 138 dp). A Square shows the event only from about 168 dp up: its
+there is no room for it (below about 138 dp). A Square shows the event only from about 170 dp up: its
 line sits under the sky picture and would cover it on a shorter widget. The date goes only where even the
 smallest clock leaves no room for it: on a Square below about 122 dp, and on a Wide at its shortest height
 with a larger text size. A larger text size in Settings counts as less height. If the home screen does not
