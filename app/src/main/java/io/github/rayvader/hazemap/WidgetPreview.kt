@@ -29,10 +29,17 @@ internal object WidgetPreview {
     /** The width each shape gets on a four-column phone, in dp. */
     private fun widthDp(shape: WidgetShape): Int = if (shape == WidgetShape.SMALL) 180 else 362
 
+    /** The longest phrase NEA gives for a forecast, which the Wide's one line has to cut short. */
+    private const val LONGEST_NEA_WORDS = "Heavy Thundery Showers with Gusty Winds"
+
+    /** The longest of Open-Meteo's weather codes: thunderstorm with hail, "Thunderstorm with hail". */
+    private const val LONGEST_WMO_CODE = 96
+
     /**
      * One widget per entry like "wide@140+e": the shape, "@", the height in dp, then any of
-     * "+e" (an event line), "+c" (a saved city, Kuala Lumpur), "+cl" (a city with a long name) and
-     * "+s=rain_night" (that sky, whatever the weather).
+     * "+e" (an event line), "+c" (a saved city, Kuala Lumpur), "+cl" (a city with a long name),
+     * "+s=rain_night" (that sky, whatever the weather), "+lc" (the longest weather phrase) and
+     * "+w=300" (that width in dp, for a phone whose columns are narrower than 362 dp for a Wide).
      * Entries in a row are split by ",", rows by "/". A row has to fit the screen, which is about 390 dp
      * wide on the test emulator: one Wide or Strip, or two Squares.
      */
@@ -65,13 +72,16 @@ internal object WidgetPreview {
                     else -> null
                 }
                 val scene = flags.firstOrNull { it.startsWith("s=") }?.let { SkyScene.fromKey(it.removePrefix("s=")) }
+                val longWords = "lc" in flags
+                val widthOverride = flags.firstOrNull { it.startsWith("w=") }?.removePrefix("w=")?.toIntOrNull()
                 val model: WidgetModel = if (place == null) {
-                    singapore
+                    if (longWords) singapore.copy(condition = LONGEST_NEA_WORDS) else singapore
                 } else {
-                    CityModel(place, 31.0, 61, true, 82, place.timezone, now)
+                    CityModel(place, 31.0, if (longWords) LONGEST_WMO_CODE else 61, true, 82, place.timezone, now)
                 }
                 val fit = WidgetFits.of(shape, heightDp, withEvent, fontScale)
-                val caption = captionOf(shape, heightDp, withEvent, fit, place?.nameAndCountry, scene)
+                val caption = captionOf(shape, heightDp, withEvent, fit, place?.nameAndCountry, scene) +
+                    (if (longWords) " | long words" else "") + (widthOverride?.let { " | w=$it" } ?: "")
                 Log.i(TAG, "preview $caption fontScale=$fontScale")
 
                 val remote = WidgetUpdater.views(
@@ -95,7 +105,7 @@ internal object WidgetPreview {
                         textSize = 10f
                     }
                 )
-                cell.addView(frame, LinearLayout.LayoutParams(px(widthDp(shape)), px(heightDp)))
+                cell.addView(frame, LinearLayout.LayoutParams(px(widthOverride ?: widthDp(shape)), px(heightDp)))
                 row.addView(cell)
             }
             column.addView(row)

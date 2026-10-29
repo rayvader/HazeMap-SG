@@ -3,8 +3,9 @@ package io.github.rayvader.hazemap
 /**
  * How a widget packs its text for the height the home screen gave it. The date stays under the clock.
  * A short widget has no room for everything, so the event line goes first, and the date only when even
- * the smallest clock and numbers leave no room for it (a short Square). The clock and the numbers shrink
- * as the room does, and the space at the top and bottom is trimmed.
+ * the smallest clock and numbers leave no room for it (a short Square, or the shortest Wide with big
+ * text). The clock and the numbers shrink as the room does, and the space at the top and bottom is
+ * trimmed.
  *
  * Heights are in dp. Zero means the home screen has not said yet, which counts as the shortest a widget
  * can be: text that fits there fits anywhere, while a guess of plenty of room would overlap on a short one.
@@ -25,10 +26,17 @@ object WidgetFits {
 
     /**
      * The room in a widget that does not grow with the text size, at its least: the top and bottom
-     * padding of the Wide with no date (6 + 6 dp). Every other fit has at least this much (its padding,
+     * padding of the Wide's smallest fit (4 + 4 dp). Every other fit has at least this much (its padding,
      * the margins, the event line's own padding), so counting only this much stays on the safe side.
      */
-    private const val FIXED_DP = 12
+    private const val FIXED_DP = 8
+
+    /**
+     * The most a Wide's clock may grow, as its size in sp times the text size setting. The clock is
+     * about 2.4 dp wide for each sp and has 222 dp before the picture, so 88 (214 dp) is the most that
+     * stays on one line. Bigger text makes the same sp wider, so a large clock gives way to it.
+     */
+    private const val WIDE_CLOCK_LIMIT_EM = 88
 
     /**
      * The height the home screen gives a widget right now, in dp. It reports two heights: the one with
@@ -49,9 +57,10 @@ object WidgetFits {
      */
     fun of(shape: WidgetShape, heightDp: Int, hasEvent: Boolean, fontScale: Float = 1f): WidgetFit? {
         val known = if (heightDp > 0) heightDp else SHORTEST_DP
-        val h = (FIXED_DP + (known - FIXED_DP) / fontScale.coerceAtLeast(1f)).toInt()
+        val scale = fontScale.coerceAtLeast(1f)
+        val h = (FIXED_DP + (known - FIXED_DP) / scale).toInt()
         return when (shape) {
-            WidgetShape.WIDE -> wide(h, hasEvent)
+            WidgetShape.WIDE -> wide(h, hasEvent).let { it.copy(clockSp = minOf(it.clockSp, (WIDE_CLOCK_LIMIT_EM / scale).toInt())) }
             WidgetShape.SMALL -> small(h, hasEvent)
             WidgetShape.STRIP -> null
         }
@@ -59,25 +68,24 @@ object WidgetFits {
 
     /**
      * The Wide widget. Each height is what the parts take in the emulator test's drawings of it
-     * (the `fit-*` screenshots), plus a few dp to spare. The date sits under the clock at every height a
-     * home screen offers. To keep the event line too, a short Wide shrinks the clock, the temperature
-     * and the space at the top and bottom further; only below that does the event line give way. Only
-     * text enlarged past what the shortest Wide holds loses the date as well.
+     * (the `fit-*` screenshots), plus a few dp to spare. Its temperature, weather and place share one
+     * line, so the clock gets the rest: as big as the height allows, with the date under it and, down
+     * to 108 dp, the event line. The clock is the same size with or without an event line, so it does not
+     * jump when one comes or goes. Below 108 dp the event line goes (only a larger text size gets there,
+     * as 110 dp is the least a home screen gives), and the date after it.
      */
     private fun wide(h: Int, hasEvent: Boolean): WidgetFit = when {
-        hasEvent && h >= 170 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true)
-        hasEvent && h >= 166 -> WidgetFit(40, 26, 12, 12, showDate = true, showEvent = true)
-        hasEvent && h >= 149 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = true)
-        hasEvent && h >= 138 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = true)
-        hasEvent && h >= 133 -> WidgetFit(26, 22, 6, 6, showDate = true, showEvent = true)
-        hasEvent && h >= 126 -> WidgetFit(26, 20, 4, 4, showDate = true, showEvent = true)
-        hasEvent && h >= 124 -> WidgetFit(24, 20, 4, 4, showDate = true, showEvent = true)
-        hasEvent && h >= 121 -> WidgetFit(22, 20, 4, 4, showDate = true, showEvent = true)
-        h >= 146 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = false)
-        h >= 122 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = false)
-        h >= 112 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = false)
-        h >= 106 -> WidgetFit(26, 22, 6, 6, showDate = true, showEvent = false)
-        else -> WidgetFit(26, 22, 6, 6, showDate = false, showEvent = false)
+        h >= 176 -> WidgetFit(60, 26, 12, 12, showDate = true, showEvent = hasEvent)
+        h >= 169 -> WidgetFit(54, 26, 12, 12, showDate = true, showEvent = hasEvent)
+        h >= 154 -> WidgetFit(50, 24, 8, 8, showDate = true, showEvent = hasEvent)
+        h >= 149 -> WidgetFit(46, 24, 8, 8, showDate = true, showEvent = hasEvent)
+        h >= 138 -> WidgetFit(42, 22, 6, 6, showDate = true, showEvent = hasEvent)
+        h >= 129 -> WidgetFit(34, 22, 6, 6, showDate = true, showEvent = hasEvent)
+        h >= 120 -> WidgetFit(32, 20, 4, 4, showDate = true, showEvent = hasEvent)
+        h >= 115 -> WidgetFit(28, 20, 4, 4, showDate = true, showEvent = hasEvent)
+        h >= 108 -> WidgetFit(22, 20, 4, 4, showDate = true, showEvent = hasEvent)
+        h >= 82 -> WidgetFit(22, 20, 4, 4, showDate = true, showEvent = false)
+        else -> WidgetFit(22, 20, 4, 4, showDate = false, showEvent = false)
     }
 
     /**

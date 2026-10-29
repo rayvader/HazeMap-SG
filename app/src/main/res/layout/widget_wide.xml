@@ -283,7 +283,12 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- The temperature, the place and the PSI. Its bottom space is trimmed on a short widget too. -->
+    <!--
+      The temperature, the weather and the place on one line, and the PSI beside it. Its bottom space is
+      trimmed on a short widget too. The line is as wide as the room left by the pill: the place takes what
+      the temperature and the weather leave and ends in "…", and a long weather phrase stops at maxWidth
+      so that it cannot push the place out.
+    -->
     <LinearLayout
         android:id="@+id/wBottomBlock"
         android:layout_width="match_parent"
@@ -299,34 +304,40 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:baselineAligned="true"
+            android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:baselineAligned="true"
-                android:orientation="horizontal">
+            <TextView
+                android:id="@+id/wTemp"
+                style="@style/WidgetText"
+                android:fontFamily="sans-serif-light"
+                android:text="@string/no_temp"
+                android:textSize="26sp" />
 
-                <TextView
-                    android:id="@+id/wTemp"
-                    style="@style/WidgetText"
-                    android:fontFamily="sans-serif-light"
-                    android:text="@string/no_temp"
-                    android:textSize="26sp" />
+            <TextView
+                android:id="@+id/wCondition"
+                style="@style/WidgetText"
+                android:layout_marginStart="5dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="120dp"
+                android:text="--"
+                android:textSize="13sp" />
 
-                <TextView
-                    android:id="@+id/wCondition"
-                    style="@style/WidgetText"
-                    android:layout_marginStart="5dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="--"
-                    android:textSize="13sp" />
-            </LinearLayout>
+            <TextView
+                style="@style/WidgetText"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:alpha="0.8"
+                android:importantForAccessibility="no"
+                android:text="·"
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/wPlace"
                 style="@style/WidgetText"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:alpha="0.92"
                 android:ellipsize="end"
                 android:maxLines="1"
