@@ -70,12 +70,12 @@ class WidgetFitTest {
 
     @Test
     fun aShortWideKeepsTheDateUnderTheClockAndLosesTheEventLineFirst() {
-        // Under 138 dp there is no room for the event line as well as the date, and the date is what stays.
-        val squeezed = fits(WidgetShape.WIDE, true, 137)
+        // Under 121 dp there is no room for the event line as well as the date, and the date is what stays.
+        val squeezed = fits(WidgetShape.WIDE, true, 120)
         assertTrue(squeezed.showDate)
         assertFalse(squeezed.showEvent)
         // The same height with no event looks the same.
-        assertEquals(squeezed, fits(WidgetShape.WIDE, false, 137))
+        assertEquals(squeezed, fits(WidgetShape.WIDE, false, 120))
     }
 
     @Test
@@ -91,7 +91,7 @@ class WidgetFitTest {
     @Test
     fun theWideDropsTheDateOnlyWhenBigTextLeavesNoRoomForItAtTheShortestHeight() {
         assertTrue(WidgetFits.of(WidgetShape.WIDE, 110, false, 1f)!!.showDate)
-        // 110 dp of 15% bigger text counts as 95 dp, where even the smallest clock and numbers need the room.
+        // 110 dp of 15% bigger text counts as 97 dp, where even the smallest clock and numbers need the room.
         assertFalse(WidgetFits.of(WidgetShape.WIDE, 110, false, 1.15f)!!.showDate)
         // Taller, the same bigger text keeps it.
         assertTrue(WidgetFits.of(WidgetShape.WIDE, 140, false, 1.15f)!!.showDate)
@@ -108,8 +108,8 @@ class WidgetFitTest {
 
     @Test
     fun theEventLineGoesOnlyWhenThereIsNoRoomForIt() {
-        assertTrue(fits(WidgetShape.WIDE, true, 138).showEvent)
-        assertFalse(fits(WidgetShape.WIDE, true, 137).showEvent)
+        assertTrue(fits(WidgetShape.WIDE, true, 121).showEvent)
+        assertFalse(fits(WidgetShape.WIDE, true, 120).showEvent)
         // The Square's line would cover its sky picture on anything shorter, so it needs more height than the text does.
         assertTrue(fits(WidgetShape.SMALL, true, 170).showEvent)
         assertFalse(fits(WidgetShape.SMALL, true, 169).showEvent)
@@ -123,6 +123,19 @@ class WidgetFitTest {
         assertTrue(wide.showEvent)
         assertTrue(wide.showDate)
         assertEquals(30, wide.clockSp)
+        // With 15% bigger text it keeps both as well, with a smaller clock.
+        val bigText = WidgetFits.of(WidgetShape.WIDE, 139, true, 1.15f)!!
+        assertTrue(bigText.showEvent)
+        assertTrue(bigText.showDate)
+    }
+
+    @Test
+    fun onlyTheTextGrowsWithTheTextSize() {
+        // 15% bigger text on a 139 dp Wide: its 12 dp of padding stay 12 dp, so it counts as 122 dp, not 120.
+        assertEquals(
+            WidgetFits.of(WidgetShape.WIDE, 122, true, 1f),
+            WidgetFits.of(WidgetShape.WIDE, 139, true, 1.15f)
+        )
     }
 
     @Test
@@ -134,11 +147,11 @@ class WidgetFitTest {
 
     @Test
     fun biggerTextCountsAsLessHeight() {
-        // 145 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 145, true, 1f)!!.showEvent)
-        assertFalse(WidgetFits.of(WidgetShape.WIDE, 145, true, 1.15f)!!.showEvent)
+        // 125 dp holds the Wide's event line at the normal text size, but not at 15% bigger text.
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 125, true, 1f)!!.showEvent)
+        assertFalse(WidgetFits.of(WidgetShape.WIDE, 125, true, 1.15f)!!.showEvent)
         // The same widget with more height still holds it.
-        assertTrue(WidgetFits.of(WidgetShape.WIDE, 170, true, 1.15f)!!.showEvent)
+        assertTrue(WidgetFits.of(WidgetShape.WIDE, 160, true, 1.15f)!!.showEvent)
     }
 
     @Test
