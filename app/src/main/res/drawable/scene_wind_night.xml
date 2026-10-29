@@ -16,13 +16,13 @@
                     android:name="moonGlow">
                     <path
                         android:name="moonGlowFill"
-                        android:pathData="M-30,0a30,30 0 1,1 60,0a30,30 0 1,1 -60,0Z">
+                        android:pathData="M-24,0a24,24 0 1,1 48,0a24,24 0 1,1 -48,0Z">
                         <aapt:attr name="android:fillColor">
                             <gradient
                                 android:type="radial"
                                 android:centerX="0"
                                 android:centerY="0"
-                                android:gradientRadius="30">
+                                android:gradientRadius="24">
                                 <item
                                     android:color="#8CF6F1C7"
                                     android:offset="0" />
