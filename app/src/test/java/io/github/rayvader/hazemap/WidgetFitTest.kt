@@ -111,8 +111,8 @@ class WidgetFitTest {
         assertTrue(fits(WidgetShape.WIDE, true, 138).showEvent)
         assertFalse(fits(WidgetShape.WIDE, true, 137).showEvent)
         // The Square's line would cover its sky picture on anything shorter, so it needs more height than the text does.
-        assertTrue(fits(WidgetShape.SMALL, true, 164).showEvent)
-        assertFalse(fits(WidgetShape.SMALL, true, 163).showEvent)
+        assertTrue(fits(WidgetShape.SMALL, true, 168).showEvent)
+        assertFalse(fits(WidgetShape.SMALL, true, 167).showEvent)
     }
 
     @Test

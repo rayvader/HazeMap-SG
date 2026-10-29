@@ -70,12 +70,14 @@ object WidgetFits {
     /**
      * The Square widget. Its event line is as wide as the widget and sits above the temperature, so on a
      * shorter widget it would run over the sky picture in the top right corner. The line shows only
-     * where it clears the picture (the emulator drawings put that at 164 dp), not wherever the text fits.
-     * The date goes only on the shortest, where the smallest clock leaves no room under it.
+     * where it clears the picture, not wherever the text fits: the picture reaches down to about 63 dp
+     * (the bolt of the night thunderstorm), and the line starts 101 dp above the bottom with this fit,
+     * so 168 dp leaves about 3 dp. The date goes only on the shortest, where the smallest clock leaves
+     * no room under it.
      */
     private fun small(h: Int, hasEvent: Boolean): WidgetFit = when {
         hasEvent && h >= 178 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = true)
-        hasEvent && h >= 164 -> WidgetFit(26, 22, 8, 8, showDate = true, showEvent = true)
+        hasEvent && h >= 168 -> WidgetFit(26, 22, 8, 8, showDate = true, showEvent = true)
         h >= 152 -> WidgetFit(32, 24, 12, 12, showDate = true, showEvent = false)
         h >= 134 -> WidgetFit(26, 22, 8, 8, showDate = true, showEvent = false)
         h >= 122 -> WidgetFit(22, 20, 6, 6, showDate = true, showEvent = false)
