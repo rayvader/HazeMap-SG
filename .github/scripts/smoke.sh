@@ -61,7 +61,15 @@ shot() {
 # So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
 # these shots show how each one packs its text. Rows split by "/", widgets by ",", "+e" adds an event line.
 # The screen is about 390 dp wide, so a row holds one Wide or Strip (362 dp), or two Squares (180 dp).
-fit_shot() { shot "$1" 4 --es widget_preview "$2"; }
+# Each shot keeps the layout dump beside it: the bounds of every part, to measure the room between them.
+fit_shot() {
+  shot "$1" 4 --es widget_preview "$2"
+  if adb shell uiautomator dump "/sdcard/$1.xml" > /dev/null 2>&1; then
+    adb pull "/sdcard/$1.xml" "$OUT/$1.xml" > /dev/null 2>&1 || echo "No layout dump for $1"
+  else
+    echo "No layout dump for $1"
+  fi
+}
 # Let the launcher's boot-time "not responding" come first, then clear it, so it is not on the pictures.
 sleep 10
 clear_anr
@@ -71,8 +79,10 @@ fit_shot fit-3-small "small@110+e,small@140+e/small@170+e,small@190+e/small@223+
 fit_shot fit-4-strip "strip@70/strip@55"
 # The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
 fit_shot fit-5-wide-edges "wide@170+e/wide@166+e/wide@149+e/wide@138+e"
-# 137 is where the event line goes: the date stays under the clock.
-fit_shot fit-6-wide-edges-no-event "wide@146/wide@137+e/wide@122/wide@112"
+# The short Wides that keep the event line with a smaller clock and numbers.
+fit_shot fit-15-wide-event-short "wide@133+e/wide@126+e/wide@124+e/wide@121+e"
+# 120 is where the event line goes: the date stays under the clock.
+fit_shot fit-6-wide-edges-no-event "wide@146/wide@120+e/wide@122/wide@112"
 fit_shot fit-7-small-edges "small@178+e,small@170+e/small@169+e,small@152/small@134,small@122/small@121,small@110"
 # The Wide a real phone gave 139 dp, then the shortest ones: the least a home screen offers is 110, and
 # bigger text counts as less (106 and 105 are where the date has to give way).
@@ -88,7 +98,12 @@ fit_shot fit-10-night-wide "wide@140+e+s=partly_night/wide@140+e+s=rain_night/wi
 fit_shot fit-11-city-names "wide@140+e+c+s=rain_night/wide@140+cl/small@150+c,small@150+cl/strip@70+c/strip@70+cl"
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
-fit_shot fit-8-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@200+e"
+fit_shot fit-8-bigfont "wide@125+e/wide@139+e/wide@160+e/small@140,small@200+e"
+# The shortest height of each fit at this text size: the Wides with the event line, then the ones
+# without it and the Squares. Only the text grows, so 139 dp at 115% counts as 122 dp (see WidgetFits).
+fit_shot fit-16-bigfont-wide-edges "wide@138+e/wide@141+e/wide@144+e/wide@152+e"
+fit_shot fit-17-bigfont-no-event "wide@121/wide@127/wide@139/small@139,small@153"
+fit_shot fit-18-bigfont-small "small@173,small@194+e/small@203+e"
 # Stop the app first, or the new text size would redraw the pictures and log them a second time.
 adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0

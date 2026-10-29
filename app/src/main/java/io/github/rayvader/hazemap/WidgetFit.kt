@@ -24,6 +24,13 @@ object WidgetFits {
     private const val SHORTEST_DP = 110
 
     /**
+     * The room in a widget that does not grow with the text size, at its least: the top and bottom
+     * padding of the Wide with no date (6 + 6 dp). Every other fit has at least this much (its padding,
+     * the margins, the event line's own padding), so counting only this much stays on the safe side.
+     */
+    private const val FIXED_DP = 12
+
+    /**
      * The height the home screen gives a widget right now, in dp. It reports two heights: the one with
      * the phone upright and the one with the phone on its side. Zero means it did not say.
      */
@@ -37,11 +44,12 @@ object WidgetFits {
      * The fit for a widget shape, or null for one that is always short and never trimmed (the Strip).
      *
      * [fontScale] is the phone's text size setting. Bigger text needs more height, so the widget counts
-     * as that much shorter. A smaller setting gains nothing, to stay on the safe side.
+     * as shorter: the text takes that much more room, while the space around it is in dp and stays the
+     * same ([FIXED_DP]). A smaller setting gains nothing, to stay on the safe side.
      */
     fun of(shape: WidgetShape, heightDp: Int, hasEvent: Boolean, fontScale: Float = 1f): WidgetFit? {
         val known = if (heightDp > 0) heightDp else SHORTEST_DP
-        val h = (known / fontScale.coerceAtLeast(1f)).toInt()
+        val h = (FIXED_DP + (known - FIXED_DP) / fontScale.coerceAtLeast(1f)).toInt()
         return when (shape) {
             WidgetShape.WIDE -> wide(h, hasEvent)
             WidgetShape.SMALL -> small(h, hasEvent)
@@ -52,14 +60,19 @@ object WidgetFits {
     /**
      * The Wide widget. Each height is what the parts take in the emulator test's drawings of it
      * (the `fit-*` screenshots), plus a few dp to spare. The date sits under the clock at every height a
-     * home screen offers; the event line is what gives way. Only text enlarged past what the shortest
-     * Wide holds loses the date as well.
+     * home screen offers. To keep the event line too, a short Wide shrinks the clock, the temperature
+     * and the space at the top and bottom further; only below that does the event line give way. Only
+     * text enlarged past what the shortest Wide holds loses the date as well.
      */
     private fun wide(h: Int, hasEvent: Boolean): WidgetFit = when {
         hasEvent && h >= 170 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = true)
         hasEvent && h >= 166 -> WidgetFit(40, 26, 12, 12, showDate = true, showEvent = true)
         hasEvent && h >= 149 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = true)
         hasEvent && h >= 138 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = true)
+        hasEvent && h >= 133 -> WidgetFit(26, 22, 6, 6, showDate = true, showEvent = true)
+        hasEvent && h >= 126 -> WidgetFit(26, 20, 4, 4, showDate = true, showEvent = true)
+        hasEvent && h >= 124 -> WidgetFit(24, 20, 4, 4, showDate = true, showEvent = true)
+        hasEvent && h >= 121 -> WidgetFit(22, 20, 4, 4, showDate = true, showEvent = true)
         h >= 146 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = false)
         h >= 122 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = false)
         h >= 112 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = false)
