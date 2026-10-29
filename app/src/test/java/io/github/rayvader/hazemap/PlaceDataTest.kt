@@ -91,6 +91,16 @@ class PlaceDataTest {
         assertEquals("Region, Country", place(1).subtitle)
     }
 
+    @Test
+    fun theWidgetLineIsTheNameAndTheCountry() {
+        assertEquals("Kyoto, Japan", Place(1, "Kyoto", "Kyoto", "Japan", "JP", 35.0, 135.8, "Asia/Tokyo").nameAndCountry)
+        // The state is left out, to keep the line short.
+        assertEquals("Hakone, Japan", Place(2, "Hakone", "Kanagawa", "Japan", "JP", 35.2, 139.0, "Asia/Tokyo").nameAndCountry)
+        // No country, or the country is the name itself: just the name.
+        assertEquals("Hakone", Place(3, "Hakone", "Kanagawa", "", "JP", 35.2, 139.0, "Asia/Tokyo").nameAndCountry)
+        assertEquals("Monaco", Place(4, "Monaco", "", "MONACO", "MC", 43.7, 7.4, "Europe/Monaco").nameAndCountry)
+    }
+
     // ---- Forecast ----
 
     @Test

@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Windy night: gusts blow past a small moon. It moves for about 10 seconds each time the home screen shows it, then rests.
+     The resting frame is the still picture below, which is all a phone with animations off shows. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="100dp"
+            android:height="100dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <group
+                android:translateX="26"
+                android:translateY="24">
+                <group
+                    android:name="moonGlow">
+                    <path
+                        android:name="moonGlowFill"
+                        android:pathData="M-30,0a30,30 0 1,1 60,0a30,30 0 1,1 -60,0Z">
+                        <aapt:attr name="android:fillColor">
+                            <gradient
+                                android:type="radial"
+                                android:centerX="0"
+                                android:centerY="0"
+                                android:gradientRadius="30">
+                                <item
+                                    android:color="#8CF6F1C7"
+                                    android:offset="0" />
+                                <item
+                                    android:color="#00F6F1C7"
+                                    android:offset="1" />
+                            </gradient>
+                        </aapt:attr>
+                    </path>
+                </group>
+            </group>
+            <path
+                android:name="star0"
+                android:fillColor="#FFFFFF"
+                android:pathData="M14.2,18a1.8,1.8 0 1,1 3.6,0a1.8,1.8 0 1,1 -3.6,0Z" />
+            <path
+                android:name="star1"
+                android:fillColor="#FFFFFF"
+                android:pathData="M80.5,16a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0Z" />
+            <path
+                android:name="star2"
+                android:fillColor="#FFFFFF"
+                android:pathData="M88.7,40a1.3,1.3 0 1,1 2.6,0a1.3,1.3 0 1,1 -2.6,0Z" />
+            <group
+                android:translateX="-24"
+                android:translateY="-26"
+                android:pivotX="50"
+                android:pivotY="50"
+                android:scaleX="0.75"
+                android:scaleY="0.75">
+                <path
+                    android:fillColor="#F6F1C7"
+                    android:pathData="M49,32A18,18 0 1,0 67,56A15,15 0 0,1 49,32Z" />
+            </group>
+            <group
+                android:name="gust0">
+                <path
+                    android:name="gustLine0"
+                    android:strokeColor="#DCE8F5"
+                    android:strokeWidth="4"
+                    android:strokeLineCap="round"
+                    android:pathData="M12,40H60c10,0 10,-14 0,-14" />
+            </group>
+            <group
+                android:name="gust1">
+                <path
+                    android:name="gustLine1"
+                    android:strokeColor="#DCE8F5"
+                    android:strokeWidth="4"
+                    android:strokeLineCap="round"
+                    android:pathData="M18,56H76c10,0 10,14 0,14" />
+            </group>
+            <group
+                android:name="gust2">
+                <path
+                    android:name="gustLine2"
+                    android:strokeColor="#DCE8F5"
+                    android:strokeWidth="4"
+                    android:strokeLineCap="round"
+                    android:pathData="M10,72H50" />
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="moonGlow">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="moonGlowFill">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.7"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star0">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star1">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star2">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="1000"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="gust0">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="-10"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="gustLine0">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="0.7" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="gust1">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="-10"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:startOffset="500"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="gustLine1">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:startOffset="500"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="0.7" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="gust2">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="-10"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:startOffset="1000"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateX"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="gustLine2">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="2000"
+                    android:repeatCount="3"
+                    android:startOffset="1000"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="0.7" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>

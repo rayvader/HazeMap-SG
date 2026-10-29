@@ -4,8 +4,14 @@ import kotlin.math.roundToInt
 
 /** What a home screen widget shows. Any part can be missing when its data could not be loaded. */
 sealed interface WidgetModel {
-    /** The place's name, as it appears on the widget. */
+    /** The place's name. */
     val placeName: String
+
+    /**
+     * What the widget's place line says. Singapore says its forecast area ("Bedok"). Any other place comes
+     * with its country ("Kyoto, Japan"), so it is clear where the weather is from.
+     */
+    val placeLabel: String
 
     /** IANA zone of the place. The widget's clock, its date and its "recorded" time all use it. */
     val zoneId: String
@@ -35,6 +41,7 @@ data class SingaporeModel(
     override val recordedMillis: Long?
 ) : WidgetModel {
     override val placeName: String get() = areaName
+    override val placeLabel: String get() = areaName
     override val zoneId: String get() = TimeFmt.SGT.id
     override val tempText: String get() = avgTempC?.let { "${it.roundToInt()}°" } ?: "--°"
     override val conditionText: String get() = WidgetLogic.conditionLabel(condition) ?: "--"
@@ -57,16 +64,21 @@ data class CityModel(
     override val recordedMillis: Long?
 ) : WidgetModel {
     override val placeName: String get() = place.name
+    override val placeLabel: String get() = place.nameAndCountry
     override val tempText: String get() = tempC?.let { "${it.roundToInt()}°" } ?: "--°"
     override val conditionText: String get() = Wmo.label(code)
 
-    /** A city's night is when the sun is down there, not a fixed hour. */
-    override fun scene(nowMillis: Long): SkyScene = WidgetLogic.sceneOf(Wmo.condition(code, isDay), night = !isDay)
+    /**
+     * A city's night is when the sun is down there, not a fixed hour. The condition is asked for by day, since
+     * the app's icons turn partly cloudy into cloud after dark and the sky has a night version of its own.
+     */
+    override fun scene(nowMillis: Long): SkyScene = WidgetLogic.sceneOf(Wmo.condition(code, isDay = true), night = !isDay)
 }
 
 /**
  * The sky colour and moving picture a widget shows. [key] names the drawables widget_sky_<key> and
- * scene_<key>, and is what the smoke test's "widget_scene" extra takes.
+ * scene_<key>, and is what the smoke test's "widget_scene" extra takes. After dark every weather has its
+ * own night sky, lit by the glow of the moon; [NIGHT] itself is the clear one.
  */
 enum class SkyScene(val key: String) {
     SUN("sun"),
@@ -76,7 +88,16 @@ enum class SkyScene(val key: String) {
     STORM("storm"),
     HAZE("haze"),
     WIND("wind"),
-    NIGHT("night");
+    NIGHT("night"),
+    PARTLY_NIGHT("partly_night"),
+    CLOUD_NIGHT("cloud_night"),
+    RAIN_NIGHT("rain_night"),
+    STORM_NIGHT("storm_night"),
+    HAZE_NIGHT("haze_night"),
+    WIND_NIGHT("wind_night");
+
+    /** True for the skies of the night. */
+    val isNight: Boolean get() = key.endsWith("night")
 
     companion object {
         fun fromKey(key: String?): SkyScene? = entries.firstOrNull { it.key == key }
@@ -96,22 +117,29 @@ object WidgetLogic {
     }
 
     /**
-     * The sky for an NEA forecast line at a time. After dark a clear sky shows the night and a partly
-     * cloudy one shows clouds, as NEA's own "(Night)" wording does, so no sun shines at midnight.
+     * The sky for an NEA forecast line at a time. After dark every weather shows its night sky, so no sun
+     * shines at midnight. NEA's own "(Night)" wording also keeps the night sky a little past 7 am.
      */
-    fun scene(condition: String?, atMillis: Long): SkyScene =
-        sceneOf(Condition.fromText(condition), night = isNight(atMillis))
+    fun scene(forecast: String?, atMillis: Long): SkyScene {
+        val condition = Condition.fromText(forecast)
+        // The app's icons have no night version of partly cloudy, so for them NEA's "Partly Cloudy (Night)"
+        // is plain cloud. The sky has one.
+        if (condition == Condition.CLOUD && forecast.orEmpty().contains("partly", ignoreCase = true)) {
+            return SkyScene.PARTLY_NIGHT
+        }
+        return sceneOf(condition, night = isNight(atMillis))
+    }
 
-    /** The sky for a condition. [night] turns a clear sky into the night sky, and partly cloudy into clouds. */
+    /** The sky for a condition. [night] gives the night version of it: a clear sky shows the moon, and so on. */
     fun sceneOf(condition: Condition, night: Boolean): SkyScene = when (condition) {
         Condition.SUN -> if (night) SkyScene.NIGHT else SkyScene.SUN
         Condition.MOON -> SkyScene.NIGHT
-        Condition.PARTLY -> if (night) SkyScene.CLOUD else SkyScene.PARTLY
-        Condition.CLOUD, Condition.SNOW -> SkyScene.CLOUD
-        Condition.RAIN -> SkyScene.RAIN
-        Condition.STORM -> SkyScene.STORM
-        Condition.HAZE -> SkyScene.HAZE
-        Condition.WIND -> SkyScene.WIND
+        Condition.PARTLY -> if (night) SkyScene.PARTLY_NIGHT else SkyScene.PARTLY
+        Condition.CLOUD, Condition.SNOW -> if (night) SkyScene.CLOUD_NIGHT else SkyScene.CLOUD
+        Condition.RAIN -> if (night) SkyScene.RAIN_NIGHT else SkyScene.RAIN
+        Condition.STORM -> if (night) SkyScene.STORM_NIGHT else SkyScene.STORM
+        Condition.HAZE -> if (night) SkyScene.HAZE_NIGHT else SkyScene.HAZE
+        Condition.WIND -> if (night) SkyScene.WIND_NIGHT else SkyScene.WIND
     }
 
     /** NEA's words without "(Day)" or "(Night)", which the sky already shows. Null when there are none. */

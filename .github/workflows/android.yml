@@ -123,9 +123,9 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # The run takes about 29 minutes with every check; the calendar line adds about 3 and the
-    # widget fit pictures about 3 more.
-    timeout-minutes: 45
+    # The run takes about 29 minutes with every check; the calendar line adds about 3, the widget
+    # fit pictures about 3 more, and the six night skies about 3.
+    timeout-minutes: 50
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4

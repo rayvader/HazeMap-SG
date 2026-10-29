@@ -105,30 +105,46 @@ class WidgetLogicTest {
     }
 
     @Test
-    fun noSunShinesAfterDark() {
+    fun everyWeatherHasItsOwnSkyAfterDark() {
         val late = sgt(21)
         assertEquals(SkyScene.NIGHT, WidgetLogic.scene("Fair (Night)", late))
         // A forecast made before 7 pm can still say "Day".
         assertEquals(SkyScene.NIGHT, WidgetLogic.scene("Fair (Day)", late))
-        assertEquals(SkyScene.CLOUD, WidgetLogic.scene("Partly Cloudy (Night)", late))
-        assertEquals(SkyScene.CLOUD, WidgetLogic.scene("Partly Cloudy (Day)", late))
-        // Rain, storms, haze and wind look the same at any hour.
-        assertEquals(SkyScene.RAIN, WidgetLogic.scene("Showers", late))
-        assertEquals(SkyScene.STORM, WidgetLogic.scene("Thundery Showers", late))
-        assertEquals(SkyScene.HAZE, WidgetLogic.scene("Hazy", late))
-        assertEquals(SkyScene.WIND, WidgetLogic.scene("Windy", late))
+        assertEquals(SkyScene.PARTLY_NIGHT, WidgetLogic.scene("Partly Cloudy (Night)", late))
+        assertEquals(SkyScene.PARTLY_NIGHT, WidgetLogic.scene("Partly Cloudy (Day)", late))
+        assertEquals(SkyScene.CLOUD_NIGHT, WidgetLogic.scene("Cloudy", late))
+        assertEquals(SkyScene.RAIN_NIGHT, WidgetLogic.scene("Showers", late))
+        assertEquals(SkyScene.STORM_NIGHT, WidgetLogic.scene("Thundery Showers", late))
+        assertEquals(SkyScene.HAZE_NIGHT, WidgetLogic.scene("Hazy", late))
+        assertEquals(SkyScene.WIND_NIGHT, WidgetLogic.scene("Windy", late))
+    }
+
+    @Test
+    fun theNightSkyShowsOnlyAfterDark() {
+        for (condition in Condition.entries) {
+            val night = WidgetLogic.sceneOf(condition, night = true)
+            assertTrue("$condition at night is $night", night.isNight)
+            // A moon is a night sky whatever the clock says; everything else is a day sky by day.
+            if (condition != Condition.MOON) {
+                val day = WidgetLogic.sceneOf(condition, night = false)
+                assertFalse("$condition by day is $day", day.isNight)
+            }
+        }
     }
 
     @Test
     fun nightWordingKeepsTheNightSkyJustAfterSevenAm() {
         assertEquals(SkyScene.NIGHT, WidgetLogic.scene("Fair (Night)", sgt(7, 15)))
         assertEquals(SkyScene.SUN, WidgetLogic.scene("Fair (Day)", sgt(7, 15)))
+        assertEquals(SkyScene.PARTLY_NIGHT, WidgetLogic.scene("Partly Cloudy (Night)", sgt(7, 15)))
+        assertEquals(SkyScene.PARTLY, WidgetLogic.scene("Partly Cloudy (Day)", sgt(7, 15)))
     }
 
     @Test
     fun missingOrUnknownWeatherShowsClouds() {
         assertEquals(SkyScene.CLOUD, WidgetLogic.scene(null, sgt(12)))
         assertEquals(SkyScene.CLOUD, WidgetLogic.scene("Something new", sgt(12)))
+        assertEquals(SkyScene.CLOUD_NIGHT, WidgetLogic.scene(null, sgt(23)))
     }
 
     @Test
@@ -193,9 +209,12 @@ class WidgetLogicTest {
         // Noon in Singapore but dark in the city: night. Late evening in Singapore but sunny there: sun.
         assertEquals(SkyScene.NIGHT, cityScene(code = 0, isDay = false, at = sgt(12)))
         assertEquals(SkyScene.SUN, cityScene(code = 0, isDay = true, at = sgt(23)))
-        // Partly cloudy has no night picture, so it shows plain clouds after dark.
-        assertEquals(SkyScene.CLOUD, cityScene(code = 2, isDay = false, at = sgt(12)))
+        assertEquals(SkyScene.PARTLY_NIGHT, cityScene(code = 2, isDay = false, at = sgt(12)))
         assertEquals(SkyScene.PARTLY, cityScene(code = 2, isDay = true, at = sgt(23)))
+        // The other weather has its night sky too.
+        assertEquals(SkyScene.RAIN_NIGHT, cityScene(code = 63, isDay = false, at = sgt(12)))
+        assertEquals(SkyScene.STORM_NIGHT, cityScene(code = 95, isDay = false, at = sgt(12)))
+        assertEquals(SkyScene.HAZE_NIGHT, cityScene(code = 45, isDay = false, at = sgt(12)))
     }
 
     @Test
@@ -239,6 +258,24 @@ class WidgetLogicTest {
         assertEquals("22°", model.tempText)
         assertEquals("Overcast", model.conditionText)
         assertEquals(55, model.humidity)
-        assertEquals(SkyScene.CLOUD, model.scene(sgt(12)))
+        // The answer says the sun is down in Tokyo, so it is cloudy night there.
+        assertEquals(SkyScene.CLOUD_NIGHT, model.scene(sgt(12)))
+    }
+
+    // ---- Where the weather is from ----
+
+    @Test
+    fun aCityWidgetSaysWhereTheWeatherIsFrom() {
+        val model = WidgetLogic.buildCity(tokyo, weather(), 9_000L)
+        assertEquals("Tokyo, Japan", model.placeLabel)
+        // The name alone is still there, for the log line the emulator test reads.
+        assertEquals("Tokyo", model.placeName)
+    }
+
+    @Test
+    fun aSingaporeWidgetSaysItsForecastArea() {
+        val model = WidgetLogic.build(bedok, null, null, null)
+        assertEquals("Bedok", model.placeLabel)
+        assertEquals("Bedok", model.placeName)
     }
 }

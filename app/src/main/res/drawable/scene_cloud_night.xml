@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cloudy night: the clouds drift over a moon that only glows through them. It moves for about 10 seconds each time the home screen shows it, then rests.
+     The resting frame is the still picture below, which is all a phone with animations off shows. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="100dp"
+            android:height="100dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <group
+                android:translateX="34"
+                android:translateY="34">
+                <group
+                    android:name="moonGlow">
+                    <path
+                        android:name="moonGlowFill"
+                        android:pathData="M-40,0a40,40 0 1,1 80,0a40,40 0 1,1 -80,0Z">
+                        <aapt:attr name="android:fillColor">
+                            <gradient
+                                android:type="radial"
+                                android:centerX="0"
+                                android:centerY="0"
+                                android:gradientRadius="40">
+                                <item
+                                    android:color="#8CF6F1C7"
+                                    android:offset="0" />
+                                <item
+                                    android:color="#00F6F1C7"
+                                    android:offset="1" />
+                            </gradient>
+                        </aapt:attr>
+                    </path>
+                </group>
+            </group>
+            <path
+                android:name="star0"
+                android:fillColor="#FFFFFF"
+                android:pathData="M14.2,20a1.8,1.8 0 1,1 3.6,0a1.8,1.8 0 1,1 -3.6,0Z" />
+            <path
+                android:name="star1"
+                android:fillColor="#FFFFFF"
+                android:pathData="M84.5,26a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0Z" />
+            <group
+                android:translateX="-16"
+                android:translateY="-16"
+                android:pivotX="50"
+                android:pivotY="50"
+                android:scaleX="1"
+                android:scaleY="1">
+                <path
+                    android:fillColor="#F6F1C7"
+                    android:fillAlpha="0.6"
+                    android:pathData="M49,32A18,18 0 1,0 67,56A15,15 0 0,1 49,32Z" />
+            </group>
+            <group
+                android:translateX="37.45"
+                android:translateY="40"
+                android:scaleX="0.85"
+                android:scaleY="0.85">
+                <group
+                    android:name="cloudBack">
+                    <path
+                        android:fillColor="#7C8BA2"
+                        android:pathData="M-23,2a11,11 0 1,1 22,0a11,11 0 1,1 -22,0ZM-11,-6a14,14 0 1,1 28,0a14,14 0 1,1 -28,0ZM7,3a9,9 0 1,1 18,0a9,9 0 1,1 -18,0ZM-16,2H18A6,6 0 0 1 18,14H-16A6,6 0 0 1 -16,2Z" />
+                </group>
+            </group>
+            <group
+                android:translateX="61.45"
+                android:translateY="60"
+                android:scaleX="1.15"
+                android:scaleY="1.15">
+                <group
+                    android:name="cloudFront">
+                    <path
+                        android:fillColor="#BCC8DA"
+                        android:pathData="M-23,2a11,11 0 1,1 22,0a11,11 0 1,1 -22,0ZM-11,-6a14,14 0 1,1 28,0a14,14 0 1,1 -28,0ZM7,3a9,9 0 1,1 18,0a9,9 0 1,1 -18,0ZM-16,2H18A6,6 0 0 1 18,14H-16A6,6 0 0 1 -16,2Z" />
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="moonGlow">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="moonGlowFill">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.7"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star0">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="star1">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.3"
+                android:valueType="floatType"
+                android:duration="1250"
+                android:repeatCount="5"
+                android:repeatMode="reverse"
+                android:startOffset="500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="cloudBack">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="6"
+                android:valueType="floatType"
+                android:duration="5000"
+                android:repeatCount="1"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="cloudFront">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="-6"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+</animated-vector>

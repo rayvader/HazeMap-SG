@@ -64,10 +64,12 @@ name, and a pill with the time of the reading. Every time, on the widgets and in
 | Wide | 4x2 | big clock and big picture; "Bedok · PSI at 14:00" under the weather |
 | Strip | 4x1 | clock, picture, weather and pill in one row |
 
-| Shows | Temperature | Weather | Pill | Clock |
-|---|---|---|---|---|
-| Singapore | average of all NEA stations | NEA forecast for your area | PSI, in its band colour | Singapore time |
-| A saved city | the city's temperature | the city's weather | humidity | the city's own time |
+| Shows | Place | Temperature | Weather | Pill | Clock |
+|---|---|---|---|---|---|
+| Singapore | your forecast area, such as Bedok | average of all NEA stations | NEA forecast for your area | PSI, in its band colour | Singapore time |
+| A saved city | the city and its country, such as Kyoto, Japan | the city's temperature | the city's weather | humidity | the city's own time |
+
+The place is one line, so it never changes a widget's height. A long one ends in "…" instead of wrapping.
 
 When you add a widget, a screen asks what it should show: Singapore or a city from My places, and the
 calendars for the next-event line. Tap a place, or Done to keep the one marked. To change it later,
@@ -100,8 +102,11 @@ does not say how tall a widget is, it is drawn as the shortest one. The widgets 
 settle on a size when you add them.
 
 The sky colour and its picture follow the weather: sunny, partly cloudy, cloudy, rain, thunderstorm,
-haze and windy. In Singapore, clear weather from 7 pm to 7 am shows a night sky with the moon, and
-partly cloudy shows clouds. A city is dark when the sun is down there. The picture moves for about
+haze and windy. After dark each of them has a night version, lit by a soft glow of the moon: a clear sky
+shows the moon and the stars, partly cloudy a cloud across the moon, and rain, thunder, haze and wind
+their own dark skies. In Singapore night runs from 7 pm to 7 am. A city is dark when the sun is down
+there. The night skies were chosen from three mockups; the one built is option C, the moon glow
+([docs/design/night-skies.html](docs/design/night-skies.html)). The picture moves for about
 10 seconds each time the home screen shows it, then rests, to save battery. With animations turned off,
 and on some home screen apps, it stays still. The clock is the phone's own and keeps time by itself.
 

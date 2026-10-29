@@ -46,7 +46,9 @@ def widgets(path):
         print("no widget found on screen")
     for root in roots:
         x1, y1, x2, y2 = box(root.get("bounds"))
-        scenes = [short_id(n)[len("wScene"):].lower() for n in root.iter("node") if short_id(n).startswith("wScene")]
+        # wScenePartlyNight is the picture "partly_night".
+        scenes = [re.sub(r"(?<!^)(?=[A-Z])", "_", short_id(n)[len("wScene"):]).lower()
+                  for n in root.iter("node") if short_id(n).startswith("wScene")]
         fields = {short_id(n): n.get("text", "") for n in root.iter("node") if short_id(n) in WIDGET_FIELDS}
         text = " ".join(f"{k[1:].lower()}='{fields[k]}'" for k in WIDGET_FIELDS if k in fields)
         print(f"widget {x2 - x1}x{y2 - y1}px picture={'+'.join(scenes) or 'none'} {text}")
