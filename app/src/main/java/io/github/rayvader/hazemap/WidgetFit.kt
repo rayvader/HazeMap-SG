@@ -70,7 +70,7 @@ object WidgetFits {
         hasEvent && h >= 149 -> WidgetFit(34, 24, 8, 8, showDate = true, showEvent = true)
         hasEvent && h >= 138 -> WidgetFit(30, 22, 6, 6, showDate = true, showEvent = true)
         hasEvent && h >= 133 -> WidgetFit(26, 22, 6, 6, showDate = true, showEvent = true)
-        hasEvent && h >= 127 -> WidgetFit(26, 20, 4, 4, showDate = true, showEvent = true)
+        hasEvent && h >= 126 -> WidgetFit(26, 20, 4, 4, showDate = true, showEvent = true)
         hasEvent && h >= 124 -> WidgetFit(24, 20, 4, 4, showDate = true, showEvent = true)
         hasEvent && h >= 121 -> WidgetFit(22, 20, 4, 4, showDate = true, showEvent = true)
         h >= 146 -> WidgetFit(44, 26, 12, 12, showDate = true, showEvent = false)

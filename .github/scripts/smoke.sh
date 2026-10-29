@@ -80,7 +80,7 @@ fit_shot fit-4-strip "strip@70/strip@55"
 # The shortest height of each way to pack the text (see WidgetFits), where it is tightest.
 fit_shot fit-5-wide-edges "wide@170+e/wide@166+e/wide@149+e/wide@138+e"
 # The short Wides that keep the event line with a smaller clock and numbers.
-fit_shot fit-15-wide-event-short "wide@133+e/wide@127+e/wide@124+e/wide@121+e"
+fit_shot fit-15-wide-event-short "wide@133+e/wide@126+e/wide@124+e/wide@121+e"
 # 120 is where the event line goes: the date stays under the clock.
 fit_shot fit-6-wide-edges-no-event "wide@146/wide@120+e/wide@122/wide@112"
 fit_shot fit-7-small-edges "small@178+e,small@170+e/small@169+e,small@152/small@134,small@122/small@121,small@110"
@@ -99,8 +99,11 @@ fit_shot fit-11-city-names "wide@140+e+c+s=rain_night/wide@140+cl/small@150+c,sm
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
 fit_shot fit-8-bigfont "wide@125+e/wide@139+e/wide@160+e/small@140,small@200+e"
-# The shortest height of each Wide fit with the event line, at this text size.
-fit_shot fit-16-bigfont-wide-edges "wide@138+e/wide@141+e/wide@145+e/wide@152+e"
+# The shortest height of each fit at this text size: the Wides with the event line, then the ones
+# without it and the Squares. Only the text grows, so 139 dp at 115% counts as 122 dp (see WidgetFits).
+fit_shot fit-16-bigfont-wide-edges "wide@138+e/wide@141+e/wide@144+e/wide@152+e"
+fit_shot fit-17-bigfont-no-event "wide@121/wide@127/wide@139/small@139,small@153"
+fit_shot fit-18-bigfont-small "small@173,small@194+e/small@203+e"
 # Stop the app first, or the new text size would redraw the pictures and log them a second time.
 adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0
