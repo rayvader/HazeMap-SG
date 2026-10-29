@@ -39,14 +39,16 @@ class WidgetResourcesTest {
     private fun Element.animation(): Element = children().single { it.localName == "attr" }.children().single()
 
     @Test
-    fun everyWidgetLayoutHoldsAllEightPictures() {
+    fun everyWidgetLayoutHoldsEveryPicture() {
         for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
             val bars = parse("layout/$layout.xml").descendants().filter { it.localName == "ProgressBar" }
             val drawableById = bars.associate { it.attr("id") to it.attr("indeterminateDrawable") }
             for (s in SkyScene.entries) {
-                val id = "@+id/wScene" + s.key.replaceFirstChar { it.uppercase() }
+                // "partly_night" is the view wScenePartlyNight.
+                val id = "@+id/wScene" + s.key.split('_').joinToString("") { part -> part.replaceFirstChar { it.uppercase() } }
                 assertEquals("$layout $id", "@drawable/scene_${s.key}", drawableById[id])
             }
+            assertEquals("every picture in $layout", SkyScene.entries.size, bars.size)
             assertEquals("$layout shows one picture before the app draws", 1, bars.count { it.attr("visibility") == null })
         }
     }
@@ -54,6 +56,24 @@ class WidgetResourcesTest {
     @Test
     fun everyPictureHasASky() {
         for (s in SkyScene.entries) assertTrue(s.key, File(res, "drawable/widget_sky_${s.key}.xml").isFile)
+    }
+
+    @Test
+    fun everyNightPictureIsLitByTheGlowOfTheMoonOrTheLightning() {
+        for (s in SkyScene.entries.filter { it.isNight }) {
+            val names = parts(parse("drawable/scene_${s.key}.xml")).keys
+            assertTrue("${s.key} has no glow", "moonGlow" in names || "boltGlow" in names)
+        }
+    }
+
+    @Test
+    fun thePlaceLineIsOneLineThatEndsInDotsWhenItRunsOut() {
+        // A city comes with its country, which can be long: the line must never wrap or push the rest around.
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            val place = views(layout).single { it.attr("id") == "@+id/wPlace" }
+            assertEquals("$layout lines", "1", place.attr("maxLines"))
+            assertEquals("$layout ellipsize", "end", place.attr("ellipsize"))
+        }
     }
 
     /** Every view in a layout, the root included. */

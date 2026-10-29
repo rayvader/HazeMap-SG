@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget sky for: thunderstorm at night. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="315"
+        android:endColor="#FF2A2742"
+        android:startColor="#FF0D0F1A" />
+    <corners android:radius="22dp" />
+</shape>

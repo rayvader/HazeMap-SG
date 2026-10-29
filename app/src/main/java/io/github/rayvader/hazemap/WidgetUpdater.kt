@@ -349,10 +349,12 @@ object WidgetUpdater {
         widgetId: Int,
         event: EventLine? = null,
         nowMillis: Long = System.currentTimeMillis(),
-        heightDp: Int = 0
+        heightDp: Int = 0,
+        /** Draws this sky whatever the weather. Only the emulator test's preview sets it. */
+        forceScene: SkyScene? = null
     ): RemoteViews {
         val v = RemoteViews(context.packageName, shape.layout)
-        val scene = sceneOverride ?: model.scene(nowMillis)
+        val scene = forceScene ?: sceneOverride ?: model.scene(nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
         // A short widget moves or drops the date, then the event line, and shrinks the rest; the Strip has no fit.
         val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale)
@@ -377,7 +379,7 @@ object WidgetUpdater {
         if (shape == WidgetShape.WIDE) {
             v.setTextViewText(R.id.wPlace, placeLine(context, model, clock))
         } else {
-            v.setTextViewText(R.id.wPlace, model.placeName)
+            v.setTextViewText(R.id.wPlace, model.placeLabel)
             v.setTextViewText(R.id.wWhen, clock ?: "--")
         }
 
@@ -462,10 +464,10 @@ object WidgetUpdater {
 
     /** "Bedok · PSI at 14:00". Without a PSI, or in a city, it is the place and the time of the reading. */
     private fun placeLine(context: Context, model: WidgetModel, clock: String?): String = when {
-        clock == null -> model.placeName
+        clock == null -> model.placeLabel
         model is SingaporeModel && model.psi != null ->
-            context.getString(R.string.widget_place_psi_time, model.placeName, clock)
-        else -> context.getString(R.string.widget_place_time, model.placeName, clock)
+            context.getString(R.string.widget_place_psi_time, model.placeLabel, clock)
+        else -> context.getString(R.string.widget_place_time, model.placeLabel, clock)
     }
 
     /** The pill: the PSI in its band colour for Singapore, the humidity for a city (it has no PSI). */
@@ -495,7 +497,7 @@ object WidgetUpdater {
         )
         is CityModel -> context.getString(
             R.string.widget_summary_city,
-            model.placeName,
+            model.placeLabel,
             model.tempText,
             model.conditionText,
             model.humidity?.let { "$it%" } ?: "--",
@@ -512,9 +514,15 @@ object WidgetUpdater {
         SkyScene.HAZE -> R.drawable.widget_sky_haze
         SkyScene.WIND -> R.drawable.widget_sky_wind
         SkyScene.NIGHT -> R.drawable.widget_sky_night
+        SkyScene.PARTLY_NIGHT -> R.drawable.widget_sky_partly_night
+        SkyScene.CLOUD_NIGHT -> R.drawable.widget_sky_cloud_night
+        SkyScene.RAIN_NIGHT -> R.drawable.widget_sky_rain_night
+        SkyScene.STORM_NIGHT -> R.drawable.widget_sky_storm_night
+        SkyScene.HAZE_NIGHT -> R.drawable.widget_sky_haze_night
+        SkyScene.WIND_NIGHT -> R.drawable.widget_sky_wind_night
     }
 
-    /** Every widget layout holds all eight pictures; each is a progress bar that plays its scene. */
+    /** Every widget layout holds every picture; each is a progress bar that plays its scene. */
     private fun pictureOf(scene: SkyScene): Int = when (scene) {
         SkyScene.SUN -> R.id.wSceneSun
         SkyScene.PARTLY -> R.id.wScenePartly
@@ -524,6 +532,12 @@ object WidgetUpdater {
         SkyScene.HAZE -> R.id.wSceneHaze
         SkyScene.WIND -> R.id.wSceneWind
         SkyScene.NIGHT -> R.id.wSceneNight
+        SkyScene.PARTLY_NIGHT -> R.id.wScenePartlyNight
+        SkyScene.CLOUD_NIGHT -> R.id.wSceneCloudNight
+        SkyScene.RAIN_NIGHT -> R.id.wSceneRainNight
+        SkyScene.STORM_NIGHT -> R.id.wSceneStormNight
+        SkyScene.HAZE_NIGHT -> R.id.wSceneHazeNight
+        SkyScene.WIND_NIGHT -> R.id.wSceneWindNight
     }
 
     /** A RemoteViews cannot tint a drawable on every Android version, so each band has its own rounded fill. */

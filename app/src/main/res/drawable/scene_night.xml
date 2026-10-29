@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Clear night: the stars twinkle around the moon. It moves for about 10 seconds each time the home screen shows it, then rests.
+<!-- Clear night: the stars twinkle around the glowing moon. It moves for about 10 seconds each time the home screen shows it, then rests.
      The resting frame is the still picture below, which is all a phone with animations off shows. -->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt">
@@ -9,6 +9,31 @@
             android:height="100dp"
             android:viewportWidth="100"
             android:viewportHeight="100">
+            <group
+                android:translateX="50"
+                android:translateY="50">
+                <group
+                    android:name="moonGlow">
+                    <path
+                        android:name="moonGlowFill"
+                        android:pathData="M-36,0a36,36 0 1,1 72,0a36,36 0 1,1 -72,0Z">
+                        <aapt:attr name="android:fillColor">
+                            <gradient
+                                android:type="radial"
+                                android:centerX="0"
+                                android:centerY="0"
+                                android:gradientRadius="36">
+                                <item
+                                    android:color="#8CF6F1C7"
+                                    android:offset="0" />
+                                <item
+                                    android:color="#00F6F1C7"
+                                    android:offset="1" />
+                            </gradient>
+                        </aapt:attr>
+                    </path>
+                </group>
+            </group>
             <path
                 android:name="star0"
                 android:fillColor="#FFFFFF"
@@ -118,6 +143,43 @@
                 android:repeatCount="5"
                 android:repeatMode="reverse"
                 android:startOffset="2500"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="moonGlow">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="1"
+                    android:valueTo="1.12"
+                    android:valueType="floatType"
+                    android:duration="2500"
+                    android:repeatCount="3"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/accelerate_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="moonGlowFill">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="1"
+                android:valueTo="0.7"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
                 android:interpolator="@android:interpolator/accelerate_decelerate" />
         </aapt:attr>
     </target>

@@ -73,6 +73,11 @@ fit_shot fit-4-strip "strip@70/strip@55"
 fit_shot fit-5-wide-edges "wide@170+e/wide@146+e/wide@128+e/wide@119+e"
 fit_shot fit-6-wide-edges-no-event "wide@146/wide@122/wide@112/wide@110"
 fit_shot fit-7-small-edges "small@178+e,small@168+e/small@167+e,small@152/small@134,small@117/small@110"
+# Every night sky as a Square, then the text on four of them in a Wide ("+s=" picks the sky).
+fit_shot fit-9-night-skies "small@150+s=night,small@150+s=partly_night/small@150+s=cloud_night,small@150+s=rain_night/small@150+s=storm_night,small@150+s=haze_night/small@150+s=wind_night"
+fit_shot fit-10-night-wide "wide@140+e+s=partly_night/wide@140+e+s=rain_night/wide@140+e+s=haze_night/wide@140+e+s=storm_night"
+# A saved city says where its weather is from ("+c" is Kuala Lumpur, "+cl" a name too long for the small ones).
+fit_shot fit-11-city-names "wide@140+e+c+s=rain_night/wide@140+cl/small@150+c,small@150+cl/strip@70+c/strip@70+cl"
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
 fit_shot fit-8-bigfont "wide@125+e/wide@140+e/wide@160+e/small@140,small@200+e"
@@ -304,10 +309,10 @@ say "widgets bound: $(adb shell dumpsys appwidget | grep -c 'io.github.rayvader.
 dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
 say "--- widgets on the home screen, real weather ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
-REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep -o -m1 'picture=[a-z]*' | cut -d= -f2)
+REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep -o -m1 'picture=[a-z_]*' | cut -d= -f2)
 
 # Every sky in turn: its picture should move just after the home screen shows, and rest 10 s later.
-for scene in sun partly cloud rain storm haze wind night; do
+for scene in sun partly cloud rain storm haze wind night partly_night cloud_night rain_night storm_night haze_night wind_night; do
   home_again --es widget_scene "$scene"
   raw_shots "$scene-moving" 2
   sleep 9
@@ -429,8 +434,8 @@ say "--- widgets, the Wide and the Strip showing Tokyo ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
 say "time now: Tokyo $(TZ=Asia/Tokyo date +%H:%M), Singapore $(TZ=Asia/Singapore date +%H:%M), phone $(adb shell date +%H:%M | tr -d '\r')"
 adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
-# Tap the Tokyo widget: its description starts with the place name.
-dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo.") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
+# Tap the Tokyo widget: its description starts with the place and its country ("Tokyo, Japan. 11°. ...").
+dump && xy=$(python3 .github/scripts/ui_probe.py desc "$OUT/ui.xml" "Tokyo") && adb shell input tap $xy && say "tapped the Tokyo widget at $xy"
 sleep 5
 say "tapping a Tokyo widget opens: '$(attr placeTitle text)'"
 adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget sky for: cloudy night. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="315"
+        android:endColor="#FF4A5A70"
+        android:startColor="#FF1B2433" />
+    <corners android:radius="22dp" />
+</shape>

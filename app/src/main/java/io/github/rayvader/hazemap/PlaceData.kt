@@ -21,6 +21,14 @@ data class Place(
     val subtitle: String
         get() = listOf(region, country).filter { it.isNotBlank() && !it.equals(name, ignoreCase = true) }
             .distinct().joinToString(", ")
+
+    /**
+     * The name and the country on one line, "Kyoto, Japan": what a widget's place line says, so it is clear
+     * which place the weather is for. The state is left out to keep the line short. Just the name when the
+     * country is unknown or is the name itself ("Singapore").
+     */
+    val nameAndCountry: String
+        get() = listOf(name, country).filter { it.isNotBlank() }.distinctBy { it.lowercase() }.joinToString(", ")
 }
 
 /** One day of a place's forecast. [date] is the calendar date at the place. */

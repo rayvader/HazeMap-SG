@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thunderstorm at night: lightning flashes and lights the cloud while the rain falls. It moves for about 10 seconds each time the home screen shows it, then rests.
+     The resting frame is the still picture below, which is all a phone with animations off shows. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="100dp"
+            android:height="100dp"
+            android:viewportWidth="100"
+            android:viewportHeight="100">
+            <group
+                android:translateX="54"
+                android:translateY="70">
+                <group
+                    android:name="boltGlow">
+                    <path
+                        android:name="boltGlowFill"
+                        android:pathData="M-30,0a30,30 0 1,1 60,0a30,30 0 1,1 -60,0Z">
+                        <aapt:attr name="android:fillColor">
+                            <gradient
+                                android:type="radial"
+                                android:centerX="0"
+                                android:centerY="0"
+                                android:gradientRadius="30">
+                                <item
+                                    android:color="#73FFD54F"
+                                    android:offset="0" />
+                                <item
+                                    android:color="#00FFD54F"
+                                    android:offset="1" />
+                            </gradient>
+                        </aapt:attr>
+                    </path>
+                </group>
+            </group>
+            <group
+                android:translateX="53.75"
+                android:translateY="44"
+                android:scaleX="1.25"
+                android:scaleY="1.25">
+                <group
+                    android:name="cloudFront">
+                    <path
+                        android:fillColor="#7F889B"
+                        android:pathData="M-23,2a11,11 0 1,1 22,0a11,11 0 1,1 -22,0ZM-11,-6a14,14 0 1,1 28,0a14,14 0 1,1 -28,0ZM7,3a9,9 0 1,1 18,0a9,9 0 1,1 -18,0ZM-16,2H18A6,6 0 0 1 18,14H-16A6,6 0 0 1 -16,2Z" />
+                </group>
+            </group>
+            <group
+                android:name="drop0">
+                <path
+                    android:name="dropLine0"
+                    android:strokeColor="#9FB0E6"
+                    android:strokeWidth="3"
+                    android:strokeLineCap="round"
+                    android:pathData="M32,67L29,75" />
+            </group>
+            <group
+                android:name="drop1">
+                <path
+                    android:name="dropLine1"
+                    android:strokeColor="#9FB0E6"
+                    android:strokeWidth="3"
+                    android:strokeLineCap="round"
+                    android:pathData="M45,67L42,75" />
+            </group>
+            <group
+                android:name="drop2">
+                <path
+                    android:name="dropLine2"
+                    android:strokeColor="#9FB0E6"
+                    android:strokeWidth="3"
+                    android:strokeLineCap="round"
+                    android:pathData="M58,67L55,75" />
+            </group>
+            <group
+                android:name="drop3">
+                <path
+                    android:name="dropLine3"
+                    android:strokeColor="#9FB0E6"
+                    android:strokeWidth="3"
+                    android:strokeLineCap="round"
+                    android:pathData="M71,67L68,75" />
+            </group>
+            <path
+                android:name="bolt"
+                android:fillColor="#FFD54F"
+                android:pathData="M54,58L45,74H53L47,90L64,68H55L60,58Z" />
+        </vector>
+    </aapt:attr>
+    <target android:name="boltGlowFill">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5000"
+                android:repeatCount="1"
+                android:interpolator="@android:interpolator/linear">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="1" />
+                    <keyframe android:fraction="0.08" android:value="0.25" />
+                    <keyframe android:fraction="0.6" android:value="0.25" />
+                    <keyframe android:fraction="0.64" android:value="1" />
+                    <keyframe android:fraction="0.72" android:value="0.25" />
+                    <keyframe android:fraction="0.95" android:value="0.25" />
+                    <keyframe android:fraction="1" android:value="1" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="cloudFront">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="translateX"
+                android:valueFrom="0"
+                android:valueTo="-6"
+                android:valueType="floatType"
+                android:duration="2500"
+                android:repeatCount="3"
+                android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/accelerate_decelerate" />
+        </aapt:attr>
+    </target>
+    <target android:name="drop0">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-6"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="dropLine0">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="drop1">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-6"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="230"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="dropLine1">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="230"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="drop2">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-6"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="460"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="dropLine2">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="460"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="drop3">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="-6"
+                    android:valueTo="10"
+                    android:valueType="floatType"
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="690"
+                    android:interpolator="@android:interpolator/linear" />
+                <objectAnimator
+                    android:propertyName="translateY"
+                    android:valueFrom="0"
+                    android:valueTo="0"
+                    android:valueType="floatType"
+                    android:duration="1"
+                    android:interpolator="@android:interpolator/linear" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="dropLine3">
+        <aapt:attr name="android:animation">
+            <set android:ordering="sequentially">
+                <objectAnimator
+                    android:duration="900"
+                    android:repeatCount="9"
+                    android:startOffset="690"
+                    android:interpolator="@android:interpolator/linear">
+                    <propertyValuesHolder android:propertyName="strokeAlpha" android:valueType="floatType">
+                        <keyframe android:fraction="0" android:value="0" />
+                        <keyframe android:fraction="0.3" android:value="1" />
+                        <keyframe android:fraction="1" android:value="0" />
+                    </propertyValuesHolder>
+                </objectAnimator>
+                <objectAnimator
+                    android:propertyName="strokeAlpha"
+                    android:valueFrom="0"
+                    android:valueTo="1"
+                    android:valueType="floatType"
+                    android:duration="400"
+                    android:interpolator="@android:interpolator/decelerate_quad" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="bolt">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5000"
+                android:repeatCount="1"
+                android:interpolator="@android:interpolator/linear">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="1" />
+                    <keyframe android:fraction="0.08" android:value="0.25" />
+                    <keyframe android:fraction="0.6" android:value="0.25" />
+                    <keyframe android:fraction="0.64" android:value="1" />
+                    <keyframe android:fraction="0.72" android:value="0.25" />
+                    <keyframe android:fraction="0.95" android:value="0.25" />
+                    <keyframe android:fraction="1" android:value="1" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>
