@@ -157,6 +157,16 @@ class WidgetResourcesTest {
     }
 
     @Test
+    fun theClockIsBold() {
+        // Roboto Bold is about 6% wider than the Light the clock had, which WidgetFits counts on (CLOCK_DP_PER_SP).
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            val clock = views(layout).single { it.attr("id") == "@+id/wClock" }
+            assertEquals("$layout weight", "bold", clock.attr("textStyle"))
+            assertEquals("$layout family", "sans-serif", clock.attr("fontFamily"))
+        }
+    }
+
+    @Test
     fun theClockIsAlways24Hour() {
         // A TextClock picks one of its two formats by the phone's setting, so both must be 24-hour.
         for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {

@@ -92,6 +92,11 @@ fit_shot fit-12-wide-shortest "wide@139+e/wide@110+e/wide@82/wide@81"
 # phrases ("+lc"), a city with its country, and a narrower Wide ("+w=300" dp; the least it is offered is 250).
 fit_shot fit-21-one-line-singapore "wide@139+e/wide@139+e+lc/wide@139+e+w=300/wide@139+e+lc+w=270"
 fit_shot fit-22-one-line-cities "wide@139+e+c/wide@139+e+cl/wide@139+e+c+lc/wide@139+e+cl+w=300"
+# The clock is bold, so wider: a Wide narrower than the usual 362 dp gives the biggest clocks less room. The
+# least a home screen gives is 250 dp, and 290 is a five-column phone.
+fit_shot fit-25-wide-narrow "wide@223+e+w=290/wide@223+e+w=250/wide@176+e+w=290"
+# The Square's clock has 96 dp before its picture: the three clocks, bold, one under the other.
+fit_shot fit-26-clocks "small@223,small@170+e/wide@176+e/strip@70"
 # The Square's event line must clear every sky picture: the skies whose art reaches lowest (the night
 # thunderstorm's bolt, the star of the clear night, the haze lines), and the day skies, at 170 dp.
 fit_shot fit-13-small-event-skies "small@170+e+s=storm_night,small@170+e+s=night/small@170+e+s=haze_night,small@170+e+s=storm"
@@ -114,6 +119,9 @@ fit_shot fit-17-bigfont-no-event "wide@123/wide@139/small@139,small@153"
 fit_shot fit-18-bigfont-small "small@173,small@194+e/small@203+e"
 # A long weather phrase and a long city in one line, at this text size too.
 fit_shot fit-24-bigfont-one-line "wide@139+e+lc/wide@139+e+cl/wide@139+e+c+lc"
+# The biggest text a phone offers short of the Largest: the bold clock must not run under the Square's picture.
+adb shell settings put system font_scale 1.3
+fit_shot fit-27-bigfont-130 "small@300,small@170+e/wide@223+e/wide@139+e"
 # Stop the app first, or the new text size would redraw the pictures and log them a second time.
 adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0

@@ -79,13 +79,14 @@ internal object WidgetPreview {
                 } else {
                     CityModel(place, 31.0, if (longWords) LONGEST_WMO_CODE else 61, true, 82, place.timezone, now)
                 }
-                val fit = WidgetFits.of(shape, heightDp, withEvent, fontScale)
+                val widthForShape = widthOverride ?: widthDp(shape)
+                val fit = WidgetFits.of(shape, heightDp, withEvent, fontScale, widthForShape)
                 val caption = captionOf(shape, heightDp, withEvent, fit, place?.nameAndCountry, scene) +
                     (if (longWords) " | long words" else "") + (widthOverride?.let { " | w=$it" } ?: "")
                 Log.i(TAG, "preview $caption fontScale=$fontScale")
 
                 val remote = WidgetUpdater.views(
-                    context, shape, model, id++, if (withEvent) line else null, now, heightDp, scene
+                    context, shape, model, id++, if (withEvent) line else null, now, heightDp, scene, widthForShape
                 )
                 val frame = FrameLayout(context)
                 // The application context, as a home screen inflates it. An activity's context would swap the
@@ -105,7 +106,7 @@ internal object WidgetPreview {
                         textSize = 10f
                     }
                 )
-                cell.addView(frame, LinearLayout.LayoutParams(px(widthOverride ?: widthDp(shape)), px(heightDp)))
+                cell.addView(frame, LinearLayout.LayoutParams(px(widthForShape), px(heightDp)))
                 row.addView(cell)
             }
             column.addView(row)

@@ -232,7 +232,8 @@
         <TextClock
             android:id="@+id/wClock"
             style="@style/WidgetText"
-            android:fontFamily="sans-serif-light"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
             android:format12Hour="HH:mm"
             android:format24Hour="HH:mm"
             android:includeFontPadding="false"
