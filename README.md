@@ -142,12 +142,29 @@ The sky looks the same in light and dark mode.
 - The area picker sets the forecast region by the nearest NEA region label, which is an approximation
   of NEA's actual region borders.
 
+## Tech stack
+
+- Kotlin 1.9 on Android, with XML layouts and view binding (no Compose). Min SDK 26 (Android 8.0),
+  target and compile SDK 34.
+- Android Gradle Plugin 8.5, Gradle 8.7 (wrapper), Java 17.
+- AndroidX (AppCompat, Material Components, ConstraintLayout, SwipeRefreshLayout, Lifecycle),
+  Kotlin coroutines, Room for the haze history.
+- [osmdroid](https://github.com/osmdroid/osmdroid) for the OpenStreetMap maps and
+  [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart) for the history chart (from JitPack).
+- Unit tests: JUnit 4 and `org.json`, on the JVM.
+- CI: GitHub Actions, with an Android 14 emulator for the smoke test.
+
+Permissions the app declares: internet and network state, coarse location (asked only for
+"Use my location"), calendar read (asked only when you open Calendars for the widget line), and
+installing its own updates.
+
 ## Install
 
 1. Open the latest entry under **Releases**, on your phone.
 2. Download `HazeMapSG-1.0.N.apk` and open it. Allow installing from your browser if asked.
 
-Builds from `main` are releases; builds from other branches are pre-releases.
+Builds from `main` are releases; builds from `feat/**` and `fix/**` branches are pre-releases.
+The app's own update check only offers full releases.
 
 **If Android says "App not installed":** the APKs are signed with a temporary key that changes
 with every build (no signing key is configured), and Android will not update an app with a
@@ -165,37 +182,94 @@ Keep a backup of the keystore. If you lose it, installed copies cannot be update
 
 ## Build and test
 
-Builds run on GitHub Actions (`.github/workflows/android.yml`):
+### Prerequisites
 
-1. **build** runs the unit tests, builds the release APK and publishes it as a GitHub release.
-2. **smoke** installs the APK on an Android 14 emulator (Pixel 5), opens every tab with live data,
-   taps through the area picker, the Radar/Gauges switch and Play, switches dark mode and rotation
-   while open, and goes offline. Screenshots and a log are kept as the `smoke-screenshots` artifact.
-   It never blocks a release.
+- JDK 17.
+- The Android SDK with platform 34 and its build tools. Point Gradle at it with `ANDROID_HOME`, or
+  `sdk.dir` in a `local.properties` file (git-ignored). Android Studio sets both up.
+- No API keys or accounts: every data source is public.
 
-Locally: `./gradlew testDebugUnitTest assembleRelease`; the APK lands in `app/build/outputs/apk/release/`.
+### Local build
 
-The 37 unit tests include the parsers, run against real NEA and RainViewer responses saved in
-`app/src/test/resources/fixtures`. The app reads three launch extras so the smoke test can reach a
-screen directly: `tab` (`now`, `rain`, `haze`), `source` (`radar`, `gauges`) and `zoom`.
+```sh
+./gradlew testDebugUnitTest      # unit tests, reports in app/build/reports/tests/
+./gradlew assembleDebug          # debug APK in app/build/outputs/apk/debug/
+./gradlew assembleRelease        # release APK in app/build/outputs/apk/release/
+```
+
+Or open the folder in Android Studio and run the `app` configuration on a phone or emulator.
+
+### Configuration
+
+The build reads only environment variables, all optional:
+
+| Name | Used for | Without it |
+|---|---|---|
+| `GITHUB_RUN_NUMBER` | `versionCode` N and `versionName` `1.0.N` | version 1.0.1 |
+| `SIGNING_STORE_FILE` | path to the PKCS#12 release keystore | release APK signed with the debug key |
+| `SIGNING_STORE_PASSWORD` | keystore and key password | |
+| `SIGNING_KEY_ALIAS` | key alias | `hazemap` |
+
+In CI these come from the repository secrets `SIGNING_KEYSTORE_B64` and `SIGNING_STORE_PASSWORD`
+(see [Fixed signing key](#fixed-signing-key-optional)). Release builds are not minified.
+
+### CI and releases
+
+Builds run on GitHub Actions (`.github/workflows/android.yml`) on pushes to `main`, `feat/**` and
+`fix/**`, on pull requests, and by hand. Changes to only `*.md` files or `docs/` do not start a build.
+
+1. **build** runs the unit tests and builds the release APK `HazeMapSG-1.0.N.apk` (N is the run number).
+   On a push it publishes it as the GitHub release `v1.0.N`; a pull request keeps it only as the
+   `hazemap-apk` artifact. It also builds the same code as version 1.0.1, for the self-update test.
+2. **smoke** (pushes only) installs the APK on an Android 14 emulator (Pixel 5), opens every tab with
+   live data, taps through the area picker, the Radar/Gauges switch and Play, switches dark mode and
+   rotation while open, and goes offline. It also checks the widgets, the calendar line, the night skies
+   and the app updating itself from 1.0.1. Screenshots and a log are kept as the `smoke-screenshots`
+   artifact. It never blocks a release. The script is `.github/scripts/smoke.sh`.
+
+The unit tests (about 200, in `app/src/test`) include the parsers, run against real NEA, RainViewer,
+Open-Meteo and GitHub responses saved in `app/src/test/resources/fixtures`.
+
+The app reads launch extras so the smoke test can reach a screen directly: `tab` (`now`, `rain`, `haze`),
+`source` (`radar`, `gauges`), `zoom`, `pin_widget`, `widget_scene`, `widget_preview` and
+`installed_version`.
 
 The emulator is a Pixel, whose home screen gives widgets plenty of height, so the smoke test also draws the
 widgets at exact short heights inside the app (the `widget_preview` extra) and keeps those pictures as
-`fit-*.png`. To run only that part, start the workflow by hand with the input `only` set to `widget-fit`.
+`fit-*.png`. To run only one part, start the workflow by hand with the input `only` set to `widget-fit`
+(the widget pictures) or `update-line` (the version line and Check for updates).
 
 ## Code map
 
+```
+.github/workflows/android.yml   build, release and emulator smoke test
+.github/scripts/                smoke.sh and its UI helper ui_probe.py
+app/build.gradle.kts            version, signing and dependencies
+app/src/main/java/.../hazemap/  all app code (one package)
+app/src/main/res/               layouts, widget layouts and info, sky and icon drawables
+app/src/test/                   unit tests and saved API responses (fixtures)
+docs/                           screenshots and design mockups
+```
+
+All code is in `app/src/main/java/io/github/rayvader/hazemap/`:
+
 | File | Job |
 |---|---|
-| `MainActivity.kt` | tabs, area picker; builds the map tabs on first visit |
+| `HazeApp.kt` | start-up: saved theme, update install hook, osmdroid tile cache |
+| `MainActivity.kt` | tabs, area picker, update banner; builds the map tabs on first visit |
 | `NowScreen.kt`, `RainScreen.kt`, `HazeScreen.kt` | one per tab |
-| `RadarOverlay.kt`, `GaugeOverlay.kt` | draw radar tiles and gauge dots on the osmdroid map |
+| `RadarOverlay.kt`, `GaugeOverlay.kt`, `RadarCache.kt` | draw radar tiles and gauge dots on the osmdroid map; radar pictures saved on the phone |
 | `Http.kt` | HTTP, and the rate limiter for the data.gov.sg limit |
 | `WeatherRepository.kt`, `JsonCache.kt` | fetch with a disk cache; saved copies for instant paint |
-| `NeaParsers.kt`, `NeaApi.kt` | parse the responses (pure, no Android) |
-| `WeatherLogic.kt` | condition icons, forecast sentences, wind, rain levels, tile maths |
+| `NeaParsers.kt`, `NeaApi.kt`, `Models.kt` | parse the responses (pure, no Android) and the data they give |
+| `WeatherLogic.kt`, `TimeFmt.kt` | condition icons, forecast sentences, wind, rain levels, tile maths; Singapore-time formatting |
 | `HistoryDb.kt`, `HazeRepository.kt` | on-device haze history (Room) |
-| `Areas.kt` | the 47 forecast areas and their regions |
+| `Areas.kt`, `Region.kt`, `Band.kt` | the 47 forecast areas, the five PSI regions, and the air-quality bands |
+| `PlaceData.kt`, `PlaceStore.kt`, `PlacesSheet.kt`, `PlaceActivity.kt` | My places: Open-Meteo search and weather, the saved list, the city page |
+| `UpdateChecker.kt`, `UpdateLogic.kt`, `Updater.kt`, `UpdateStatusReceiver.kt` | self-update from GitHub releases: check, verify, download, install |
+| `WidgetUpdater.kt`, `WidgetLogic.kt`, `WidgetFit.kt`, `WidgetTarget.kt`, `WidgetPlaceActivity.kt`, `WidgetPreview.kt` | the three widgets, what they show, how they fit their height, and which place each one shows |
+| `CalendarLogic.kt`, `PhoneCalendars.kt`, `CalendarsActivity.kt` | the next-event line and the calendar picker |
+| `ThemeChoice.kt`, `UiHelpers.kt` | saved settings, light/dark theme, shared view helpers |
 
 The layouts were chosen from three mockups; the one that was built is option A (tabs).
 See [docs/design](docs/design/weather-mockups.html).
