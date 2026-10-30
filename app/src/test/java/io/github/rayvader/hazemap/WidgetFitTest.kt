@@ -157,17 +157,46 @@ class WidgetFitTest {
 
     @Test
     fun aBigClockGivesWayToBigText() {
-        // The clock is about 2.4 dp wide for each sp and has 222 dp before the picture: with text 50% bigger a
-        // 60 sp clock would not fit on one line, so it shrinks to what does. Only a very tall widget gets that far.
+        // The bold clock is counted as 2.75 dp wide for each sp (Roboto Bold's 2.58, and 6% for a phone's own font)
+        // and the Wide has 222 dp before its picture: with text 50% bigger a 60 sp clock would not fit on one line,
+        // so it shrinks to what does. Only a very tall widget gets that far.
         for (scale in listOf(1f, 1.15f, 1.3f, 1.5f, 2f)) {
             for (h in (60..420)) {
                 val clock = WidgetFits.of(WidgetShape.WIDE, h, true, scale)!!.clockSp
-                assertTrue("${h}dp at $scale: $clock sp", clock * scale <= 88f)
+                assertTrue("${h}dp at $scale: $clock sp", clock * scale * 2.75f <= 222f)
             }
         }
         assertEquals(60, WidgetFits.of(WidgetShape.WIDE, 300, true, 1.3f)!!.clockSp)
-        assertEquals(58, WidgetFits.of(WidgetShape.WIDE, 300, true, 1.5f)!!.clockSp)
-        assertEquals(44, WidgetFits.of(WidgetShape.WIDE, 420, true, 2f)!!.clockSp)
+        assertEquals(53, WidgetFits.of(WidgetShape.WIDE, 300, true, 1.5f)!!.clockSp)
+        assertEquals(40, WidgetFits.of(WidgetShape.WIDE, 420, true, 2f)!!.clockSp)
+    }
+
+    @Test
+    fun aNarrowWideGetsASmallerClock() {
+        // Its text has 140 dp less than the widget's width before the picture: 150 dp at 290 wide fits 54 sp, not 60.
+        assertEquals(60, WidgetFits.of(WidgetShape.WIDE, 300, true, 1f, 362)!!.clockSp)
+        assertEquals(54, WidgetFits.of(WidgetShape.WIDE, 300, true, 1f, 290)!!.clockSp)
+        assertEquals(40, WidgetFits.of(WidgetShape.WIDE, 300, true, 1f, 250)!!.clockSp)
+        // A width the home screen did not give counts as the usual four-column one.
+        assertEquals(WidgetFits.of(WidgetShape.WIDE, 300, true, 1f, 362), WidgetFits.of(WidgetShape.WIDE, 300, true, 1f, 0))
+        // The shorter fits already hold a smaller clock, so a narrow widget changes nothing there.
+        assertEquals(WidgetFits.of(WidgetShape.WIDE, 139, true, 1f, 362), WidgetFits.of(WidgetShape.WIDE, 139, true, 1f, 290))
+    }
+
+    @Test
+    fun theSquareClockStaysClearOfItsPicture() {
+        // 180 dp wide, 84 of them taken by the padding and the picture: 96 dp. A 32 sp bold clock fits at the
+        // usual text size, and gives way to bigger text. A Square must be tall for the 32 sp fit at 130% text,
+        // as the text counts as 30% more height: 300 dp is.
+        assertEquals(32, WidgetFits.of(WidgetShape.SMALL, 223, true, 1f)!!.clockSp)
+        assertEquals(30, WidgetFits.of(WidgetShape.SMALL, 223, true, 1.15f)!!.clockSp)
+        assertEquals(26, WidgetFits.of(WidgetShape.SMALL, 300, true, 1.3f)!!.clockSp)
+        for (scale in listOf(1f, 1.15f, 1.3f, 1.5f, 2f)) {
+            for (h in heights) {
+                val clock = WidgetFits.of(WidgetShape.SMALL, h, true, scale)!!.clockSp
+                assertTrue("${h}dp at $scale: $clock sp", clock * scale * 2.75f <= 96f)
+            }
+        }
     }
 
     @Test
@@ -201,7 +230,8 @@ class WidgetFitTest {
                 for (scale in listOf(1f, 2f)) {
                     for (h in heights) {
                         val f = WidgetFits.of(shape, h, hasEvent, scale)!!
-                        assertTrue("$shape ${h}dp at $scale clock", f.clockSp >= 22)
+                        // The size the person sees: big text makes the same sp bigger, and the width cap may take some off.
+                        assertTrue("$shape ${h}dp at $scale clock", f.clockSp * scale >= 22f)
                         assertTrue("$shape ${h}dp at $scale temp", f.tempSp >= 20)
                     }
                 }

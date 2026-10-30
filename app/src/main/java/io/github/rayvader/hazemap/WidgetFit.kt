@@ -32,11 +32,29 @@ object WidgetFits {
     private const val FIXED_DP = 8
 
     /**
-     * The most a Wide's clock may grow, as its size in sp times the text size setting. The clock is
-     * about 2.4 dp wide for each sp and has 222 dp before the picture, so 88 (214 dp) is the most that
-     * stays on one line. Bigger text makes the same sp wider, so a large clock gives way to it.
+     * How wide the clock is for each sp of its size, in dp, with room for a phone's own font. Roboto Bold's
+     * "HH:mm" is 2.58 (every time is as wide as 00:00, as its digits are all the same width; it was 2.43 in
+     * Light), and the emulator draws it at 2.53 to 2.58. Some makers' fonts have wider digits, and a clock
+     * that does not fit breaks into two lines, so this counts 6% more.
      */
-    private const val WIDE_CLOCK_LIMIT_EM = 88
+    private const val CLOCK_DP_PER_SP = 2.75f
+
+    /**
+     * The width a widget has when the home screen has not said: the four-column Wide and the two-column
+     * Square the emulator test draws. Unlike an unknown height this errs on the roomy side, as it always has.
+     */
+    private const val USUAL_WIDE_DP = 362
+    private const val USUAL_SMALL_DP = 180
+
+    /**
+     * The room for the clock before the picture, from the widget's width: the Wide's text starts 16 dp in
+     * and stops 124 dp short of the right edge, the Square's starts 14 dp in and its picture box takes 70 dp.
+     */
+    private const val WIDE_CLOCK_MARGINS_DP = 140
+    private const val SMALL_CLOCK_MARGINS_DP = 84
+
+    /** The smallest clock the width cap will ask for. */
+    private const val MIN_CLOCK_SP = 12
 
     /**
      * The height the home screen gives a widget right now, in dp. It reports two heights: the one with
@@ -49,21 +67,48 @@ object WidgetFits {
     }
 
     /**
+     * The width the home screen gives a widget right now, in dp. It reports two widths as well, the other
+     * way round from the heights: the min width is the one with the phone upright, the max width the one on
+     * its side. Zero means it did not say.
+     */
+    fun widthFor(uprightDp: Int, sidewaysDp: Int, onItsSide: Boolean): Int {
+        val now = if (onItsSide) sidewaysDp else uprightDp
+        val other = if (onItsSide) uprightDp else sidewaysDp
+        return if (now > 0) now else other
+    }
+
+    /**
      * The fit for a widget shape, or null for one that is always short and never trimmed (the Strip).
      *
      * [fontScale] is the phone's text size setting. Bigger text needs more height, so the widget counts
      * as shorter: the text takes that much more room, while the space around it is in dp and stays the
      * same ([FIXED_DP]). A smaller setting gains nothing, to stay on the safe side.
+     *
+     * [widthDp] is how wide the widget is. The clock is bold and wide, so it gives way to a narrow widget
+     * or to big text rather than run under the picture or break into two lines.
      */
-    fun of(shape: WidgetShape, heightDp: Int, hasEvent: Boolean, fontScale: Float = 1f): WidgetFit? {
+    fun of(shape: WidgetShape, heightDp: Int, hasEvent: Boolean, fontScale: Float = 1f, widthDp: Int = 0): WidgetFit? {
         val known = if (heightDp > 0) heightDp else SHORTEST_DP
         val scale = fontScale.coerceAtLeast(1f)
         val h = (FIXED_DP + (known - FIXED_DP) / scale).toInt()
-        return when (shape) {
-            WidgetShape.WIDE -> wide(h, hasEvent).let { it.copy(clockSp = minOf(it.clockSp, (WIDE_CLOCK_LIMIT_EM / scale).toInt())) }
+        val fit = when (shape) {
+            WidgetShape.WIDE -> wide(h, hasEvent)
             WidgetShape.SMALL -> small(h, hasEvent)
-            WidgetShape.STRIP -> null
+            WidgetShape.STRIP -> return null
         }
+        return fit.copy(clockSp = minOf(fit.clockSp, widestClockSp(shape, widthDp, scale)))
+    }
+
+    /**
+     * The biggest clock, in sp, that stays on one line before the picture at this width and text size.
+     * Never under [MIN_CLOCK_SP], however narrow the widget: that is no widget a home screen offers.
+     */
+    private fun widestClockSp(shape: WidgetShape, widthDp: Int, scale: Float): Int {
+        val room = when (shape) {
+            WidgetShape.WIDE -> (if (widthDp > 0) widthDp else USUAL_WIDE_DP) - WIDE_CLOCK_MARGINS_DP
+            else -> (if (widthDp > 0) widthDp else USUAL_SMALL_DP) - SMALL_CLOCK_MARGINS_DP
+        }
+        return (room / (CLOCK_DP_PER_SP * scale)).toInt().coerceAtLeast(MIN_CLOCK_SP)
     }
 
     /**

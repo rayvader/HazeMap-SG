@@ -303,13 +303,14 @@ object WidgetUpdater {
             val model = modelFor(target, area, data)
             val line = if (event != null && text != null && w.shape.hasEventLine) EventLine(event, text) else null
             val heightDp = heightOf(context, manager, w.id)
+            val widthDp = widthOf(context, manager, w.id)
             // The smoke test reads these lines to find the id of each widget. No event details: they stay private.
             Log.i(
                 TAG,
                 "draw id=${w.id} shape=${w.shape.key} place=${model.placeName} zone=${model.zoneId} " +
-                    "event=${line != null} h=$heightDp"
+                    "event=${line != null} h=$heightDp w=$widthDp"
             )
-            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now, heightDp))
+            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now, heightDp, widthDp = widthDp))
         }
     }
 
@@ -322,6 +323,19 @@ object WidgetUpdater {
         return WidgetFits.heightFor(
             uprightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0),
             sidewaysDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0),
+            onItsSide = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        )
+    }
+
+    /**
+     * The widget's width in dp as the home screen reports it, or 0 when it has not said yet. The min width
+     * is the one with the phone upright, the max width the one on its side.
+     */
+    private fun widthOf(context: Context, manager: AppWidgetManager, widgetId: Int): Int {
+        val options = manager.getAppWidgetOptions(widgetId)
+        return WidgetFits.widthFor(
+            uprightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0),
+            sidewaysDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0),
             onItsSide = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         )
     }
@@ -351,14 +365,16 @@ object WidgetUpdater {
         nowMillis: Long = System.currentTimeMillis(),
         heightDp: Int = 0,
         /** Draws this sky whatever the weather. Only the emulator test's preview sets it. */
-        forceScene: SkyScene? = null
+        forceScene: SkyScene? = null,
+        /** How wide the home screen made the widget, in dp; 0 when it has not said. */
+        widthDp: Int = 0
     ): RemoteViews {
         val v = RemoteViews(context.packageName, shape.layout)
         val scene = forceScene ?: sceneOverride ?: model.scene(nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
         // A short widget drops the event line (and, if even that is not enough, the date) and shrinks the rest;
         // the Strip has no fit.
-        val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale)
+        val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale, widthDp)
         if (fit != null) applyFit(context, v, shape, fit)
 
         // The sky colour, and the one moving picture for this weather.
