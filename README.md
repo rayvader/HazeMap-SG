@@ -49,7 +49,9 @@ release. If that is newer, a banner at the top says so and the app downloads it:
 you tap Update on mobile data. It checks the file is this app, newer, and signed with the same key, then
 installs it when you leave the app, so it never closes in front of you. On Android 12 and newer that needs no
 tap. On older Android, or the first time, Android asks you once (allow "Install unknown apps", then Update).
-Install in the banner does it right away. The X skips that version. If something fails, the banner says why
+Install in the banner does it right away. The X skips that version. The line at the end of the Now tab shows
+the version you have, and "Check for updates" there asks GitHub at once, whatever the 6 hours: the line says
+that you are up to date, or that a newer version is out, and a banner you closed comes back. If something fails, the banner says why
 and offers Try again, or Download to get the file in your browser. The request sends nothing about you
 except what any web request does.
 

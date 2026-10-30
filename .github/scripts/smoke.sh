@@ -56,6 +56,110 @@ shot() {
   adb exec-out screencap -p > "$OUT/$name.png"
 }
 
+# ---- Helpers for the taps below, defined here so the quick modes can use them too ----
+LOG="$OUT/interaction.txt"
+say() { echo "$*" | tee -a "$LOG"; }
+
+dump() {
+  for _ in 1 2 3; do
+    if adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1; then
+      # A not-responding dialog hides the screen behind it: clear it and look again.
+      dismiss_anr "$OUT/ui.xml" >> "$LOG" || return 0
+    else
+      sleep 1
+    fi
+  done
+  return 1
+}
+
+# tap <text>: tap the first element whose text, description or id matches
+tap() {
+  dump || { say "FAIL dump before tapping '$1'"; return 1; }
+  local xy
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$1") || { say "FAIL no element '$1'"; return 1; }
+  adb shell input tap $xy
+  say "tapped '$1' at $xy"
+  sleep 2
+}
+
+# attr <id> <attribute>: read an attribute of an element from a fresh dump
+attr() {
+  dump && python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" "$1" "$2"
+}
+
+# ---- The version line at the end of the Now tab: it shows the version, and a tap asks GitHub at once ----
+# A pretend version decides what the real GitHub answer means: 99.0.0 is ahead of every release (up to date),
+# 0.0.1 is behind (a newer version), and with the network off there is no answer.
+scroll_down() {
+  adb shell input swipe 540 1700 540 500 250
+  sleep 1
+}
+
+version_line_steps() {
+  say "--- version line ---"
+  local xy rec
+  # Up to date. The tap is filmed, as "Checking…" is up for under a second.
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 99.0.0
+  sleep 20
+  scroll_down
+  say "version line at rest: '$(attr updateLineText text)' / '$(attr updateLineAction text)'"
+  adb exec-out screencap -p > "$OUT/73-version-line-rest.png"
+  # Find the line first, as a dump takes seconds, then tap and look at once.
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" updateLine)
+  adb shell screenrecord --bit-rate 3000000 --time-limit 8 /sdcard/line.mp4 &
+  rec=$!
+  sleep 1
+  adb shell input tap $xy
+  adb exec-out screencap -p > "$OUT/74-version-line-checking.png"
+  sleep 3
+  adb exec-out screencap -p > "$OUT/75-version-line-up-to-date.png"
+  wait $rec
+  adb pull /sdcard/line.mp4 "$OUT/version-line.mp4" > /dev/null 2>&1 || say "no screen recording"
+  say "version line after the tap: '$(attr updateLineText text)' / action '$(attr updateLineAction text)'"
+
+  # A newer version: an old copy. The banner shows at once, and the line says so.
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 0.0.1
+  sleep 20
+  scroll_down
+  say "version line (old copy) at rest: '$(attr updateLineText text)' / banner '$(attr updateTitle text)'"
+  tap updateLine
+  sleep 2
+  say "version line (old copy) after the tap: '$(attr updateLineText text)' / banner '$(attr updateTitle text)' / '$(attr updateSub text)'"
+  adb exec-out screencap -p > "$OUT/76-version-line-newer.png"
+
+  # No answer: the network off.
+  adb shell svc wifi disable
+  adb shell svc data disable
+  sleep 5
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 99.0.0
+  sleep 15
+  scroll_down
+  tap updateLine
+  # With no network the failure can take a while to come: wait for "Checking…" to end, up to 40 s.
+  for _ in $(seq 1 20); do
+    sleep 2
+    [ "$(attr updateLineText text)" != "Checking for updates…" ] && break
+  done
+  say "version line offline: '$(attr updateLineText text)' / '$(attr updateLineAction text)'"
+  adb exec-out screencap -p > "$OUT/77-version-line-offline.png"
+  adb shell svc wifi enable
+  adb shell svc data enable
+  sleep 8
+}
+
+# Only the version line: a few minutes instead of the whole test.
+if [ "${SMOKE_ONLY:-}" = update-line ]; then
+  set +e
+  sleep 10
+  clear_anr
+  version_line_steps
+  echo "Only the version line was asked for. Screenshots in $OUT/"
+  exit 0
+fi
+
 # ---- Widget fit: the widgets drawn at exact sizes inside the app ----
 # A phone's home screen can give a two-row widget 140 dp or less, while the emulator's gives about 220.
 # So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
@@ -139,37 +243,9 @@ shot 8-haze-dark 20 --es tab haze
 adb shell cmd uimode night no
 
 # ---- Interaction: real taps, found by their visible text. A failure here is reported, not fatal. ----
+# (The helpers it uses, say, dump, tap and attr, are defined near the top.)
 set +e
-LOG="$OUT/interaction.txt"
 : > "$LOG"
-say() { echo "$*" | tee -a "$LOG"; }
-
-dump() {
-  for _ in 1 2 3; do
-    if adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui.xml" > /dev/null 2>&1; then
-      # A not-responding dialog hides the screen behind it: clear it and look again.
-      dismiss_anr "$OUT/ui.xml" >> "$LOG" || return 0
-    else
-      sleep 1
-    fi
-  done
-  return 1
-}
-
-# tap <text>: tap the first element whose text, description or id matches
-tap() {
-  dump || { say "FAIL dump before tapping '$1'"; return 1; }
-  local xy
-  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$1") || { say "FAIL no element '$1'"; return 1; }
-  adb shell input tap $xy
-  say "tapped '$1' at $xy"
-  sleep 2
-}
-
-# attr <id> <attribute>: read an attribute of an element from a fresh dump
-attr() {
-  dump && python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" "$1" "$2"
-}
 
 adb shell am force-stop "$PKG"
 adb shell am start -W -n "$PKG/.MainActivity"
@@ -620,6 +696,8 @@ adb shell am force-stop "$PKG"
 adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 0.0.1
 sleep 20
 say "update banner after reopening: '$(attr updateTitle text)'"
+
+version_line_steps
 
 # ---- Offline: with no network the app should fall back to what it saved ----
 adb shell svc wifi disable

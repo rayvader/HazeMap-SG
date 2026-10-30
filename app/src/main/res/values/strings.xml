@@ -122,6 +122,12 @@
     <string name="update_failed">Update failed</string>
     <string name="update_retry">Try again</string>
     <string name="update_done">Updated to version %1$s</string>
+    <string name="update_line_version">Version %1$s ·</string>
+    <string name="update_line_check">Check for updates</string>
+    <string name="update_line_checking">Checking for updates…</string>
+    <string name="update_line_current">You\'re up to date · Version %1$s</string>
+    <string name="update_line_newer">New version %1$s · see the banner above</string>
+    <string name="update_line_failed">Couldn\'t check ·</string>
     <string name="update_problem_download">The download did not finish.</string>
     <string name="update_problem_damaged">The downloaded file is damaged.</string>
     <string name="update_problem_other_app">The file is not this app.</string>
