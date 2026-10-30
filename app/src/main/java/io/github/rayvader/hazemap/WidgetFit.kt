@@ -32,10 +32,12 @@ object WidgetFits {
     private const val FIXED_DP = 8
 
     /**
-     * How wide the clock is for each sp of its size, in dp: Roboto Bold's widest "HH:mm" (every time is
-     * as wide as 00:00, as its digits are all the same width). It was 2.43 in Light.
+     * How wide the clock is for each sp of its size, in dp, with room for a phone's own font. Roboto Bold's
+     * "HH:mm" is 2.58 (every time is as wide as 00:00, as its digits are all the same width; it was 2.43 in
+     * Light), and the emulator draws it at 2.53 to 2.58. Some makers' fonts have wider digits, and a clock
+     * that does not fit breaks into two lines, so this counts 6% more.
      */
-    private const val CLOCK_DP_PER_SP = 2.58f
+    private const val CLOCK_DP_PER_SP = 2.75f
 
     /**
      * The width a widget has when the home screen has not said: the four-column Wide and the two-column
