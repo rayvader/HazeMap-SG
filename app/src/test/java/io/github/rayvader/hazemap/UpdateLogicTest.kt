@@ -132,6 +132,47 @@ class UpdateLogicTest {
         assertTrue(UpdateLogic.shouldShow("1.0.31", v33, "1.0.32"))
     }
 
+    // ---- The version line at the end of the Now tab ----
+
+    private fun newest(version: String) =
+        UpdateInfo(version, "https://github.com/rayvader/HazeMap-SG/releases/download/v$version/HazeMapSG-$version.apk")
+
+    @Test
+    fun theLineSaysUpToDateWhenGitHubAnsweredAndThisCopyIsTheNewestOrNewer() {
+        assertEquals(VersionLine.UpToDate("1.0.106"), UpdateLogic.afterCheck("1.0.106", CheckResult.Reached(newest("1.0.106"))))
+        // A test build from a branch is newer than the newest release, and is up to date too.
+        assertEquals(VersionLine.UpToDate("1.0.110"), UpdateLogic.afterCheck("1.0.110", CheckResult.Reached(newest("1.0.106"))))
+    }
+
+    @Test
+    fun theLineSaysNewerWhenAReleaseIsAhead() {
+        assertEquals(VersionLine.Newer("1.0.107"), UpdateLogic.afterCheck("1.0.106", CheckResult.Reached(newest("1.0.107"))))
+        // Numbers, not text: 100 is ahead of 99.
+        assertEquals(VersionLine.Newer("1.0.100"), UpdateLogic.afterCheck("1.0.99", CheckResult.Reached(newest("1.0.100"))))
+    }
+
+    @Test
+    fun noAnswerIsNeverTurnedIntoUpToDate() {
+        assertEquals(VersionLine.Failed, UpdateLogic.afterCheck("1.0.106", CheckResult.Unreachable))
+        // GitHub answered, but with no release the app can use.
+        assertEquals(VersionLine.Failed, UpdateLogic.afterCheck("1.0.106", CheckResult.Reached(null)))
+        // This copy's own version cannot be read, so nothing can be compared.
+        assertEquals(VersionLine.Failed, UpdateLogic.afterCheck(null, CheckResult.Reached(newest("1.0.107"))))
+        assertEquals(VersionLine.Failed, UpdateLogic.afterCheck("dev", CheckResult.Reached(newest("1.0.107"))))
+    }
+
+    @Test
+    fun aNewerAnswerShowsTheBannerAgainOnceTheClosedVersionIsForgotten() {
+        // The check forgets the version the person closed, since they asked.
+        assertFalse(UpdateLogic.shouldShow("1.0.106", newest("1.0.107"), "1.0.107"))
+        assertTrue(UpdateLogic.shouldShow("1.0.106", newest("1.0.107"), null))
+    }
+
+    @Test
+    fun checkingStaysUpLongEnoughToSee() {
+        assertTrue(UpdateLogic.MIN_CHECKING_MS in 500L..1500L)
+    }
+
     // ---- Self-update ----
 
     private val pkg = "io.github.rayvader.hazemap"

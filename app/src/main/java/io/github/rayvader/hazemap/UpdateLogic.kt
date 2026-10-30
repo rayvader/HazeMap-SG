@@ -29,6 +29,33 @@ enum class UpdateProblem(val retry: Boolean) {
     INSTALL(true)
 }
 
+/** What GitHub gave back when the app asked for the newest release. */
+sealed interface CheckResult {
+    /** GitHub answered. [latest] is the newest full release, or null when there is none the app can use. */
+    data class Reached(val latest: UpdateInfo?) : CheckResult
+
+    /** The network failed, or GitHub refused (a rate limit, say). */
+    object Unreachable : CheckResult
+}
+
+/** What the line at the end of the Now tab says. */
+sealed interface VersionLine {
+    /** Waiting for a tap. [installed] is the version running, or null if the phone would not say. */
+    data class Resting(val installed: String?) : VersionLine
+
+    /** Asking GitHub now. */
+    object Checking : VersionLine
+
+    /** The newest release is no newer than this copy. */
+    data class UpToDate(val installed: String) : VersionLine
+
+    /** A newer release is out: [version]. Its banner is on screen. */
+    data class Newer(val version: String) : VersionLine
+
+    /** No answer: the check says nothing about whether the app is current. */
+    object Failed : VersionLine
+}
+
 /** Version numbers such as "1.0.31" (or a release tag "v1.0.31"), compared number by number. */
 object Versions {
     fun parse(text: String?): List<Int>? {
@@ -92,6 +119,20 @@ object UpdateLogic {
     /** Show the banner for a newer version the user has not closed. */
     fun shouldShow(installed: String?, latest: UpdateInfo?, dismissedVersion: String?): Boolean =
         latest != null && Versions.isNewer(latest.version, installed) && latest.version != dismissedVersion
+
+    /** "Checking…" stays up at least this long, as an answer in a blink looks like nothing happened. */
+    const val MIN_CHECKING_MS = 700L
+
+    /**
+     * What the line says once a check is over. "Up to date" is said only when GitHub answered and this copy
+     * is the newest release or newer (a test build from a branch is); no answer, or a version number that
+     * cannot be read on either side, is [VersionLine.Failed], never a guess.
+     */
+    fun afterCheck(installed: String?, result: CheckResult): VersionLine {
+        val latest = (result as? CheckResult.Reached)?.latest ?: return VersionLine.Failed
+        val own = installed?.takeIf { Versions.parse(it) != null } ?: return VersionLine.Failed
+        return if (Versions.isNewer(latest.version, own)) VersionLine.Newer(latest.version) else VersionLine.UpToDate(own)
+    }
 
     /**
      * Checks a downloaded APK against the app on the phone: same app, newer, same signing key.

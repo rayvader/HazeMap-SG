@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +28,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.rayvader.hazemap.databinding.ActivityMainBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
 import io.github.rayvader.hazemap.databinding.ScreenRainBinding
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private var haze: HazeScreen? = null
     private var activeLocationListener: LocationListener? = null
     private lateinit var updates: UpdateChecker
+    private var versionLine: VersionLine = VersionLine.Resting(null)
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -85,6 +88,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnPlaces.setOnClickListener { PlacesSheet(this) { area }.show() }
         showThemeButton()
         setupUpdateBanner()
+        setupVersionLine()
 
         // After a recreation (dark mode switch, low memory) reopen the tab the user was on.
         val restored = savedInstanceState?.getInt(KEY_TAB, NO_TAB) ?: NO_TAB
@@ -166,6 +170,50 @@ class MainActivity : AppCompatActivity() {
         // The smoke test's pretend version also skips the six-hour wait, so the real request is tested.
         val force = intent.hasExtra(EXTRA_INSTALLED_VERSION)
         lifecycleScope.launch { offerUpdate(updates.refreshIfDue(force)) }
+    }
+
+    /** The line at the end of the Now tab: the version this copy is, and a tap to ask GitHub for a newer one at once. */
+    private fun setupVersionLine() {
+        binding.nowScreen.updateLine.setOnClickListener { checkForUpdates() }
+        showVersionLine(VersionLine.Resting(installedVersion()))
+    }
+
+    private fun checkForUpdates() {
+        if (versionLine is VersionLine.Checking) return
+        showVersionLine(VersionLine.Checking)
+        lifecycleScope.launch {
+            val started = SystemClock.elapsedRealtime()
+            val result = updates.checkNow()
+            // An answer in a blink looks like nothing happened.
+            delay((UpdateLogic.MIN_CHECKING_MS - (SystemClock.elapsedRealtime() - started)).coerceAtLeast(0L))
+            showVersionLine(UpdateLogic.afterCheck(installedVersion(), result))
+            // The same banner, download and install as at the start of the app, now for what GitHub just said.
+            if (result is CheckResult.Reached) offerUpdate(result.latest)
+        }
+    }
+
+    private fun showVersionLine(line: VersionLine) {
+        versionLine = line
+        val text = when (line) {
+            is VersionLine.Resting -> line.installed?.let { getString(R.string.update_line_version, it) }
+            VersionLine.Checking -> getString(R.string.update_line_checking)
+            is VersionLine.UpToDate -> getString(R.string.update_line_current, line.installed)
+            is VersionLine.Newer -> getString(R.string.update_line_newer, line.version)
+            VersionLine.Failed -> getString(R.string.update_line_failed)
+        }
+        val action = when (line) {
+            is VersionLine.Resting -> R.string.update_line_check
+            VersionLine.Failed -> R.string.update_retry
+            else -> null
+        }
+        val views = binding.nowScreen
+        views.updateLineText.text = text
+        views.updateLineText.visibility = if (text == null) View.GONE else View.VISIBLE
+        views.updateLineAction.visibility = if (action == null) View.GONE else View.VISIBLE
+        if (action != null) views.updateLineAction.setText(action)
+        views.updateLineIcon.visibility = if (line is VersionLine.UpToDate) View.VISIBLE else View.GONE
+        // One check at a time; the line answers a tap again once it has an answer.
+        views.updateLine.isClickable = line !is VersionLine.Checking
     }
 
     private fun offerUpdate(latest: UpdateInfo?) {
