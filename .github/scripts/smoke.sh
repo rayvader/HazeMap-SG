@@ -109,6 +109,19 @@ scroll_to_line() {
 version_line_steps() {
   say "--- version line ---"
   local xy rec
+  # The real version, as a person sees it: the top of the Now tab, the end of the page, and the answer to a tap.
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+  sleep 20
+  adb exec-out screencap -p > "$OUT/78-now-top.png"
+  scroll_to_line
+  adb exec-out screencap -p > "$OUT/79-now-end.png"
+  say "version line (real version) at rest: '$(attr updateLineText text)' / '$(attr updateLineAction text)'"
+  tap updateLine
+  sleep 3
+  adb exec-out screencap -p > "$OUT/79b-now-end-answer.png"
+  say "version line (real version) after the tap: '$(attr updateLineText text)'"
+
   # Up to date. The tap is filmed, as "Checking…" is up for under a second.
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 99.0.0
