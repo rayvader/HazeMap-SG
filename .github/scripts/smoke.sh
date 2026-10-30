@@ -90,9 +90,20 @@ attr() {
 # ---- The version line at the end of the Now tab: it shows the version, and a tap asks GitHub at once ----
 # A pretend version decides what the real GitHub answer means: 99.0.0 is ahead of every release (up to date),
 # 0.0.1 is behind (a newer version), and with the network off there is no answer.
-scroll_down() {
-  adb shell input swipe 540 1700 540 500 250
-  sleep 1
+# scroll_to_line: swipe up until the version line is on screen. The page can still be filling in at the
+# first try, and then it is too short to scroll, so try again a few times.
+scroll_to_line() {
+  local i
+  for i in 1 2 3 4 5; do
+    adb shell input swipe 540 1700 540 500 250
+    sleep 1
+    if dump && python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" updateLine > /dev/null 2>&1; then
+      return 0
+    fi
+    sleep 4
+  done
+  say "FAIL the version line did not come on screen"
+  return 1
 }
 
 version_line_steps() {
@@ -102,7 +113,7 @@ version_line_steps() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 99.0.0
   sleep 20
-  scroll_down
+  scroll_to_line
   say "version line at rest: '$(attr updateLineText text)' / '$(attr updateLineAction text)'"
   adb exec-out screencap -p > "$OUT/73-version-line-rest.png"
   # Find the line first, as a dump takes seconds, then tap and look at once.
@@ -122,7 +133,7 @@ version_line_steps() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 0.0.1
   sleep 20
-  scroll_down
+  scroll_to_line
   say "version line (old copy) at rest: '$(attr updateLineText text)' / banner '$(attr updateTitle text)'"
   tap updateLine
   sleep 2
@@ -136,7 +147,7 @@ version_line_steps() {
   adb shell am force-stop "$PKG"
   adb shell am start -W -n "$PKG/.MainActivity" --es tab now --es installed_version 99.0.0
   sleep 15
-  scroll_down
+  scroll_to_line
   tap updateLine
   # With no network the failure can take a while to come: wait for "Checking…" to end, up to 40 s.
   for _ in $(seq 1 20); do
