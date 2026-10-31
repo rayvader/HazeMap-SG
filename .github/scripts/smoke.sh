@@ -293,6 +293,40 @@ sleep 3
 say "area after picking Bedok: $(attr areaName text)"
 adb exec-out screencap -p > "$OUT/10-now-bedok.png"
 
+# ---- Follow my location: the phone is put in Tampines; the switch moves the app there, picking Bedok turns it off ----
+# Both location permissions are granted first, so no Android prompt hides the app. A test "network" provider
+# gives the reading (and geo fix the GPS one), as the emulator has no real cell or Wi-Fi location.
+adb shell pm grant "$PKG" android.permission.ACCESS_COARSE_LOCATION
+adb shell pm grant "$PKG" android.permission.ACCESS_BACKGROUND_LOCATION
+adb shell appops set com.android.shell android:mock_location allow > /dev/null 2>&1
+adb shell cmd location set-location-enabled true > /dev/null 2>&1
+adb shell cmd location providers add-test-provider network > /dev/null 2>&1
+adb shell cmd location providers set-test-provider-enabled network true > /dev/null 2>&1
+adb shell cmd location providers set-test-provider-location network --location 1.345,103.944 \
+  && say "follow: test network location set" || say "follow: no test network provider"
+adb emu geo fix 103.944 1.345 > /dev/null 2>&1 || true
+sleep 3
+tap areaName
+sleep 1
+say "follow switch before: checked='$(attr followSwitch checked)'"
+tap followSwitch
+sleep 8
+say "follow on: area '$(attr areaName text)'"
+adb exec-out screencap -p > "$OUT/10b-follow-now.png"
+tap areaName
+sleep 1
+say "follow switch after: checked='$(attr followSwitch checked)' note='$(attr followNote text)'"
+adb exec-out screencap -p > "$OUT/10c-follow-menu.png"
+tap "Bedok"
+sleep 3
+say "after picking Bedok: area '$(attr areaName text)'"
+tap areaName
+sleep 1
+say "follow switch after picking Bedok: checked='$(attr followSwitch checked)'"
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+adb shell cmd location providers remove-test-provider network > /dev/null 2>&1
+
 tap "Rain"
 sleep 30
 adb exec-out screencap -p > "$OUT/11-rain-by-tap.png"

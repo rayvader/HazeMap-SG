@@ -2,7 +2,7 @@
 
 A Singapore weather app for Android: today's forecast, a rain map you can play back
 over the past two hours, and haze (PSI and PM2.5) with a history chart.
-It uses free public data. No account or API key. Location is optional and asked only when you tap “Use my location”.
+It uses free public data. No account or API key. Location is optional and asked only when you tap “Use my location” or turn on “Follow my location”.
 
 | Now | Rain (playing back) | Haze |
 |---|---|---|
@@ -15,7 +15,13 @@ It uses free public data. No account or API key. Location is optional and asked 
 **Now** — for the area you pick (47 NEA forecast areas, default Ang Mo Kio; tap the name at the top):
 temperature, condition and when that forecast ends, high and low, humidity, wind, UV,
 the next 24 hours by period, a haze summary for your region, and the next four days.
-Tap the area name, then “Use my location”, to choose the nearest forecast area.
+Tap the area name, then “Use my location”, to choose the nearest forecast area once.
+Or turn on **Follow my location** at the top of that menu: the app and the Singapore widgets then use the
+area nearest to the phone, checked each time you open the app and on each widget refresh. Picking an area
+turns it off. The widgets can follow only if you allow location “all the time” (asked once, when you turn
+it on). If you say no, the switch stays on and the widgets show the last area the app saw; the menu then
+says “Widget updates when you open the app”. The area changes only after the phone moves more than 1 km
+into another area. Outside Singapore, or with no reading from the last 6 hours, it keeps the last area.
 
 **Rain** — a map of where it is raining, with a play button and a slider for the past two hours.
 A switch at the top right picks the picture:
@@ -142,6 +148,10 @@ The sky looks the same in light and dark mode.
 - Times are always Singapore time.
 - The area picker sets the forecast region by the nearest NEA region label, which is an approximation
   of NEA's actual region borders.
+- **Your location stays on the phone.** Only the approximate location is read, and no service runs
+  for it. It is turned into an area name on the phone. NEA's data is island-wide, so
+  following you sends no location and makes no extra calls; the last reading used is kept on the phone,
+  rounded to about 100 m.
 
 ## Tech stack
 
@@ -156,7 +166,8 @@ The sky looks the same in light and dark mode.
 - CI: GitHub Actions, with an Android 14 emulator for the smoke test.
 
 Permissions the app declares: internet and network state, coarse location (asked only for
-"Use my location"), calendar read (asked only when you open Calendars for the widget line), and
+"Use my location" and "Follow my location"), background location (asked only when you turn on
+"Follow my location", so the widgets can follow too), calendar read (asked only when you open Calendars for the widget line), and
 installing its own updates.
 
 ## Install

@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.rayvader.hazemap.databinding.ActivityMainBinding
+import io.github.rayvader.hazemap.databinding.DialogAreaTitleBinding
 import io.github.rayvader.hazemap.databinding.ScreenHazeBinding
 import io.github.rayvader.hazemap.databinding.ScreenRainBinding
 import kotlinx.coroutines.delay
@@ -58,6 +59,22 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.location_permission_denied, Toast.LENGTH_SHORT).show()
         }
     }
+
+    /** Turning "Follow my location" on: approximate location first. */
+    private val followPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startFollowing()
+        } else {
+            Toast.makeText(this, R.string.location_permission_denied, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Then "Allow all the time", for the widgets. A no keeps the switch on: widgets then follow the app. */
+    private val backgroundPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { lifecycleScope.launch { WidgetUpdater.update(this@MainActivity) } }
 
     private var area: Area = Areas.default
     private var currentTab = NO_TAB
@@ -320,8 +337,18 @@ class MainActivity : AppCompatActivity() {
     private fun pickArea() {
         val names = Areas.all.map { it.name }.toTypedArray()
         val choices = arrayOf(getString(R.string.use_my_location), *names)
+        // The title holds the "Follow my location" switch and, when widgets cannot follow, one short line.
+        val header = DialogAreaTitleBinding.inflate(layoutInflater)
+        val state = FollowLocation.state(this)
+        header.followSwitch.isChecked = state == FollowState.ALL || state == FollowState.APP_ONLY
+        header.followNote.visibility = if (state == FollowState.APP_ONLY) View.VISIBLE else View.GONE
+        lateinit var picker: DialogInterface
+        header.followSwitch.setOnCheckedChangeListener { _, on ->
+            picker.dismiss()
+            if (on) turnFollowOn() else FollowLocation.setOn(this, false)
+        }
         val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.choose_area)
+            .setCustomTitle(header.root)
             .setSingleChoiceItems(choices, names.indexOf(area.name) + 1) { dialog, which ->
                 if (which == 0) {
                     requestMyLocation(dialog)
@@ -332,6 +359,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+        picker = dialog
         // Keep the new location row visible even when the current area is selected.
         dialog.listView?.setSelection(0)
     }
@@ -347,24 +375,85 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun findMyLocation() {
+    // ---- Follow my location ----
+
+    private fun turnFollowOn() {
+        if (FollowLocation.hasCoarse(this)) {
+            startFollowing()
+        } else {
+            followPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+    }
+
+    private fun startFollowing() {
+        FollowLocation.setOn(this, true)
+        followNow()
+        if (!FollowLocation.hasBackground(this)) askForBackground()
+    }
+
+    /** Asked once, when the switch is turned on. A no is fine: the widgets then follow the app. */
+    private fun askForBackground() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.follow_widgets_title)
+            .setMessage(R.string.follow_widgets_message)
+            .setPositiveButton(R.string.follow_widgets_continue) { _, _ ->
+                backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
+            .setNegativeButton(R.string.follow_widgets_not_now, null)
+            .show()
+    }
+
+    /** On every open while the switch is on: the reading the phone has, and a new one when that is old. */
+    private fun followNow() {
+        val state = FollowLocation.state(this)
+        if (state != FollowState.ALL && state != FollowState.APP_ONLY) return
+        val last = FollowLocation.lastKnown(this)
+        followTo(last)
+        if (FollowLogic.wantsNewReading(last, System.currentTimeMillis())) findMyLocation(follow = true)
+    }
+
+    private fun followTo(fix: Fix?) {
+        val moved = FollowLocation.apply(this, fix) ?: return
+        showArea(moved)
+    }
+
+    // ---- One location reading ----
+
+    /**
+     * Reads where the phone is. [follow] false is "Use my location" in the menu: a fixed area, with a
+     * message when there is no answer. [follow] true is the switch: it says nothing when there is none.
+     */
+    private fun findMyLocation(follow: Boolean = false) {
+        activeLocationListener?.let {
+            // One reading at a time. A tap on "Use my location" wins over a quiet follow reading.
+            if (follow) return
+            stopLocationUpdates(it)
+        }
         val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val providers = manager.getProviders(true).filter {
+        val enabled = manager.getProviders(true).filter {
             it == LocationManager.NETWORK_PROVIDER || it == LocationManager.GPS_PROVIDER
         }
-        val last = providers.mapNotNull { provider ->
-            runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
-        }.maxByOrNull { it.time }
-        if (last != null) {
-            setAreaFromLocation(last)
-            return
+        // Following asks the network (cell and Wi-Fi) only, when the phone has it: no GPS start on every open.
+        val providers = if (follow && LocationManager.NETWORK_PROVIDER in enabled) {
+            listOf(LocationManager.NETWORK_PROVIDER)
+        } else {
+            enabled
+        }
+        if (!follow) {
+            val last = providers.mapNotNull { provider ->
+                runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
+            }.maxByOrNull { it.time }
+            if (last != null) {
+                setAreaFromLocation(last)
+                return
+            }
         }
 
         lateinit var listener: LocationListener
         listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 stopLocationUpdates(listener)
-                setAreaFromLocation(location)
+                if (follow) followTo(FollowLocation.toFix(location)) else setAreaFromLocation(location)
             }
         }
         activeLocationListener = listener
@@ -379,13 +468,14 @@ class MainActivity : AppCompatActivity() {
         }
         if (!requested) {
             stopLocationUpdates(listener)
-            Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
+            if (!follow) Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
             return
         }
         Handler(Looper.getMainLooper()).postDelayed({
             if (activeLocationListener === listener) {
                 stopLocationUpdates(listener)
-                Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
+                // Following keeps the last area the app saw.
+                if (!follow) Toast.makeText(this, R.string.location_unavailable, Toast.LENGTH_SHORT).show()
             }
         }, LOCATION_TIMEOUT_MS)
     }
@@ -401,9 +491,16 @@ class MainActivity : AppCompatActivity() {
         selectArea(Areas.nearest(location.latitude, location.longitude))
     }
 
+    /** A fixed area picked by the person: it turns "Follow my location" off. */
     private fun selectArea(selected: Area) {
+        FollowLocation.setOn(this, false)
+        prefs.edit().putString(KEY_AREA, selected.name).apply()
+        showArea(selected)
+    }
+
+    /** Shows [selected] in the app and on the widgets. It is already saved. */
+    private fun showArea(selected: Area) {
         area = selected
-        prefs.edit().putString(KEY_AREA, area.name).apply()
         showAreaName()
         now.onAreaChanged()
         // Home screen widgets show the chosen area too.
@@ -425,6 +522,8 @@ class MainActivity : AppCompatActivity() {
         haze?.mapResume()
         // onPause marked the rain tab hidden; if it is still the open tab, it is visible again.
         if (currentTab == R.id.nav_rain) rain?.onShown()
+        // The widget preview mode has no area bar.
+        if (::binding.isInitialized) followNow()
     }
 
     override fun onPause() {

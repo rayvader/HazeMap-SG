@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The area menu's title: the title, the "Follow my location" switch, and one short line when only the
+     app (not the widgets) can follow the phone. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/choose_area"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+        android:textColor="?attr/colorOnSurface" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/followSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/follow_location"
+        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+    <TextView
+        android:id="@+id/followNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/follow_widgets_on_open"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+</LinearLayout>
