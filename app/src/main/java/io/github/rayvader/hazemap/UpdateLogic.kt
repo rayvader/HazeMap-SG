@@ -2,8 +2,11 @@ package io.github.rayvader.hazemap
 
 import org.json.JSONObject
 
-/** The newest full release: its version text such as "1.0.32" and where to download the APK. */
-data class UpdateInfo(val version: String, val downloadUrl: String) {
+/**
+ * The newest full release: its version text such as "1.0.32", where to download the APK, and its
+ * "What's new" lines as plain text (empty when the release has none).
+ */
+data class UpdateInfo(val version: String, val downloadUrl: String, val notes: List<String> = emptyList()) {
     /** False when the release has no APK and only its web page can be opened. */
     val isApk: Boolean get() = downloadUrl.endsWith(".apk", ignoreCase = true)
 }
@@ -109,8 +112,58 @@ object UpdateLogic {
                 }
             }
         }
-        return if (url.startsWith(DOWNLOAD_PREFIX)) UpdateInfo(version, url) else null
+        return if (url.startsWith(DOWNLOAD_PREFIX)) UpdateInfo(version, url, whatsNew(root.optString("body"))) else null
     }
+
+    /** The same release (version and download), whatever its What's new lines say. */
+    fun sameRelease(a: UpdateInfo?, b: UpdateInfo?): Boolean =
+        a != null && b != null && a.version == b.version && a.downloadUrl == b.downloadUrl
+
+    /** At most this many lines in the banner; more are summed up in one last line. */
+    const val MAX_NOTES = 8
+
+    /** Longer lines are cut here, so one long title cannot fill the banner. */
+    const val MAX_NOTE_CHARS = 120
+
+    /**
+     * The "What's new" list from a release body written by CI (`.github/scripts/release_notes.py`), as plain
+     * lines: the bullets under the "What's new" heading, up to the next heading, rule or changelog link.
+     * Markdown is taken out (links keep their text) and the "(#12)" PR numbers are dropped. A body without
+     * that heading gives its bullets anywhere; a body with no bullets gives nothing.
+     */
+    fun whatsNew(body: String?): List<String> {
+        if (body.isNullOrBlank()) return emptyList()
+        val lines = body.replace("\r", "").lines()
+        val start = lines.indexOfFirst { HEADING.matches(it.trim()) && it.contains("new", ignoreCase = true) }
+        val section = if (start < 0) lines else lines.drop(start + 1).takeWhile { line ->
+            val t = line.trim()
+            !(HEADING.matches(t) || t == "---" || t.startsWith("**Full changelog", ignoreCase = true))
+        }
+        val items = section.mapNotNull { BULLET.matchEntire(it.trim())?.groupValues?.get(1) }
+            .map { plain(it) }
+            .filter { it.isNotEmpty() }
+            .distinct()
+        if (items.size <= MAX_NOTES) return items
+        return items.take(MAX_NOTES - 1) + "and ${items.size - (MAX_NOTES - 1)} more"
+    }
+
+    /** The banner's What's new text: one "• " line per note, or "" for none. */
+    fun notesText(notes: List<String>): String = notes.joinToString("\n") { "• $it" }
+
+    /** One bullet as plain text. */
+    private fun plain(text: String): String {
+        var t = text
+        t = LINK.replace(t) { it.groupValues[1] }
+        t = PR_NUMBER.replace(t, "")
+        t = t.replace("**", "").replace("__", "").replace("`", "")
+        t = t.replace(Regex("\\s+"), " ").trim()
+        return if (t.length > MAX_NOTE_CHARS) t.take(MAX_NOTE_CHARS - 1).trimEnd() + "…" else t
+    }
+
+    private val HEADING = Regex("^#{1,6}\\s.*")
+    private val BULLET = Regex("^[-*+]\\s+(.*)")
+    private val LINK = Regex("\\[([^\\]]*)]\\([^)]*\\)")
+    private val PR_NUMBER = Regex("\\s*\\(#\\d+\\)")
 
     /** Ask GitHub again only after [CHECK_EVERY_MS]. A clock set back counts as due. */
     fun isDue(lastCheckMs: Long, nowMs: Long): Boolean =

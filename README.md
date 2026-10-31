@@ -45,7 +45,8 @@ days, the humidity and the wind. The star on a page saves or removes it. Use "Ad
 City weather is from [Open-Meteo](https://open-meteo.com/) (free for apps without ads or subscriptions).
 
 **Updates** — the app updates itself. When it opens it asks GitHub (at most every 6 hours) for the newest
-release. If that is newer, a banner at the top says so and the app downloads it: by itself on Wi-Fi, or when
+release. If that is newer, a banner at the top says so, lists what's new in it (scroll it if it is long),
+and the app downloads it: by itself on Wi-Fi, or when
 you tap Update on mobile data. It checks the file is this app, newer, and signed with the same key, then
 installs it when you leave the app, so it never closes in front of you. On Android 12 and newer that needs no
 tap. On older Android, or the first time, Android asks you once (allow "Install unknown apps", then Update).
@@ -221,6 +222,9 @@ Builds run on GitHub Actions (`.github/workflows/android.yml`) on pushes to `mai
 1. **build** runs the unit tests and builds the release APK `HazeMapSG-1.0.N.apk` (N is the run number).
    On a push it publishes it as the GitHub release `v1.0.N`; a pull request keeps it only as the
    `hazemap-apk` artifact. It also builds the same code as version 1.0.1, for the self-update test.
+   Each release's notes start with a **What's new** list from `.github/scripts/release_notes.py`: the
+   titles of the pull requests merged since the last release (commit subjects for a branch pre-release),
+   and a full-changelog compare link. Its tests run first in the same job.
 2. **smoke** (pushes only) installs the APK on an Android 14 emulator (Pixel 5), opens every tab with
    live data, taps through the area picker, the Radar/Gauges switch and Play, switches dark mode and
    rotation while open, and goes offline. It also checks the widgets, the calendar line, the night skies

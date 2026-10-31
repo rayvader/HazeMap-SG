@@ -111,6 +111,18 @@
                 android:layout_height="wrap_content"
                 android:textColor="?attr/colorOnPrimaryContainer"
                 android:textSize="12sp" />
+
+            <!-- The release's What's new list. At most four lines tall; the rest scrolls inside it. -->
+            <TextView
+                android:id="@+id/updateNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:maxLines="4"
+                android:scrollbars="vertical"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

@@ -79,8 +79,9 @@ object Updater {
         }
         val now = current.value
         val retryDownload = now is UpdateState.Failed && now.problem == UpdateProblem.DOWNLOAD
-        // Already working on this release: let it carry on.
-        if (now.info == latest && now !is UpdateState.Available && !retryDownload) return
+        // Already working on this release: let it carry on. Only the version and file count here, so a
+        // fresh answer whose What's new lines differ from the cached one does not restart a download.
+        if (UpdateLogic.sameRelease(now.info, latest) && now !is UpdateState.Available && !retryDownload) return
         val failed = UpdateLogic.failedProblem(prefs(app).getString(Prefs.KEY_UPDATE_FAILED, null), latest.version)
         if (failed != null) {
             // A try that failed is not repeated by itself: the banner offers to try again.

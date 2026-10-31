@@ -15,6 +15,9 @@ object Prefs {
     const val KEY_UPDATE_CHECKED = "update_checked_at"
     const val KEY_UPDATE_VERSION = "update_version"
     const val KEY_UPDATE_URL = "update_url"
+
+    /** The newest release's What's new lines, one per line. */
+    const val KEY_UPDATE_NOTES = "update_notes"
     const val KEY_UPDATE_DISMISSED = "update_dismissed"
     const val KEY_UPDATE_INSTALLING = "update_installing"
     const val KEY_UPDATE_ASKED = "update_asked"
