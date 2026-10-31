@@ -23,7 +23,8 @@ class UpdateChecker(private val context: Context) {
     fun cached(): UpdateInfo? {
         val version = prefs.getString(Prefs.KEY_UPDATE_VERSION, null) ?: return null
         val url = prefs.getString(Prefs.KEY_UPDATE_URL, null) ?: return null
-        return UpdateInfo(version, url)
+        val notes = prefs.getString(Prefs.KEY_UPDATE_NOTES, null)?.lines()?.filter { it.isNotBlank() }.orEmpty()
+        return UpdateInfo(version, url, notes)
     }
 
     fun dismissedVersion(): String? = prefs.getString(Prefs.KEY_UPDATE_DISMISSED, null)
@@ -70,9 +71,11 @@ class UpdateChecker(private val context: Context) {
             if (info != null) {
                 putString(Prefs.KEY_UPDATE_VERSION, info.version)
                 putString(Prefs.KEY_UPDATE_URL, info.downloadUrl)
+                putString(Prefs.KEY_UPDATE_NOTES, info.notes.joinToString("\n"))
             } else {
                 remove(Prefs.KEY_UPDATE_VERSION)
                 remove(Prefs.KEY_UPDATE_URL)
+                remove(Prefs.KEY_UPDATE_NOTES)
             }
         }.apply()
         return info

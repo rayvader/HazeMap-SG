@@ -260,4 +260,77 @@ class UpdateLogicTest {
         assertTrue(UpdateInfo("1.0.41", "https://github.com/rayvader/HazeMap-SG/x.apk").isApk)
         assertFalse(UpdateInfo("1.0.41", "https://github.com/rayvader/HazeMap-SG/releases/tag/v1.0.41").isApk)
     }
+
+    // ---- What's new ----
+
+    /** A body as CI writes it: .github/scripts/release_notes.py, then the "Built from" line. */
+    private val ciBody = """
+        ## What's new
+
+        - A version line at the end of the Now tab, with Check for updates (#23)
+        - The widget clock is **bold**, see [the README](https://github.com/rayvader/HazeMap-SG#readme) (#22)
+        - `fix`: one more
+
+        **Full changelog:** https://github.com/rayvader/HazeMap-SG/compare/v1.0.106...v1.0.120
+
+        ---
+        Built from `main` (`31ad728`). Download the APK on your phone and open it to install.
+    """.trimIndent()
+
+    @Test
+    fun whatsNewIsReadAsPlainLines() {
+        assertEquals(
+            listOf(
+                "A version line at the end of the Now tab, with Check for updates",
+                "The widget clock is bold, see the README",
+                "fix: one more"
+            ),
+            UpdateLogic.whatsNew(ciBody)
+        )
+    }
+
+    @Test
+    fun theReleaseCarriesItsWhatsNew() {
+        val body = org.json.JSONObject.quote(ciBody)
+        val json = release().dropLast(1) + ""","body":$body}"""
+        assertEquals(3, UpdateLogic.parseLatest(json)!!.notes.size)
+    }
+
+    @Test
+    fun anOldBodyWithNoListGivesNoNotes() {
+        assertEquals(emptyList<String>(), UpdateLogic.parseLatest(fixture("github-release-latest.json"))!!.notes)
+        assertEquals(emptyList<String>(), UpdateLogic.whatsNew(null))
+        assertEquals(emptyList<String>(), UpdateLogic.whatsNew("Built from main (abc). Download the APK."))
+        assertEquals(emptyList<String>(), UpdateLogic.parseLatest(release())!!.notes)
+    }
+
+    @Test
+    fun aLongListIsCutWithACount() {
+        val body = "## What's new\n\n" + (1..12).joinToString("\n") { "- change $it (#$it)" }
+        val notes = UpdateLogic.whatsNew(body)
+        assertEquals(UpdateLogic.MAX_NOTES, notes.size)
+        assertEquals("change 7", notes[6])
+        assertEquals("and 5 more", notes.last())
+    }
+
+    @Test
+    fun aLongLineIsCut() {
+        val note = UpdateLogic.whatsNew("- " + "x".repeat(300)).single()
+        assertEquals(UpdateLogic.MAX_NOTE_CHARS, note.length)
+        assertTrue(note.endsWith("…"))
+    }
+
+    @Test
+    fun theBannerTextHasOneBulletPerNote() {
+        assertEquals("• a\n• b", UpdateLogic.notesText(listOf("a", "b")))
+        assertEquals("", UpdateLogic.notesText(emptyList()))
+    }
+
+    @Test
+    fun theSameReleaseIgnoresItsNotes() {
+        val a = UpdateInfo("1.0.41", "https://github.com/rayvader/HazeMap-SG/x.apk")
+        assertTrue(UpdateLogic.sameRelease(a, a.copy(notes = listOf("new"))))
+        assertFalse(UpdateLogic.sameRelease(a, a.copy(version = "1.0.42")))
+        assertFalse(UpdateLogic.sameRelease(null, a))
+    }
 }

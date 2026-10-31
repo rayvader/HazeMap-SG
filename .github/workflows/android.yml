@@ -37,6 +37,11 @@ jobs:
       HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEYSTORE_B64 != '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history and tags, for the release's What's new list
+
+      - name: Release notes tests
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 
       - uses: gradle/actions/wrapper-validation@v4
 
@@ -111,10 +116,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PRERELEASE: ${{ github.ref_name != 'main' && '--prerelease' || '' }}
         run: |
-          gh release create "v${{ steps.apk.outputs.version }}" "${{ steps.apk.outputs.file }}" \
+          TAG="v${{ steps.apk.outputs.version }}"
+          # The What's new list is a nicety: a failure there must not stop the release.
+          python3 .github/scripts/release_notes.py "$TAG" --sha "${{ github.sha }}" $PRERELEASE > notes.md \
+            || printf "## What's new\n\n- Changelog unavailable for this build.\n" > notes.md
+          printf '\n---\nBuilt from `%s` (`%s`). Download the APK on your phone and open it to install.\n' \
+            "${{ github.ref_name }}" "${{ github.sha }}" >> notes.md
+          cat notes.md
+          gh release create "$TAG" "${{ steps.apk.outputs.file }}" \
             --target "${{ github.sha }}" \
             --title "Haze Map SG ${{ steps.apk.outputs.version }}" \
-            --notes "Built from ${{ github.ref_name }} (${{ github.sha }}). Download the APK on your phone and open it to install." \
+            --notes-file notes.md \
             $PRERELEASE
 
   smoke:

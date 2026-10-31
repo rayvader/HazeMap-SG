@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.text.method.ScrollingMovementMethod
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -158,6 +159,8 @@ class MainActivity : AppCompatActivity() {
         Updater.justUpdatedTo(this, updates.installedVersion())?.let {
             Toast.makeText(this, getString(R.string.update_done, it), Toast.LENGTH_LONG).show()
         }
+        // A long What's new list scrolls inside its four lines.
+        binding.updateNotes.movementMethod = ScrollingMovementMethod()
         binding.updateDownload.setOnClickListener { onUpdateButton() }
         binding.updateClose.setOnClickListener {
             Updater.state.value.info?.let { updates.dismiss(it.version) }
@@ -255,6 +258,12 @@ class MainActivity : AppCompatActivity() {
         }
         binding.updateTitle.setText(title)
         binding.updateSub.text = sub
+        val notes = UpdateLogic.notesText(info.notes)
+        if (binding.updateNotes.text.toString() != notes) {
+            binding.updateNotes.text = notes
+            binding.updateNotes.scrollTo(0, 0)
+        }
+        binding.updateNotes.visibility = if (notes.isEmpty()) View.GONE else View.VISIBLE
         binding.updateDownload.visibility = if (button == null) View.GONE else View.VISIBLE
         if (button != null) binding.updateDownload.setText(button)
     }
