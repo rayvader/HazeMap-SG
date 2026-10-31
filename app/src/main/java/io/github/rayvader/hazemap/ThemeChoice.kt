@@ -10,6 +10,12 @@ object Prefs {
     const val KEY_AREA = "area"
     const val KEY_PLACES = "places"
 
+    /** "Follow my location" is on. */
+    const val KEY_FOLLOW = "follow_location"
+
+    /** The last location reading the follow used, rounded to about 100 m (see [FollowLogic.encode]). */
+    const val KEY_FOLLOW_FIX = "follow_fix"
+
     /** The ids of the calendars ticked for the widget line. Missing until the person ticks one. */
     const val KEY_CALENDARS = "calendars"
     const val KEY_UPDATE_CHECKED = "update_checked_at"

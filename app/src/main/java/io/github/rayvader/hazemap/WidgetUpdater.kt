@@ -160,6 +160,8 @@ object WidgetUpdater {
         // Only what some widget shows is loaded: no NEA request for city widgets, no city request for Singapore ones.
         val wantSingapore = targets.values.any { it is WidgetTarget.Singapore }
         val places = targets.values.filterIsInstance<WidgetTarget.City>().map { it.place }.distinctBy { it.id }
+        // "Follow my location": move to where the phone already knows it is. No new request, no GPS start.
+        if (fetch && wantSingapore) FollowLocation.forWidgets(app)
         val area = savedArea(app)
         val now = System.currentTimeMillis()
 
