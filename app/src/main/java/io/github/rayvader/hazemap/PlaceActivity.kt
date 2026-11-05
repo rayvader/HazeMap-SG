@@ -89,7 +89,7 @@ class PlaceActivity : AppCompatActivity() {
 
     private fun render() {
         val w = weather?.value
-        val zone = w?.timezone ?: place.timezone
+        val zone = w?.timezone?.takeIf { it.isNotBlank() } ?: place.timezone
         val today = w?.days?.firstOrNull()
 
         b.placeTemp.text = w?.tempC?.let { "${it.roundToInt()}°" } ?: getString(R.string.no_temp)
@@ -168,7 +168,7 @@ class PlaceActivity : AppCompatActivity() {
                 countryCode = i.getStringExtra(CODE).orEmpty(),
                 lat = i.getDoubleExtra(LAT, 0.0),
                 lon = i.getDoubleExtra(LON, 0.0),
-                timezone = i.getStringExtra(ZONE).orEmpty().ifBlank { "UTC" }
+                timezone = i.getStringExtra(ZONE).orEmpty()
             )
         }
     }

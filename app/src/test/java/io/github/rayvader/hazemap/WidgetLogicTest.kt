@@ -251,6 +251,28 @@ class WidgetLogicTest {
     }
 
     @Test
+    fun cityWithNoZoneAnywhereTicksInThePhonesZoneNotUtc() {
+        // An empty answer zone does not hide the saved one.
+        assertEquals("Asia/Tokyo", WidgetLogic.buildCity(tokyo, weather(zone = ""), 1L).zoneId)
+        // Neither said: the phone's own zone, never a made-up UTC.
+        val none = WidgetLogic.buildCity(tokyo.copy(timezone = ""), weather(zone = ""), 1L)
+        assertEquals(ZoneId.systemDefault().id, none.zoneId)
+        assertEquals(ZoneId.systemDefault().id, WidgetLogic.buildCity(tokyo.copy(timezone = ""), null, null).zoneId)
+    }
+
+    @Test
+    fun widgetClockReadsThePlacesOwnTime() {
+        // 09:22 UTC on 31 Oct 2026: 18:22 in Tokyo, 17:22 in Singapore, whatever the phone's zone is.
+        val t = java.time.Instant.parse("2026-10-31T09:22:00Z").toEpochMilli()
+        val city = WidgetLogic.buildCity(tokyo, weather(zone = "Asia/Tokyo"), t)
+        assertEquals("18:22", TimeFmt.clockIn(t, city.zoneId))
+        assertEquals("17:22", TimeFmt.clockIn(t, WidgetLogic.build(bedok, null, null, null).zoneId))
+        // Just before midnight in Singapore it is already the next day in Tokyo, and the date follows the zone.
+        val late = java.time.Instant.parse("2026-10-31T15:30:00Z")
+        assertEquals(java.time.LocalDate.of(2026, 11, 1), late.atZone(ZoneId.of(city.zoneId)).toLocalDate())
+    }
+
+    @Test
     fun cityBuiltFromARealOpenMeteoAnswer() {
         val body = """{"timezone":"Asia/Tokyo","current":{"temperature_2m":21.6,"relative_humidity_2m":55,
             "wind_speed_10m":7.2,"wind_direction_10m":200,"weather_code":3,"is_day":0}}"""

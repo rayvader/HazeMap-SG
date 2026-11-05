@@ -22,12 +22,16 @@ object TimeFmt {
     /** "10:45", "18:00" */
     fun clock(millis: Long): String = clockFmt.format(Instant.ofEpochMilli(millis).atZone(SGT))
 
-    /** The zone for an IANA id. An unknown id falls back to the phone's zone. */
-    fun zoneOrDefault(zoneId: String): ZoneId =
-        try {
-            ZoneId.of(zoneId)
-        } catch (e: Exception) {
+    /** The zone for an IANA id. An empty or unknown id falls back to the phone's zone. */
+    fun zoneOrDefault(zoneId: String?): ZoneId =
+        if (zoneId.isNullOrBlank()) {
             ZoneId.systemDefault()
+        } else {
+            try {
+                ZoneId.of(zoneId)
+            } catch (e: Exception) {
+                ZoneId.systemDefault()
+            }
         }
 
     /** The clock at a place, "21:15". An unknown zone id falls back to the phone's zone. */
