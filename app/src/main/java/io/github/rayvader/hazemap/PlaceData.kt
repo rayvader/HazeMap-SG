@@ -14,7 +14,7 @@ data class Place(
     val countryCode: String,
     val lat: Double,
     val lon: Double,
-    /** IANA zone id such as "Asia/Tokyo". */
+    /** IANA zone id such as "Asia/Tokyo". Empty when the lookup did not say; the phone's zone stands in. */
     val timezone: String
 ) {
     /** "Kyoto, Japan"-style line under the name. */
@@ -116,7 +116,7 @@ object PlaceParsers {
                     countryCode = code,
                     lat = r.getDouble("latitude"),
                     lon = r.getDouble("longitude"),
-                    timezone = r.optString("timezone").ifBlank { "UTC" }
+                    timezone = r.optString("timezone")
                 )
             )
         }
@@ -176,7 +176,7 @@ object PlaceParsers {
             windFromDeg = current?.numberOrNull("wind_direction_10m")?.let { Math.round(it).toInt() },
             code = current?.intOrNull("weather_code"),
             isDay = current?.optInt("is_day", 1) != 0,
-            timezone = root.optString("timezone").ifBlank { "UTC" },
+            timezone = root.optString("timezone"),
             days = days
         )
     }
@@ -210,7 +210,7 @@ object PlaceList {
                     countryCode = o.optString("cc"),
                     lat = o.getDouble("lat"),
                     lon = o.getDouble("lon"),
-                    timezone = o.optString("tz").ifBlank { "UTC" }
+                    timezone = o.optString("tz")
                 )
             }
         } catch (e: Exception) {

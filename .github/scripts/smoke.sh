@@ -82,6 +82,43 @@ tap() {
   sleep 2
 }
 
+# wait_seen <text> <seconds>: wait until <text> is on screen, looking every 3 s. For answers from the
+# network, such as the place search, which can take longer than a fixed sleep on a busy runner.
+wait_seen() {
+  local waited=0
+  until dump && python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$1" > /dev/null 2>&1; do
+    [ "$waited" -ge "$2" ] && return 1
+    sleep 3
+    waited=$((waited + 3))
+  done
+}
+
+# tap_when <text> <seconds>: tap <text> once it is on screen
+tap_when() {
+  wait_seen "$1" "$2" || say "'$1' not on screen after $2 s"
+  tap "$1"
+}
+
+# check_clocks <ui dump>: each widget's clock and date must read the time of the place it shows (Tokyo for
+# Tokyo, Singapore for a Singapore area), not the phone's own zone, which on the emulator is UTC.
+check_clocks() {
+  python3 .github/scripts/ui_probe.py widgets "$1" | python3 -c '
+import re, sys, datetime, zoneinfo
+now = datetime.datetime.now(datetime.timezone.utc)
+for line in sys.stdin:
+    f = dict(re.findall(r"(\w+)=\x27([^\x27]*)\x27", line))
+    if "clock" not in f:
+        continue
+    zone = "Asia/Tokyo" if f.get("place", "").startswith("Tokyo") else "Asia/Singapore"
+    ok_clock = {(now + datetime.timedelta(minutes=d)).astimezone(zoneinfo.ZoneInfo(zone)).strftime("%H:%M") for d in (-1, 0, 1)}
+    want_date = now.astimezone(zoneinfo.ZoneInfo(zone)).strftime("%a %-d %b")
+    good = f["clock"] in ok_clock and f.get("date", want_date) == want_date
+    want = sorted(ok_clock)[1]
+    print("clock check ok" if good else "FAIL clock check", "place=" + f.get("place", "?"), "zone=" + zone,
+          "clock=" + f["clock"], "date=" + f.get("date", "-"), "want=" + want, want_date)
+' | tee -a "$LOG"
+}
+
 # attr <id> <attribute>: read an attribute of an element from a fresh dump
 attr() {
   dump && python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" "$1" "$2"
@@ -538,7 +575,7 @@ tap "＋ Add a place"
 sleep 3
 adb shell input text "tokyo"
 adb shell input keyevent KEYCODE_ENTER
-sleep 6
+wait_seen "Tokyo" 30 || true
 adb exec-out screencap -p > "$OUT/51-places-search.png"
 tap "Tokyo"
 sleep 8
@@ -570,8 +607,7 @@ tap "＋ Add a place"
 sleep 3
 adb shell input text "tokyo"
 adb shell input keyevent KEYCODE_ENTER
-sleep 6
-tap "Tokyo"
+tap_when "Tokyo" 30
 sleep 4
 home_again --es widget_scene auto
 widget_id() { adb logcat -d -s HazeWidget:I | grep "shape=$1 " | tail -1 | sed -n 's/.* id=\([0-9]*\) .*/\1/p'; }
@@ -607,6 +643,7 @@ adb exec-out screencap -p > "$OUT/47-widgets-tokyo.png"
 dump && cp "$OUT/ui.xml" "$OUT/ui-widgets.xml"
 say "--- widgets, the Wide and the Strip showing Tokyo ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
+check_clocks "$OUT/ui-widgets.xml"
 say "time now: Tokyo $(TZ=Asia/Tokyo date +%H:%M), Singapore $(TZ=Asia/Singapore date +%H:%M), phone $(adb shell date +%H:%M | tr -d '\r')"
 adb logcat -d -s HazeWidget:I | grep "place=Tokyo" | tail -2 | sed 's/^.* I HazeWidget: /app log: /' | tee -a "$LOG"
 # Tap the Tokyo widget: its description starts with the place and its country ("Tokyo, Japan. 11°. ...").

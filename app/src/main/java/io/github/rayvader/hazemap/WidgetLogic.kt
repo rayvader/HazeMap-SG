@@ -167,6 +167,13 @@ object WidgetLogic {
         )
     }
 
+    /**
+     * The zone a city widget's clock and date tick in: the one Open-Meteo answered for the place, else the one
+     * saved with it from the place lookup, else the phone's own when neither said.
+     */
+    fun zoneOf(place: Place, weather: PlaceWeather?): String =
+        TimeFmt.zoneOrDefault(weather?.timezone?.takeIf { it.isNotBlank() } ?: place.timezone).id
+
     /** A saved city. [weather] is null when nothing has loaded yet; [fetchedAtMillis] is when it was fetched. */
     fun buildCity(place: Place, weather: PlaceWeather?, fetchedAtMillis: Long?): CityModel = CityModel(
         place = place,
@@ -174,7 +181,7 @@ object WidgetLogic {
         code = weather?.code,
         isDay = weather?.isDay ?: true,
         humidity = weather?.humidity,
-        zoneId = TimeFmt.zoneOrDefault(weather?.timezone ?: place.timezone).id,
+        zoneId = zoneOf(place, weather),
         recordedMillis = fetchedAtMillis
     )
 }

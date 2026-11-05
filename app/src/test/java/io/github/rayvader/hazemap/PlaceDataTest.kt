@@ -281,4 +281,13 @@ class PlaceDataTest {
     fun anUnknownZoneDoesNotCrash() {
         assertTrue(TimeFmt.clockIn(1792291500000L, "Nowhere/Land").isNotEmpty())
     }
+
+    @Test
+    fun aPlaceWithNoZoneKeepsItEmptySoThePhonesZoneStandsIn() {
+        val saved = """[{"id":1,"name":"Atoll","region":"","country":"","cc":"","lat":1.0,"lon":2.0}]"""
+        val place = PlaceList.parse(saved).single()
+        assertEquals("", place.timezone)
+        assertEquals(java.time.ZoneId.systemDefault(), TimeFmt.zoneOrDefault(place.timezone))
+        assertEquals(java.time.ZoneId.of("Asia/Tokyo"), TimeFmt.zoneOrDefault("Asia/Tokyo"))
+    }
 }

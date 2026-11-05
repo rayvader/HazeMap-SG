@@ -65,7 +65,9 @@ except what any web request does.
 **Widgets** — three home screen widgets with a sky that matches the weather. Each one shows Singapore
 or one of your saved cities. It has a clock and the date, the temperature, the weather now, the place
 name, and a pill with the PSI (the humidity for a city). The Square and the Strip also show the time of
-the reading beside the pill; the Wide leaves it out, to give its clock the room. Every time, on the
+the reading beside the pill; the Wide leaves it out, to give its clock the room. The clock and the date
+are the local time of the place the widget shows: a Tokyo widget shows Tokyo's time, a Singapore one
+Singapore's, wherever the phone is (the phone's own zone only when a place has none). Every time, on the
 widgets and in the app, is 24-hour (15:00), whatever the phone is set to:
 
 | Widget | Size | Layout |
