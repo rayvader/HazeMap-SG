@@ -523,6 +523,37 @@ say "--- widgets on the home screen, real weather ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | tee -a "$LOG"
 REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep -o -m1 'picture=[a-z_]*' | cut -d= -f2)
 
+# ---- Clock tap: the clock and date open the phone's Clock app; the rest of the widget opens this app ----
+top_activity() { adb shell dumpsys activity activities | grep -m1 -o 'topResumedActivity=.*' | cut -c1-160; }
+say "clock apps for SHOW_ALARMS: $(adb shell cmd package query-activities --brief -a android.intent.action.SHOW_ALARMS | tr -d '\r' | grep '/' | tr '\n' ' ')"
+for part in wClock wDate; do
+  dump
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part") || { say "FAIL clock tap: no $part on the home screen"; continue; }
+  adb shell input tap $xy
+  sleep 4
+  top=$(top_activity)
+  if echo "$top" | grep -q "$PKG"; then
+    say "FAIL clock tap: $part at $xy stayed in Haze Map: $top"
+  else
+    say "clock tap: $part at $xy left Haze Map: $top"
+  fi
+  [ "$part" = wClock ] && adb exec-out screencap -p > "$OUT/43b-widget-clock-tap.png"
+  adb shell input keyevent KEYCODE_HOME
+  sleep 3
+done
+dump
+xy=""
+xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" wPlace) || say "FAIL body tap: no wPlace on the home screen"
+if [ -n "${xy:-}" ]; then
+  adb shell input tap $xy
+  sleep 5
+  top=$(top_activity)
+  if echo "$top" | grep -q "$PKG"; then say "body tap: wPlace at $xy opened Haze Map"; else say "FAIL body tap: wPlace at $xy opened $top"; fi
+  adb exec-out screencap -p > "$OUT/43c-widget-body-tap.png"
+fi
+adb shell input keyevent KEYCODE_HOME
+sleep 3
+
 # Every sky in turn: its picture should move just after the home screen shows, and rest 10 s later.
 for scene in sun partly cloud rain storm haze wind night partly_night cloud_night rain_night storm_night haze_night wind_night; do
   home_again --es widget_scene "$scene"

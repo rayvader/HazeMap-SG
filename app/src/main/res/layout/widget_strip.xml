@@ -10,9 +10,14 @@
     android:paddingStart="14dp"
     android:paddingEnd="12dp">
 
+    <!-- The clock and the date: a tap here opens the phone's Clock app. At least 48 dp tall to tap;
+         its content stays centred, so the taller box moves nothing. -->
     <LinearLayout
+        android:id="@+id/wClockTap"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
         android:orientation="vertical">
 
         <TextClock

@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.util.Log
 import android.util.TypedValue
@@ -115,6 +116,9 @@ object WidgetUpdater {
 
     /** Keeps the event line's tap targets apart from each widget's own. */
     private const val EVENT_REQUEST_BASE = 1_000_000
+
+    /** Keeps the clock's tap targets apart from the rest. */
+    private const val CLOCK_REQUEST_BASE = 2_000_000
 
     private class Docs(
         val forecast: Forecast2h?,
@@ -404,6 +408,8 @@ object WidgetUpdater {
 
         v.setContentDescription(R.id.wRoot, summaryOf(context, model, clock))
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
+        // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
+        v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
         // The strip has no event line in its layout: setting one there would stop it drawing.
         if (shape.hasEventLine) showEvent(context, v, event.takeIf { fit?.showEvent != false }, widgetId)
         return v
@@ -420,7 +426,9 @@ object WidgetUpdater {
         val start = px(if (shape == WidgetShape.WIDE) 16 else 14)
         val end = px(if (shape == WidgetShape.WIDE) 14 else 12)
         val rtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
-        v.setViewPadding(R.id.wTopBlock, if (rtl) 0 else start, px(fit.padTopDp), if (rtl) start else 0, 0)
+        v.setViewPadding(R.id.wTopBlock, if (rtl) 0 else start, 0, if (rtl) start else 0, 0)
+        // The top space sits inside the clock's tap area, so a short widget's clock is still easy to tap.
+        v.setViewPadding(R.id.wClockTap, 0, px(fit.padTopDp), 0, 0)
         v.setViewPadding(
             R.id.wBottomBlock,
             if (rtl) end else start,
@@ -458,6 +466,28 @@ object WidgetUpdater {
     }
 
     /** Tapping a widget opens its place: the main screen for Singapore, the city's page for a city. */
+    /**
+     * The phone's Clock app: its alarms screen, else Samsung's or Google's Clock by name, else this app
+     * (see [ClockApps.choose]). Each widget has its own request code, so taps on two widgets never clash.
+     */
+    private fun clockIntent(context: Context, model: WidgetModel, widgetId: Int): PendingIntent {
+        val pm = context.packageManager
+        val alarms = Intent(AlarmClock.ACTION_SHOW_ALARMS)
+        val launch = ClockApps.PACKAGES.mapNotNull { pkg -> pm.getLaunchIntentForPackage(pkg)?.let { pkg to it } }.toMap()
+        val intent = when (val choice = ClockApps.choose(alarms.resolveActivity(pm) != null, launch.keys)) {
+            ClockChoice.Alarms -> alarms
+            is ClockChoice.Package -> launch.getValue(choice.name)
+            ClockChoice.App -> return openIntent(context, model, widgetId)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(
+            context,
+            CLOCK_REQUEST_BASE + widgetId,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
+
     private fun openIntent(context: Context, model: WidgetModel, widgetId: Int): PendingIntent {
         val intent = when (model) {
             is SingaporeModel -> Intent(context, MainActivity::class.java)

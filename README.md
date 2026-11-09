@@ -131,6 +131,8 @@ Long-press the home screen, pick Widgets, then Haze Map SG. The weather refreshe
 (the fastest Android allows), even when the app is closed, and when you change area in the app. A city
 widget asks Open-Meteo for its city only, and a Singapore widget asks NEA only.
 The sky looks the same in light and dark mode.
+Tap the clock or the date to open the phone's Clock app (its alarms, or Samsung's or Google's Clock).
+Tap anywhere else to open Haze Map. With no Clock app, the clock opens Haze Map too.
 
 ## Data, and what to expect
 
@@ -169,8 +171,9 @@ The sky looks the same in light and dark mode.
 
 Permissions the app declares: internet and network state, coarse location (asked only for
 "Use my location" and "Follow my location"), background location (asked only when you turn on
-"Follow my location", so the widgets can follow too), calendar read (asked only when you open Calendars for the widget line), and
-installing its own updates.
+"Follow my location", so the widgets can follow too), calendar read (asked only when you open Calendars for the widget line), set alarm
+(no prompt; Clock apps ask for it before they open their alarms screen from the widget clock, and the app
+never sets an alarm), and installing its own updates.
 
 ## Install
 

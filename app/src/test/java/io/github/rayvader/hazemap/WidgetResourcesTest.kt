@@ -104,7 +104,7 @@ class WidgetResourcesTest {
     @Test
     fun everyLayoutHasTheViewsTheAppFillsIn() {
         // A view missing from one layout only fails on a phone, when the widget refuses to draw.
-        val shared = listOf("wRoot", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
+        val shared = listOf("wRoot", "wClockTap", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
         val eventLine = listOf("wEventRow", "wEventIcon", "wEventText")
         // The two blocks whose space the app trims on a short widget (see WidgetFit).
         val trimmed = listOf("wTopBlock", "wBottomBlock")
@@ -181,10 +181,33 @@ class WidgetResourcesTest {
         // The widget picker's preview, drawn before the app knows the height, shows the date under the clock.
         for (layout in listOf("widget_small", "widget_wide")) {
             val top = views(layout).single { it.attr("id") == "@+id/wTopBlock" }
-            val order = top.children().mapNotNull { it.attr("id") }
-            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), order.take(2))
-            assertNull(layout, top.children().single { it.attr("id") == "@+id/wDate" }.attr("visibility"))
+            assertEquals(layout, "@+id/wClockTap", top.children().first().attr("id"))
+            val tap = top.children().first()
+            val order = tap.children().mapNotNull { it.attr("id") }
+            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), order)
+            assertNull(layout, tap.children().single { it.attr("id") == "@+id/wDate" }.attr("visibility"))
         }
+    }
+
+    @Test
+    fun theClockAndTheDateAreOneTapAreaAtLeast48dpTall() {
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            val tap = views(layout).single { it.attr("id") == "@+id/wClockTap" }
+            assertEquals(layout, "48dp", tap.attr("minHeight"))
+            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), tap.children().mapNotNull { it.attr("id") })
+        }
+    }
+
+    @Test
+    fun theManifestLetsTheAppFindAndOpenAClockApp() {
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val all = manifest.descendants()
+        assertTrue(all.any { it.localName == "uses-permission" && it.attr("name") == "com.android.alarm.permission.SET_ALARM" })
+        val queries = all.single { it.localName == "queries" }.descendants()
+        assertTrue(queries.any { it.localName == "action" && it.attr("name") == "android.intent.action.SHOW_ALARMS" })
+        val packages = queries.filter { it.localName == "package" }.mapNotNull { it.attr("name") }
+        assertTrue(packages.containsAll(ClockApps.PACKAGES))
     }
 
     @Test
