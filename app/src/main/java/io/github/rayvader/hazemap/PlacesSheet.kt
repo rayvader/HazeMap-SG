@@ -144,7 +144,8 @@ class PlacesSheet(
             v.searchStatus.text = activity.getString(R.string.add_searching)
             val found = try {
                 val name = URLEncoder.encode(query, "UTF-8")
-                PlaceParsers.geocoding(Http.getText(GEOCODING + name + GEOCODING_TAIL, limited = false))
+                // About 16 s at most: a stalled search is cut off at 8 s and tried once more.
+                PlaceParsers.geocoding(Http.getTextQuick(GEOCODING + name + GEOCODING_TAIL))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
