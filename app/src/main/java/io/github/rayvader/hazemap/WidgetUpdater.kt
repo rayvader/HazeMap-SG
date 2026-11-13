@@ -411,7 +411,7 @@ object WidgetUpdater {
         // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
         v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
         // The strip has no event line in its layout: setting one there would stop it drawing.
-        if (shape.hasEventLine) showEvent(context, v, event.takeIf { fit?.showEvent != false }, widgetId)
+        if (shape.hasEventLine) showEvent(context, v, event.takeIf { fit?.showEvent != false }, widgetId, model)
         return v
     }
 
@@ -440,7 +440,7 @@ object WidgetUpdater {
     }
 
     /** "15:00 Lunch" behind a small calendar picture. The row stays hidden when there is no event. */
-    private fun showEvent(context: Context, v: RemoteViews, line: EventLine?, widgetId: Int) {
+    private fun showEvent(context: Context, v: RemoteViews, line: EventLine?, widgetId: Int, model: WidgetModel) {
         if (line == null) {
             v.setViewVisibility(R.id.wEventRow, View.GONE)
             return
@@ -448,15 +448,35 @@ object WidgetUpdater {
         v.setViewVisibility(R.id.wEventRow, View.VISIBLE)
         v.setTextViewText(R.id.wEventText, line.text)
         v.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc, line.text))
-        eventIntent(context, line.event, widgetId)?.let { v.setOnClickPendingIntent(R.id.wEventRow, it) }
+        v.setOnClickPendingIntent(R.id.wEventRow, calendarIntent(context, model, widgetId))
     }
 
     /** Opens the event in the phone's Calendar app. Null when no app can, so a tap opens this app instead. */
-    private fun eventIntent(context: Context, event: CalendarEvent, widgetId: Int): PendingIntent? {
-        val intent = Intent(Intent.ACTION_VIEW, ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, event.eventId))
-            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.beginMillis)
-            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.endMillis)
-        if (intent.resolveActivity(context.packageManager) == null) return null
+    /**
+     * The phone's calendar app at its usual view on today, never one event's page: the time view, else the
+     * calendar category, else Samsung's or Google's Calendar by name, else this app (see [CalendarApps.choose]).
+     * Each widget has its own request code, apart from the clock's and the widget's own.
+     */
+    private fun calendarIntent(context: Context, model: WidgetModel, widgetId: Int): PendingIntent {
+        val pm = context.packageManager
+        val today = Intent(
+            Intent.ACTION_VIEW,
+            ContentUris.withAppendedId(CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build(), System.currentTimeMillis())
+        )
+        val main = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
+        val launch = CalendarApps.PACKAGES.mapNotNull { pkg -> pm.getLaunchIntentForPackage(pkg)?.let { pkg to it } }.toMap()
+        val choice = CalendarApps.choose(
+            opensToday = today.resolveActivity(pm) != null,
+            hasCalendarApp = main.resolveActivity(pm) != null,
+            launchable = launch.keys
+        )
+        val intent = when (choice) {
+            CalendarChoice.Today -> today
+            CalendarChoice.MainCalendar -> main
+            is CalendarChoice.Package -> launch.getValue(choice.name)
+            CalendarChoice.App -> return openIntent(context, model, widgetId)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return PendingIntent.getActivity(
             context,
             EVENT_REQUEST_BASE + widgetId,

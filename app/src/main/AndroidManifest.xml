@@ -20,10 +20,22 @@
 
     <!-- Whether a Calendar app can open an event tapped on the widget line. -->
     <queries>
+        <!-- A tap on a widget's event line opens the phone's calendar app on today: its time view, its
+             calendar category, or the app by name. -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:mimeType="vnd.android.cursor.item/event" />
+            <data android:scheme="content" android:host="com.android.calendar" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="time/epoch" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_CALENDAR" />
+        </intent>
+        <package android:name="com.samsung.android.calendar" />
+        <package android:name="com.google.android.calendar" />
         <!-- A tap on a widget's clock opens the phone's Clock app: its alarms screen, or the app by name. -->
         <intent>
             <action android:name="android.intent.action.SHOW_ALARMS" />

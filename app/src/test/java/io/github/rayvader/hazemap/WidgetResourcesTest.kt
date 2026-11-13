@@ -199,6 +199,18 @@ class WidgetResourcesTest {
     }
 
     @Test
+    fun theManifestLetsTheAppFindAndOpenACalendarApp() {
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val queries = manifest.descendants().single { it.localName == "queries" }.descendants()
+        assertTrue(queries.any { it.localName == "category" && it.attr("name") == "android.intent.category.APP_CALENDAR" })
+        assertTrue(queries.any { it.localName == "data" && it.attr("host") == "com.android.calendar" })
+        assertTrue(queries.any { it.localName == "data" && it.attr("mimeType") == "time/epoch" })
+        val packages = queries.filter { it.localName == "package" }.mapNotNull { it.attr("name") }
+        assertTrue(packages.containsAll(CalendarApps.PACKAGES))
+    }
+
+    @Test
     fun theManifestLetsTheAppFindAndOpenAClockApp() {
         val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
             .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement

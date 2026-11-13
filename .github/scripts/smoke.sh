@@ -766,6 +766,29 @@ adb exec-out screencap -p > "$OUT/57-widgets-event.png"
 say "--- widgets, Family ticked (as the Calendar app shows it) ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
+# ---- Event-line tap: it opens the calendar app (on today), not this app and not the event's own page ----
+say "calendar apps: time view '$(adb shell cmd package query-activities --brief -a android.intent.action.VIEW -d content://com.android.calendar/time/0 -t time/epoch | tr -d '\r' | grep '/' | tr '\n' ' ')'" \
+  "category '$(adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.APP_CALENDAR | tr -d '\r' | grep '/' | tr '\n' ' ')'"
+dump
+if xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" wEventText); then
+  adb shell input tap $xy
+  sleep 6
+  clear_anr
+  top=$(adb shell dumpsys activity activities | grep -m1 -o 'topResumedActivity=.*' | cut -c1-160)
+  adb exec-out screencap -p > "$OUT/57b-widget-calendar-tap.png"
+  if echo "$top" | grep -q "$PKG"; then
+    say "FAIL calendar tap: the event line at $xy stayed in Haze Map: $top"
+  elif echo "$top" | grep -qi "EventInfo\|LaunchInfo\|event\.\|EventDetail\|ViewEvent"; then
+    say "FAIL calendar tap: the event line at $xy opened an event's page: $top"
+  else
+    say "calendar tap: the event line at $xy opened the calendar app: $top"
+  fi
+  adb shell input keyevent KEYCODE_HOME
+  sleep 3
+else
+  say "FAIL calendar tap: no event line on the home screen"
+fi
+
 # Tick Gym too: its run is sooner, so the line moves to it.
 calendars_screen
 tap Gym
