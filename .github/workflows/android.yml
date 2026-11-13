@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "Run only one part of the emulator test. widget-fit draws the widgets at short sizes; update-line taps the version line."
+        description: "Run only one part of the emulator test. widget-fit draws the widgets at short sizes; update-line taps the version line; places searches for a city three times."
         required: false
         default: ""
 
