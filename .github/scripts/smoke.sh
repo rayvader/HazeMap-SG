@@ -231,6 +231,20 @@ search_state() {
     "rows='$(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowName text)'"
 }
 
+# search_tokyo <tag>: search "tokyo" in the open add-a-place dialog and wait for the answer. The app gives a
+# stalled request 20 s before it tries again, so 30 s was too short; wait 60 s, then search once more.
+search_tokyo() {
+  adb shell input text "tokyo"
+  adb shell input keyevent KEYCODE_ENTER
+  wait_seen "Tokyo" 60 && return 0
+  search_state "$1-slow"
+  adb shell input keyevent KEYCODE_ENTER
+  wait_seen "Tokyo" 40 && { say "search $1: Tokyo found on the second try"; return 0; }
+  search_state "$1-failed"
+  say "FAIL search $1: no Tokyo after two tries"
+  return 1
+}
+
 # Only the place search, done the old way (text, then Enter at once) after a fresh start, three times.
 if [ "${SMOKE_ONLY:-}" = places ]; then
   set +e
@@ -640,9 +654,7 @@ sleep 3
 adb exec-out screencap -p > "$OUT/50b-places-empty-dark.png"
 tap "＋ Add a place"
 sleep 3
-adb shell input text "tokyo"
-adb shell input keyevent KEYCODE_ENTER
-wait_seen "Tokyo" 30 || true
+search_tokyo places
 adb exec-out screencap -p > "$OUT/51-places-search.png"
 tap "Tokyo"
 sleep 8
@@ -672,9 +684,8 @@ tap "My places"
 sleep 3
 tap "＋ Add a place"
 sleep 3
-adb shell input text "tokyo"
-adb shell input keyevent KEYCODE_ENTER
-tap_when "Tokyo" 30
+search_tokyo widgets
+tap "Tokyo"
 sleep 4
 home_again --es widget_scene auto
 widget_id() { adb logcat -d -s HazeWidget:I | grep "shape=$1 " | tail -1 | sed -n 's/.* id=\([0-9]*\) .*/\1/p'; }
