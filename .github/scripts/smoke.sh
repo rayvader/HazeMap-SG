@@ -245,8 +245,8 @@ if [ "${SMOKE_ONLY:-}" = places ]; then
     tap "＋ Add a place"
     sleep 3
     search_state "$n-open"
+    # No dump between the text and Enter: the full test sends them back to back.
     adb shell input text "tokyo"
-    search_state "$n-typed"
     adb shell input keyevent KEYCODE_ENTER
     sleep 2
     search_state "$n-enter"
