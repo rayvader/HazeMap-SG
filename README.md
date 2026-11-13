@@ -98,8 +98,8 @@ line at all.
 
 The line shows the first day that still has an event. On that day a timed event beats an all-day one,
 and one about to start beats one that has been running a while. Cancelled and declined events are
-skipped. Times follow the phone's clock, like your Calendar app. Tap the line to open the event in your
-Calendar app. It changes as an event starts and ends, and when a calendar changes.
+skipped. Times follow the phone's clock, like your Calendar app. Tap the line to open your Calendar app
+on today. It changes as an event starts and ends, and when a calendar changes.
 
 It is only the event: no weather, and no network. The app reads each event's title and time on the
 phone, and never sends them anywhere.
