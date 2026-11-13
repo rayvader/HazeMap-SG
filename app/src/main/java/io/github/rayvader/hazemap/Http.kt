@@ -1,13 +1,17 @@
 package io.github.rayvader.hazemap
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Books call slots so no more than [maxCalls] start within any [windowMs].
@@ -33,6 +37,12 @@ object Http {
     private const val RETRY_AFTER_429_MS = 10_500L
     private const val MAX_429_RETRIES = 2
 
+    /** A quick call (the place search) gives each try this long to connect and answer. */
+    const val QUICK_ATTEMPT_MS = 8_000
+
+    /** One try, then one more: a stalled call fails or recovers in about 16 s. */
+    const val QUICK_ATTEMPTS = 2
+
     /** Shared by every data.gov.sg call in the app. */
     private val neaLimiter = RateLimiter(maxCalls = 5, windowMs = 10_000)
 
@@ -54,6 +64,45 @@ object Http {
                     delay(RETRY_AFTER_429_MS)
                 }
                 else -> throw IOException("HTTP ${response.code} for $url")
+            }
+        }
+    }
+
+    /**
+     * GET [url] as text, for a person waiting on the answer (the place search). Each try has [attemptMs] in all,
+     * to connect and to answer: a stalled server is cut off then, whatever the connection is doing, and the
+     * call is tried once more. So it fails, or finds its answer, in about [attempts] x [attemptMs]. Not rate
+     * limited. An HTTP error is not tried again: the server did answer.
+     */
+    suspend fun getTextQuick(url: String, attemptMs: Int = QUICK_ATTEMPT_MS, attempts: Int = QUICK_ATTEMPTS): String {
+        var last: IOException? = null
+        repeat(attempts) {
+            val response = try {
+                attempt(url, attemptMs)
+            } catch (e: IOException) {
+                last = e
+                return@repeat
+            }
+            if (response.code in 200..299) return response.body.toString(Charsets.UTF_8)
+            throw IOException("HTTP ${response.code} for $url")
+        }
+        throw last ?: IOException("no try made for $url")
+    }
+
+    /**
+     * One try with a hard limit. The read runs apart from the caller, so the limit holds even when the
+     * connection does not notice the stall (or tries again by itself); the connection is closed at the limit.
+     */
+    private suspend fun attempt(url: String, ms: Int): Response {
+        val opened = AtomicReference<HttpURLConnection?>()
+        val job = CoroutineScope(Dispatchers.IO).async { fetch(url, ms, ms) { opened.set(it) } }
+        try {
+            return withTimeoutOrNull(ms.toLong()) { job.await() }
+                ?: throw IOException("no answer in $ms ms from $url")
+        } finally {
+            if (!job.isCompleted) {
+                job.cancel()
+                opened.get()?.disconnect()
             }
         }
     }
@@ -111,11 +160,17 @@ object Http {
 
     private class Response(val code: Int, val body: ByteArray)
 
-    private fun fetch(url: String): Response {
+    private fun fetch(
+        url: String,
+        connectMs: Int = 10_000,
+        readMs: Int = 20_000,
+        onOpen: (HttpURLConnection) -> Unit = {}
+    ): Response {
         val conn = URL(url).openConnection() as HttpURLConnection
+        onOpen(conn)
         try {
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 20_000
+            conn.connectTimeout = connectMs
+            conn.readTimeout = readMs
             conn.setRequestProperty("User-Agent", USER_AGENT)
             conn.setRequestProperty("Accept", "application/json, image/png, */*")
             val code = conn.responseCode

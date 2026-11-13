@@ -48,6 +48,8 @@ the more you open the app. Nothing is sent anywhere.
 **My places** — Singapore is home and has every feature. Tap the globe at the top to open a list of
 other cities you saved. Each shows its temperature and weather; tap one for its page with the next four
 days, the humidity and the wind. The star on a page saves or removes it. Use "Add a place" to search any city in the world.
+The search says "Searching…" while it waits. A search with no answer in 8 s is tried once more, so it
+fails ("Search failed. Check your connection.") or finds the city within about 16 s.
 City weather is from [Open-Meteo](https://open-meteo.com/) (free for apps without ads or subscriptions).
 
 **Updates** — the app updates itself. When it opens it asks GitHub (at most every 6 hours) for the newest
