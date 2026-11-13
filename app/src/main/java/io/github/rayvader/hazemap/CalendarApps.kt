@@ -1,18 +1,18 @@
 package io.github.rayvader.hazemap
 
 /** What a tap on a widget's event line opens. */
-sealed interface CalendarChoice {
+sealed interface CalendarTap {
     /** The calendar app on today ("content://com.android.calendar/time/<now>"). */
-    data object Today : CalendarChoice
+    data object Today : CalendarTap
 
     /** The phone's calendar app by its category, at whatever view it opens on. */
-    data object MainCalendar : CalendarChoice
+    data object MainCalendar : CalendarTap
 
     /** A known calendar app, opened by its launcher entry. */
-    data class Package(val name: String) : CalendarChoice
+    data class Package(val name: String) : CalendarTap
 
     /** No calendar app found: the tap opens this app, like the rest of the widget. */
-    data object App : CalendarChoice
+    data object App : CalendarTap
 }
 
 /**
@@ -30,10 +30,10 @@ object CalendarApps {
      * Today's view first, then the calendar category, then Samsung's Calendar, then Google's, then this app.
      * [opensToday] / [hasCalendarApp]: something handles that intent. [launchable]: apps with a launcher entry.
      */
-    fun choose(opensToday: Boolean, hasCalendarApp: Boolean, launchable: Set<String>): CalendarChoice {
-        if (opensToday) return CalendarChoice.Today
-        if (hasCalendarApp) return CalendarChoice.MainCalendar
-        val pkg = PACKAGES.firstOrNull { it in launchable } ?: return CalendarChoice.App
-        return CalendarChoice.Package(pkg)
+    fun choose(opensToday: Boolean, hasCalendarApp: Boolean, launchable: Set<String>): CalendarTap {
+        if (opensToday) return CalendarTap.Today
+        if (hasCalendarApp) return CalendarTap.MainCalendar
+        val pkg = PACKAGES.firstOrNull { it in launchable } ?: return CalendarTap.App
+        return CalendarTap.Package(pkg)
     }
 }

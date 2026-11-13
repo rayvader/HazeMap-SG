@@ -471,10 +471,10 @@ object WidgetUpdater {
             launchable = launch.keys
         )
         val intent = when (choice) {
-            CalendarChoice.Today -> today
-            CalendarChoice.MainCalendar -> main
-            is CalendarChoice.Package -> launch.getValue(choice.name)
-            CalendarChoice.App -> return openIntent(context, model, widgetId)
+            CalendarTap.Today -> today
+            CalendarTap.MainCalendar -> main
+            is CalendarTap.Package -> launch.getValue(choice.name)
+            CalendarTap.App -> return openIntent(context, model, widgetId)
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return PendingIntent.getActivity(

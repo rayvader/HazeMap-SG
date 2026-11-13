@@ -8,30 +8,30 @@ class CalendarAppsTest {
 
     @Test
     fun todaysViewComesFirst() {
-        assertEquals(CalendarChoice.Today, CalendarApps.choose(opensToday = true, hasCalendarApp = true, launchable = both))
-        assertEquals(CalendarChoice.Today, CalendarApps.choose(true, false, emptySet()))
+        assertEquals(CalendarTap.Today, CalendarApps.choose(opensToday = true, hasCalendarApp = true, launchable = both))
+        assertEquals(CalendarTap.Today, CalendarApps.choose(true, false, emptySet()))
     }
 
     @Test
     fun thenTheCalendarCategory() {
-        assertEquals(CalendarChoice.MainCalendar, CalendarApps.choose(false, true, both))
-        assertEquals(CalendarChoice.MainCalendar, CalendarApps.choose(false, true, emptySet()))
+        assertEquals(CalendarTap.MainCalendar, CalendarApps.choose(false, true, both))
+        assertEquals(CalendarTap.MainCalendar, CalendarApps.choose(false, true, emptySet()))
     }
 
     @Test
     fun thenSamsungsCalendar() {
-        assertEquals(CalendarChoice.Package(CalendarApps.SAMSUNG), CalendarApps.choose(false, false, both))
+        assertEquals(CalendarTap.Package(CalendarApps.SAMSUNG), CalendarApps.choose(false, false, both))
     }
 
     @Test
     fun thenGooglesCalendar() {
-        assertEquals(CalendarChoice.Package(CalendarApps.GOOGLE), CalendarApps.choose(false, false, setOf(CalendarApps.GOOGLE)))
+        assertEquals(CalendarTap.Package(CalendarApps.GOOGLE), CalendarApps.choose(false, false, setOf(CalendarApps.GOOGLE)))
     }
 
     @Test
     fun thenThisApp() {
-        assertEquals(CalendarChoice.App, CalendarApps.choose(false, false, emptySet()))
-        assertEquals(CalendarChoice.App, CalendarApps.choose(false, false, setOf("com.example.other")))
+        assertEquals(CalendarTap.App, CalendarApps.choose(false, false, emptySet()))
+        assertEquals(CalendarTap.App, CalendarApps.choose(false, false, setOf("com.example.other")))
     }
 
     @Test
