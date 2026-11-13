@@ -221,6 +221,42 @@ if [ "${SMOKE_ONLY:-}" = update-line ]; then
   exit 0
 fi
 
+# search_state <tag>: what the add-a-place dialog shows now, for the log, with a screenshot and dump.
+search_state() {
+  dump
+  cp "$OUT/ui.xml" "$OUT/search-$1.xml"
+  adb exec-out screencap -p > "$OUT/search-$1.png"
+  say "search $1: input='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" searchInput text)'" \
+    "status='$(python3 .github/scripts/ui_probe.py attr "$OUT/ui.xml" searchStatus text)'" \
+    "rows='$(python3 .github/scripts/ui_probe.py all "$OUT/ui.xml" rowName text)'"
+}
+
+# Only the place search, done the old way (text, then Enter at once) after a fresh start, three times.
+if [ "${SMOKE_ONLY:-}" = places ]; then
+  set +e
+  sleep 10
+  clear_anr
+  for n in 1 2 3; do
+    adb shell am force-stop "$PKG"
+    adb shell am start -W -n "$PKG/.MainActivity" --es tab now
+    sleep 20
+    tap "My places"
+    sleep 3
+    tap "＋ Add a place"
+    sleep 3
+    search_state "$n-open"
+    adb shell input text "tokyo"
+    search_state "$n-typed"
+    adb shell input keyevent KEYCODE_ENTER
+    sleep 2
+    search_state "$n-enter"
+    wait_seen "Tokyo" 30 && say "search $n: Tokyo found" || say "search $n: no Tokyo after 30 s"
+    search_state "$n-after"
+  done
+  echo "Only the place search was asked for. Screenshots in $OUT/"
+  exit 0
+fi
+
 # ---- Widget fit: the widgets drawn at exact sizes inside the app ----
 # A phone's home screen can give a two-row widget 140 dp or less, while the emulator's gives about 220.
 # So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
