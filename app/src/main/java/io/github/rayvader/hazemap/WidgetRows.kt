@@ -73,6 +73,9 @@ object WidgetRows {
     private const val EVENT_PAD_DP = 4
     const val EVENT_GAP_DP = 3
 
+    /** The clock and the date are one tap area at least this tall (see widget_*.xml), so the lines start under it. */
+    private const val MIN_CLOCK_TAP_DP = 48
+
     /** The Wide's first event line is 4 dp under the clock block, and the last needs this much before the numbers. */
     private const val WIDE_FIRST_EVENT_DP = 4
     private const val WIDE_MIN_GAP_DP = 2.5f
@@ -154,13 +157,13 @@ object WidgetRows {
         val available = when (shape) {
             WidgetShape.WIDE -> {
                 val dateUnder = if (spot == DateSpot.BELOW && fit.showDate) DATE_LINE * WIDE_DATE_SP * s + WIDE_DATE_MARGIN_DP else 0f
-                val blockTop = fit.padTopDp + CLOCK_LINE * clockSp * s + dateUnder
+                val blockTop = maxOf(MIN_CLOCK_TAP_DP.toFloat(), fit.padTopDp + CLOCK_LINE * clockSp * s + dateUnder)
                 val numbersTop = h - (TEMP_LINE * fit.tempSp * s + fit.padBottomDp)
                 numbersTop - WIDE_MIN_GAP_DP - blockTop - WIDE_FIRST_EVENT_DP
             }
             else -> {
                 val dateUnder = if (fit.showDate) SMALL_DATE_MARGIN_DP + DATE_LINE * SMALL_DATE_SP * s else 0f
-                val clockBlockBottom = fit.padTopDp + CLOCK_LINE * clockSp * s + dateUnder + 2
+                val clockBlockBottom = maxOf(MIN_CLOCK_TAP_DP.toFloat(), fit.padTopDp + CLOCK_LINE * clockSp * s + dateUnder) + 2
                 val stackTop = maxOf(SMALL_ART_CLEAR_DP.toFloat(), clockBlockBottom)
                 val numbers = s * (TEMP_LINE * fit.tempSp + SMALL_NUMBERS_TEXT_DP) + SMALL_NUMBERS_FIXED_DP + fit.padBottomDp
                 h - stackTop - numbers - SMALL_STACK_BOTTOM_DP

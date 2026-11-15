@@ -316,7 +316,7 @@ fit_shot fit-26-clocks "small@223,small@170+e/wide@176+e/strip@70"
 # "+min=N" says how many event lines the test wants to see; the app looks at each drawing itself
 # (see WidgetPreviewCheck) and logs "check ...: ok" or "FAIL ...". Sizes: the Wide at the heights the phone
 # gives it, the Square, the Strip.
-fit_shot fit-30-date-row-wide "wide@110+e=6+min=2/wide@125+e=6+min=2/wide@140+e=6+min=2/wide@160+e=6+min=2"
+fit_shot fit-30-date-row-wide "wide@110+e=6+min=1/wide@125+e=6+min=1/wide@140+e=6+min=2/wide@160+e=6+min=2"
 fit_shot fit-31-date-row-wide-tall "wide@139+e=6+min=2/wide@190+e=6+min=2/wide@223+e=6+min=3"
 fit_shot fit-32-date-row-small "small@170+e=6,small@190+e=6/small@223+e=6+min=2,small@300+e=6+min=3"
 fit_shot fit-33-date-row-strip "strip@70+e=6/strip@55+e=6"

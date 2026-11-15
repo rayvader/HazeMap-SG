@@ -38,16 +38,16 @@ internal object WidgetPreview {
     /** The longest of Open-Meteo's weather codes: thunderstorm with hail, "Thunderstorm with hail". */
     private const val LONGEST_WMO_CODE = 96
 
-    /** Made-up events, in the order a calendar would list them: "+e=4" is the first four. */
+    /** Made-up events, short enough for the Square at 130% text, in the order a calendar lists them: "+e=4" is the first four. */
     private val EVENTS = listOf(
-        "Sun 14:00 Team offsite",
+        "Sun 14:00 Sync",
         "Sun 15:30 Dentist",
-        "Sun 17:00 Dinner with Mei",
-        "Tmrw 09:00 Stand-up",
-        "Tmrw 12:30 Lunch with Ben",
+        "Sun 17:00 Dinner",
+        "Tmrw 09:00 Sync",
+        "Tmrw 12:30 Lunch",
         "Mon 10:00 Review",
         "Mon 16:00 Gym",
-        "Tue 08:30 Flight to KL"
+        "Tue 08:30 Flight"
     )
 
     /**

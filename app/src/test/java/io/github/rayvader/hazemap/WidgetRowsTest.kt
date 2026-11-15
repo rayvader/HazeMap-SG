@@ -133,6 +133,19 @@ class WidgetRowsTest {
     }
 
     @Test
+    fun theClockTapAreaKeepsItsFull48dpSoAShortWideGainsNothingYet() {
+        // At 110 and 125 dp the time and the date take about 30 to 42 dp, but the tap area is 48 dp tall and the lines
+        // start under it, so the date beside the clock frees no line there.
+        assertEquals(1, plan(WidgetShape.WIDE, 110, 6).lines)
+        assertEquals(1, plan(WidgetShape.WIDE, 125, 6).lines)
+        val f = fit(WidgetShape.WIDE, 125, true)!!
+        assertEquals(
+            WidgetRows.lineCapacity(WidgetShape.WIDE, 125, f, f.clockSp, DateSpot.BELOW, 1f),
+            WidgetRows.lineCapacity(WidgetShape.WIDE, 125, f, f.clockSp, DateSpot.BESIDE, 1f)
+        )
+    }
+
+    @Test
     fun aTallerWideHoldsMore() {
         val p = plan(WidgetShape.WIDE, 223, 6)
         assertEquals(RowPlan(DateSpot.BESIDE, true, 53, events = 3, more = 3), p)
