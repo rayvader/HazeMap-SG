@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The "+4 more" chip at the end of the last event line: a little lighter than the line behind it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#40FFFFFF" />
+    <corners android:radius="8dp" />
+</shape>

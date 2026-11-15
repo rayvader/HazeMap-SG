@@ -106,6 +106,8 @@ internal object WidgetPreview {
                 val widthForShape = widthOverride ?: widthDp(shape)
                 val fit = WidgetFits.of(shape, heightDp, eventCount > 0, fontScale, widthForShape)
                 val plan = WidgetUpdater.planOf(context, shape, heightDp, widthForShape, eventCount)
+                val shownScene = scene ?: model.scene(now)
+                val pictureScale = WidgetRows.pictureScale(shape, heightDp, fit, fontScale, shownScene)
                 val caption = captionOf(shape, heightDp, eventCount, fit, plan, place?.nameAndCountry, scene) +
                     (if (longWords) " | long words" else "") + (widthOverride?.let { " | w=$it" } ?: "")
                 Log.i(TAG, "preview $caption fontScale=$fontScale")
@@ -125,9 +127,11 @@ internal object WidgetPreview {
                 // A long city or weather phrase is cut on purpose, so the weather check only runs without them.
                 val keepWeatherWhole = place == null && !longWords
                 frame.postDelayed({
-                    val problems = WidgetPreviewCheck.problems(drawn, shape, plan, density, minLines, keepWeatherWhole)
+                    val measured = LinkedHashMap<String, String>()
+                    val problems = WidgetPreviewCheck.problems(drawn, shape, plan, density, minLines, keepWeatherWhole, measured)
                     val summary = "${shape.key} ${heightDp}dp w=$widthForShape fontScale=$fontScale date=${plan.dateSpot.name.lowercase()} " +
-                        "clock=${plan.clockSp} lines=${plan.lines} (events ${plan.events}, more ${plan.more})"
+                        "clock=${plan.clockSp} lines=${plan.lines} (events ${plan.events}, more ${plan.more}) " +
+                        "sky=${shownScene.key} picture=%.2f".format(pictureScale) + measured.entries.joinToString("") { " ${it.key}=${it.value}" }
                     Log.i(TAG, "check $summary: " + if (problems.isEmpty()) "ok" else "FAIL " + problems.joinToString("; "))
                 }, CHECK_DELAY_MS)
                 val cell = LinearLayout(context).apply {

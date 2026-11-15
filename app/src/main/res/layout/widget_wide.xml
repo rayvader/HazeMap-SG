@@ -11,6 +11,7 @@
          The default progress bar style caps the size at 48dp, so each sets its own limits, and
          multiplying by white keeps the colours on phones whose style tints progress bars. -->
     <FrameLayout
+        android:id="@+id/wPicture"
         android:layout_width="112dp"
         android:layout_height="112dp"
         android:layout_gravity="top|end"
@@ -278,12 +279,12 @@
         </LinearLayout>
 
         <!-- The upcoming events on the chosen calendars, one line each (see widget_event_row). The app fills
-             this in and shows it when there is one. -->
+             this in and shows it when there is one, and sets the space above it: none beside the clock, 4 dp
+             under the date (see WidgetRows.eventsTopDp). -->
         <LinearLayout
             android:id="@+id/wEvents"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
             android:orientation="vertical"
             android:visibility="gone" />
     </LinearLayout>

@@ -136,7 +136,11 @@ class WidgetResourcesTest {
     fun anEventLineHasItsPictureAndItsText() {
         val line = views("widget_event_row")
         val ids = line.mapNotNull { it.attr("id") }.toSet()
-        assertTrue(ids.containsAll(listOf("@+id/wEventRow", "@+id/wEventIcon", "@+id/wEventText")))
+        assertTrue(ids.containsAll(listOf("@+id/wEventRow", "@+id/wEventIcon", "@+id/wEventText", "@+id/wEventMore")))
+        // The count of hidden events is a chip after the text, hidden until the app needs it; the text shrinks first.
+        val more = line.single { it.attr("id") == "@+id/wEventMore" }
+        assertEquals("gone", more.attr("visibility"))
+        assertEquals("1", line.single { it.attr("id") == "@+id/wEventText" }.attr("layout_weight"))
         // One line, ending in "…" when the title is too long, and the space the plan counts under it.
         val text = line.single { it.attr("id") == "@+id/wEventText" }
         assertEquals("1", text.attr("maxLines"))
@@ -190,6 +194,16 @@ class WidgetResourcesTest {
             assertEquals("$layout 12-hour setting", "HH:mm", clock.attr("format12Hour"))
             assertEquals("$layout 24-hour setting", "HH:mm", clock.attr("format24Hour"))
         }
+    }
+
+    @Test
+    fun theWideHasItsPictureBoxAndNoSpaceAboveItsEventListInXml() {
+        // The app shrinks the picture box on a short widget, and sets the space above the events (none, or 4 dp).
+        val wide = views("widget_wide")
+        val box = wide.single { it.attr("id") == "@+id/wPicture" }
+        assertEquals("112dp", box.attr("layout_width"))
+        assertEquals("112dp", box.attr("layout_height"))
+        assertNull(wide.single { it.attr("id") == "@+id/wEvents" }.attr("layout_marginTop"))
     }
 
     @Test

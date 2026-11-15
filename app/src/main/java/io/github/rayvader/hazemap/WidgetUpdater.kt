@@ -379,7 +379,6 @@ object WidgetUpdater {
         widthDp: Int = 0
     ): RemoteViews {
         val v = RemoteViews(context.packageName, shape.layout)
-        val scene = forceScene ?: sceneOverride ?: model.scene(nowMillis)
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
         // A short widget drops the event line (and, if even that is not enough, the date) and shrinks the rest;
         // the Strip has no fit.
@@ -389,6 +388,8 @@ object WidgetUpdater {
         val plan = WidgetRows.plan(shape, heightDp, widthDp, fontScale, fit, events.size)
         if (fit != null) applyFit(context, v, shape, fit, plan)
         placeDate(v, plan)
+        val scene = forceScene ?: sceneOverride ?: model.scene(nowMillis)
+        if (shape == WidgetShape.WIDE) placeWideParts(context, v, plan, WidgetRows.pictureScale(shape, heightDp, fit, fontScale, scene))
 
         // The sky colour, and the one moving picture for this weather.
         v.setInt(R.id.wRoot, "setBackgroundResource", skyOf(scene))
@@ -419,7 +420,7 @@ object WidgetUpdater {
         // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
         v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
         // The strip has no event lines in its layout: setting them there would stop it drawing.
-        if (shape.hasEventLine) showEvents(context, v, events, plan, widgetId, model)
+        if (shape.hasEventLine) showEvents(context, v, shape, events, plan, widgetId, model)
         return v
     }
 
@@ -453,6 +454,19 @@ object WidgetUpdater {
         )
     }
 
+    /**
+     * The Wide's own spacing: the space above the event lines (none beside the clock, 4 dp under the date), and
+     * the sky picture, shrunk towards the top right corner on a short widget so its art stays above the PSI pill.
+     */
+    private fun placeWideParts(context: Context, v: RemoteViews, plan: RowPlan, pictureScale: Float) {
+        val density = context.resources.displayMetrics.density
+        v.setViewPadding(R.id.wEvents, 0, (WidgetRows.eventsTopDp(plan.dateSpot) * density).roundToInt(), 0, 0)
+        v.setFloat(R.id.wPicture, "setPivotX", WidgetRows.PICTURE_BOX_DP * density)
+        v.setFloat(R.id.wPicture, "setPivotY", 0f)
+        v.setFloat(R.id.wPicture, "setScaleX", pictureScale)
+        v.setFloat(R.id.wPicture, "setScaleY", pictureScale)
+    }
+
     /** The date on the clock's row, or under the clock (see [WidgetRows]); hidden only when there is no room for it. */
     private fun placeDate(v: RemoteViews, plan: RowPlan) {
         val beside = plan.dateSpot == DateSpot.BESIDE
@@ -461,12 +475,14 @@ object WidgetUpdater {
     }
 
     /**
-     * "15:00 Lunch" behind a small calendar picture, one line for each of [plan]'s events, then "+3 more" for
-     * the rest. The list stays hidden when there is nothing to show.
+     * "15:00 Lunch" behind a small calendar picture, one line for each of [plan]'s events. When some are left
+     * over, a small chip at the end of the last line counts them ("+4 more"). The list stays hidden when there is
+     * nothing to show.
      */
     private fun showEvents(
         context: Context,
         v: RemoteViews,
+        shape: WidgetShape,
         events: List<EventLine>,
         plan: RowPlan,
         widgetId: Int,
@@ -481,22 +497,26 @@ object WidgetUpdater {
         v.setViewVisibility(R.id.wEvents, View.VISIBLE)
         // Every line opens the calendar app on today, not the event (see calendarIntent).
         val open = calendarIntent(context, model, widgetId)
-        events.take(plan.events).forEachIndexed { i, line ->
+        val shown = events.take(plan.events)
+        shown.forEachIndexed { i, line ->
             val row = RemoteViews(context.packageName, R.layout.widget_event_row)
             row.setTextViewText(R.id.wEventText, line.text)
-            row.setContentDescription(
-                R.id.wEventRow,
-                context.getString(if (i == 0) R.string.widget_event_desc else R.string.widget_event_other_desc, line.text)
-            )
-            row.setOnClickPendingIntent(R.id.wEventRow, open)
-            v.addView(R.id.wEvents, row)
-        }
-        if (plan.more > 0) {
-            val text = context.getString(R.string.widget_event_more, plan.more)
-            val row = RemoteViews(context.packageName, R.layout.widget_event_row)
-            row.setViewVisibility(R.id.wEventIcon, View.GONE)
-            row.setTextViewText(R.id.wEventText, text)
-            row.setContentDescription(R.id.wEventRow, text)
+            val last = i == shown.lastIndex
+            if (last && plan.more > 0) {
+                // The Square is narrow: its chip is just "+4", so the title keeps its room.
+                val chip = context.getString(
+                    if (shape == WidgetShape.SMALL) R.string.widget_event_more_short else R.string.widget_event_more,
+                    plan.more
+                )
+                row.setViewVisibility(R.id.wEventMore, View.VISIBLE)
+                row.setTextViewText(R.id.wEventMore, chip)
+                row.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc_more, line.text, plan.more))
+            } else {
+                row.setContentDescription(
+                    R.id.wEventRow,
+                    context.getString(if (i == 0) R.string.widget_event_desc else R.string.widget_event_other_desc, line.text)
+                )
+            }
             row.setOnClickPendingIntent(R.id.wEventRow, open)
             v.addView(R.id.wEvents, row)
         }

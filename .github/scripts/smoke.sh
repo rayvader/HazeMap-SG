@@ -316,14 +316,21 @@ fit_shot fit-26-clocks "small@223,small@170+e/wide@176+e/strip@70"
 # "+min=N" says how many event lines the test wants to see; the app looks at each drawing itself
 # (see WidgetPreviewCheck) and logs "check ...: ok" or "FAIL ...". Sizes: the Wide at the heights the phone
 # gives it, the Square, the Strip.
-fit_shot fit-30-date-row-wide "wide@110+e=6+min=1/wide@125+e=6+min=1/wide@140+e=6+min=2/wide@160+e=6+min=2"
-fit_shot fit-31-date-row-wide-tall "wide@139+e=6+min=2/wide@190+e=6+min=2/wide@223+e=6+min=3"
-fit_shot fit-32-date-row-small "small@170+e=6,small@190+e=6/small@223+e=6+min=2,small@300+e=6+min=3"
+fit_shot fit-30-date-row-wide "wide@110+e=6+min=1/wide@125+e=6+min=2/wide@140+e=6+min=2/wide@160+e=6+min=2"
+fit_shot fit-31-date-row-wide-tall "wide@139+e=6+min=2/wide@190+e=6+min=3/wide@223+e=6+min=4"
+fit_shot fit-32-date-row-small "small@170+e=6,small@190+e=6/small@223+e=6+min=3,small@300+e=6+min=6"
 fit_shot fit-33-date-row-strip "strip@70+e=6/strip@55+e=6"
+# The Wide's sky picture must stay clear of the PSI pill on a short widget, whatever the sky: all fourteen at the
+# shortest height (110 dp), and the tallest art (the bolt, the haze lines, the stars) at 125 and 139 dp.
+fit_shot fit-40-pill-110-a "wide@110+e=2+s=sun/wide@110+e=2+s=partly/wide@110+e=2+s=cloud/wide@110+e=2+s=rain"
+fit_shot fit-41-pill-110-b "wide@110+e=2+s=storm/wide@110+e=2+s=haze/wide@110+e=2+s=wind/wide@110+e=2+s=night"
+fit_shot fit-42-pill-110-c "wide@110+e=2+s=partly_night/wide@110+e=2+s=cloud_night/wide@110+e=2+s=rain_night/wide@110+e=2+s=storm_night"
+fit_shot fit-43-pill-110-d "wide@110+e=2+s=haze_night/wide@110+e=2+s=wind_night/wide@125+e=2+s=storm/wide@125+e=2+s=haze"
+fit_shot fit-44-pill-125-139 "wide@125+e=2+s=storm_night/wide@125+e=2+s=haze_night/wide@139+e=2+s=storm/wide@139+e=2+s=storm_night"
 # An unfolded phone is wider: the emulator's screen is made 540 dp wide for these (density 320), so a Wide of 500 dp fits.
 adb shell wm density 320
 sleep 5
-fit_shot fit-34-date-row-unfolded "wide@150+e=6+w=480+min=2/wide@200+e=6+w=480+min=3/wide@260+e=6+w=500+min=4"
+fit_shot fit-34-date-row-unfolded "wide@150+e=6+w=480+min=2/wide@200+e=6+w=480+min=3/wide@260+e=6+w=500+min=6"
 fit_shot fit-35-date-row-unfolded-small "small@230+e=6+w=230+min=3,small@260+e=6+w=240+min=3/strip@70+w=500/strip@70+w=456"
 adb shell wm density reset
 sleep 5
@@ -346,6 +353,7 @@ sleep 5
 fit_shot fit-37-date-row-bigfont-unfolded "wide@150+e=6+w=480+min=2/wide@200+e=6+w=480+min=2/strip@70+w=500/small@230+e=6+w=230,small@260+e=6+w=240"
 adb shell wm density reset
 sleep 5
+fit_shot fit-45-pill-bigfont "wide@125+e=2+s=storm/wide@125+e=2+s=rain/wide@139+e=2+s=storm_night/wide@160+e=2+s=haze"
 # The shortest height of each Wide fit at this text size, with the event line. Only the text grows, so
 # 139 dp at 115% counts as 121 dp (see WidgetFits): 202, 194, 176, 171, 158, 148, 137, 132 and 123 dp
 # are the lowest that still count as the fit of 176, 169, 154, 149, 138, 129, 120, 115 and 108 dp.

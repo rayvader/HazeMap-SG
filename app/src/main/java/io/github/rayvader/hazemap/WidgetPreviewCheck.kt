@@ -1,6 +1,9 @@
 package io.github.rayvader.hazemap
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Rect
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -13,8 +16,14 @@ import android.widget.TextView
  */
 internal object WidgetPreviewCheck {
 
-    /** Room kept between two parts, in dp. */
+    private const val TAG = "HazeWidget"
+
+    /** Room kept between two parts, in dp, and between the last event line and the numbers' digits. */
     private const val MIN_GAP_DP = 1f
+    private const val MIN_DIGITS_GAP_DP = 3f
+
+    /** A pixel of a picture counts as art above this alpha. */
+    private const val ART_ALPHA = 24
 
     /** The tap area for the clock and the date: at least this tall. */
     private const val MIN_TAP_DP = 48f
@@ -29,7 +38,8 @@ internal object WidgetPreviewCheck {
         plan: RowPlan,
         density: Float,
         minLines: Int,
-        keepWeatherWhole: Boolean
+        keepWeatherWhole: Boolean,
+        summary: MutableMap<String, String> = HashMap()
     ): List<String> {
         val out = ArrayList<String>()
         fun dp(px: Int) = px / density
@@ -93,6 +103,17 @@ internal object WidgetPreviewCheck {
             }
         }
 
+        // The picture's art, as drawn, against the PSI pill under it.
+        val art = artBox(root, density)
+        if (art != null) {
+            summary["artBottom"] = "%.1f".format(dp(art.bottom))
+            summary["artTop"] = "%.1f".format(dp(art.top))
+            val pill = box(root.findViewById(R.id.wBadge))
+            if (shape == WidgetShape.WIDE && pill != null && Rect.intersects(art, Rect(pill.left, pill.top - density.toInt(), pill.right, pill.bottom))) {
+                out += "the picture's art (down to ${dp(art.bottom)} dp) overlaps the PSI pill (from ${dp(pill.top)} dp)"
+            }
+        }
+
         if (shape == WidgetShape.STRIP) {
             // The Strip's row must not be squeezed by a date beside the clock: the weather stays whole.
             if (keepWeatherWhole) {
@@ -109,7 +130,31 @@ internal object WidgetPreviewCheck {
         val rows = (0 until (list?.childCount ?: 0)).map { list!!.getChildAt(it) }.filter { it.isShown }
         if (rows.size != plan.lines) out += "drew ${rows.size} event lines, the plan has ${plan.lines}"
         if (plan.lines < minLines) out += "only ${plan.lines} event lines, wanted $minLines"
-        val numbers = box(root.findViewById(R.id.wTemp))
+        // The count of the events left over: a chip on the last line only, whole, and there whenever events are hidden.
+        rows.forEachIndexed { i, row ->
+            val chip = row.findViewById<TextView>(R.id.wEventMore)
+            val wantChip = plan.more > 0 && i == rows.lastIndex
+            if (wantChip) {
+                if (!chip.isShown) out += "the last line has no count of the ${plan.more} hidden events"
+                whole("the count of hidden events", chip)
+                if (!chip.text.toString().contains("${plan.more}")) out += "the count says '${chip.text}', not ${plan.more}"
+            } else if (chip.isShown) {
+                out += "event line ${i + 1} has a count but is not the last"
+            }
+        }
+        val temp = root.findViewById<TextView>(R.id.wTemp)
+        val numbers = box(temp)
+        // The numbers' digits start under the top of their box: measure to the digits themselves.
+        val digitsTop = if (numbers != null && temp != null) {
+            val ink = Rect()
+            temp.paint.getTextBounds(temp.text.toString(), 0, temp.text.length, ink)
+            numbers.top + temp.baseline + ink.top
+        } else {
+            null
+        }
+        if (digitsTop != null && numbers != null) {
+            summary["digitsTopEm"] = "%.3f".format((digitsTop - numbers.top) / temp.textSize)
+        }
         var previous: Rect? = null
         rows.forEachIndexed { i, row ->
             val r = box(row) ?: return@forEachIndexed
@@ -124,8 +169,8 @@ internal object WidgetPreviewCheck {
         val first = rows.firstOrNull()?.let { box(it) }
         val last = rows.lastOrNull()?.let { box(it) }
         if (first != null && tap != null && first.top < tap.bottom) out += "the first event line overlaps the clock"
-        if (last != null && numbers != null && last.bottom > numbers.top - MIN_GAP_DP * density) {
-            out += "the last event line is ${dp(numbers.top - last.bottom)} dp from the numbers"
+        if (last != null && digitsTop != null && last.bottom > digitsTop - MIN_DIGITS_GAP_DP * density) {
+            out += "the last event line is ${dp(digitsTop - last.bottom)} dp from the numbers' digits"
         }
         if (first != null && picture != null && shape == WidgetShape.SMALL &&
             first.top < picture.bottom - ART_ABOVE_BOX_END_DP * density
@@ -136,6 +181,41 @@ internal object WidgetPreviewCheck {
     }
 
     private fun dp1(density: Float) = density.toInt().coerceAtLeast(1)
+
+    /**
+     * Where the sky picture's art is, in the widget's pixels: the picture is drawn into a bitmap and its
+     * opaque part found, then placed the way its box is (moved and shrunk about its pivot).
+     */
+    private fun artBox(root: View, density: Float): Rect? {
+        val bar = findPicture(root) ?: return null
+        val box = bar.parent as? View ?: return null
+        if (bar.width == 0 || bar.height == 0) return null
+        val bitmap = Bitmap.createBitmap(bar.width, bar.height, Bitmap.Config.ARGB_8888)
+        bar.draw(Canvas(bitmap))
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        var top = Int.MAX_VALUE
+        var bottom = -1
+        var left = Int.MAX_VALUE
+        var right = -1
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                if ((pixels[y * bitmap.width + x] ushr 24) > ART_ALPHA) {
+                    if (y < top) top = y
+                    if (y > bottom) bottom = y
+                    if (x < left) left = x
+                    if (x > right) right = x
+                }
+            }
+        }
+        bitmap.recycle()
+        if (bottom < 0) return null
+        // The box sits at box.left/top inside the widget, then shrinks about its pivot.
+        val k = box.scaleX
+        fun x(px: Int) = (box.left + box.pivotX + (px + bar.left - box.pivotX) * k).toInt()
+        fun y(py: Int) = (box.top + box.pivotY + (py + bar.top - box.pivotY) * k).toInt()
+        return Rect(x(left), y(top), x(right), y(bottom))
+    }
 
     /** The sky picture on screen: the one view whose id starts with "wScene". */
     private fun findPicture(root: View): View? {

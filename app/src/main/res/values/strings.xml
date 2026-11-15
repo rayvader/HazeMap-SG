@@ -84,6 +84,8 @@
     <string name="widget_event_desc">Next event: %1$s</string>
     <string name="widget_event_other_desc">Event: %1$s</string>
     <string name="widget_event_more">+%1$d more</string>
+    <string name="widget_event_more_short">+%1$d</string>
+    <string name="widget_event_desc_more">%1$s. %2$d more events</string>
 
     <!-- Calendars for the widget line -->
     <string name="calendars_title">Calendars</string>
