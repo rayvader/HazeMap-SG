@@ -49,7 +49,20 @@ def widgets(path):
         # wScenePartlyNight is the picture "partly_night".
         scenes = [re.sub(r"(?<!^)(?=[A-Z])", "_", short_id(n)[len("wScene"):]).lower()
                   for n in root.iter("node") if short_id(n).startswith("wScene")]
-        fields = {short_id(n): n.get("text", "") for n in root.iter("node") if short_id(n) in WIDGET_FIELDS}
+        fields = {}
+        events = []
+        for n in root.iter("node"):
+            sid = short_id(n)
+            if sid == "wEventText":
+                events.append(n.get("text", ""))
+            elif sid == "wDateWrapped":
+                # The same date, under the clock instead of beside it.
+                fields["wDate"] = n.get("text", "")
+            elif sid in WIDGET_FIELDS:
+                fields[sid] = n.get("text", "")
+        if events:
+            # One text per event line (and the "+N more" line), top to bottom.
+            fields["wEventText"] = " | ".join(events)
         text = " ".join(f"{k[1:].lower()}='{fields[k]}'" for k in WIDGET_FIELDS if k in fields)
         print(f"widget {x2 - x1}x{y2 - y1}px picture={'+'.join(scenes) or 'none'} {text}")
 

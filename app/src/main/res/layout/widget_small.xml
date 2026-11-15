@@ -232,28 +232,47 @@
             android:orientation="vertical"
             android:paddingTop="12dp">
 
-            <TextClock
-                android:id="@+id/wClock"
-                style="@style/WidgetText"
-                android:fontFamily="sans-serif"
-                android:textStyle="bold"
-                android:format12Hour="HH:mm"
-                android:format24Hour="HH:mm"
-                android:includeFontPadding="false"
-                android:textSize="32sp" />
+            <!-- The time and, when there is room, the date beside it. The Square is rarely wide enough. -->
+            <LinearLayout
+                android:id="@+id/wClockRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:baselineAligned="true"
+                android:orientation="horizontal">
 
+                <TextClock
+                    android:id="@+id/wClock"
+                    style="@style/WidgetText"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
+                    android:format12Hour="HH:mm"
+                    android:format24Hour="HH:mm"
+                    android:includeFontPadding="false"
+                    android:textSize="32sp" />
+
+                <TextClock
+                    android:id="@+id/wDate"
+                    style="@style/WidgetText"
+                    android:format12Hour="EEE d MMM"
+                    android:format24Hour="EEE d MMM"
+                    android:layout_marginStart="8dp"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Under the clock: where the Square's date sits unless the widget is wide (see WidgetRows). -->
             <TextClock
-                android:id="@+id/wDate"
+                android:id="@+id/wDateWrapped"
                 style="@style/WidgetText"
                 android:format12Hour="EEE d MMM"
                 android:format24Hour="EEE d MMM"
-                android:textSize="11sp"
                 android:layout_marginStart="1dp"
-                android:layout_marginTop="1dp" />
+                android:layout_marginTop="1dp"
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- The next event, the temperature, the place and the PSI. Its bottom space is trimmed on a short widget. -->
+    <!-- The upcoming events, the temperature, the place and the PSI. Its bottom space is trimmed on a short widget. -->
     <LinearLayout
         android:id="@+id/wBottomBlock"
         android:layout_width="match_parent"
@@ -264,39 +283,15 @@
         android:paddingEnd="12dp"
         android:paddingBottom="12dp">
 
-        <!-- The next event on the chosen calendars. Hidden until there is one. -->
+        <!-- The upcoming events on the chosen calendars, one line each (see widget_event_row). They grow
+             upwards from the numbers. The app fills this in and shows it when there is one. -->
         <LinearLayout
-            android:id="@+id/wEventRow"
+            android:id="@+id/wEvents"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/widget_event_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="9dp"
-            android:paddingBottom="2dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/wEventIcon"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:layout_marginEnd="5dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_event"
-                android:tint="@color/white" />
-
-            <!-- A long title ends in "…" when the row runs out of room. -->
-            <TextView
-                android:id="@+id/wEventText"
-                style="@style/WidgetText"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="--"
-                android:textSize="11sp" />
-        </LinearLayout>
+            android:layout_marginBottom="1dp"
+            android:orientation="vertical"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="wrap_content"

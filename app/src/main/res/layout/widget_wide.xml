@@ -237,61 +237,55 @@
             android:orientation="vertical"
             android:paddingTop="12dp">
 
-            <!-- Always 24-hour, whatever the phone is set to. -->
-            <TextClock
-                android:id="@+id/wClock"
-                style="@style/WidgetText"
-                android:fontFamily="sans-serif"
-                android:textStyle="bold"
-                android:format12Hour="HH:mm"
-                android:format24Hour="HH:mm"
-                android:includeFontPadding="false"
-                android:textSize="44sp" />
+            <!-- The time and, when there is room, the date beside it: "14:05  Sun 15 Nov". Always 24-hour,
+                 whatever the phone is set to. -->
+            <LinearLayout
+                android:id="@+id/wClockRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:baselineAligned="true"
+                android:orientation="horizontal">
 
-            <!-- Under the clock. Hidden only when a widget is too small for it (see WidgetFit). -->
+                <TextClock
+                    android:id="@+id/wClock"
+                    style="@style/WidgetText"
+                    android:fontFamily="sans-serif"
+                    android:textStyle="bold"
+                    android:format12Hour="HH:mm"
+                    android:format24Hour="HH:mm"
+                    android:includeFontPadding="false"
+                    android:textSize="44sp" />
+
+                <TextClock
+                    android:id="@+id/wDate"
+                    style="@style/WidgetText"
+                    android:format12Hour="EEE d MMM"
+                    android:format24Hour="EEE d MMM"
+                    android:layout_marginStart="8dp"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Under the clock instead, when the two do not fit on one row (see WidgetRows). -->
             <TextClock
-                android:id="@+id/wDate"
+                android:id="@+id/wDateWrapped"
                 style="@style/WidgetText"
                 android:format12Hour="EEE d MMM"
                 android:format24Hour="EEE d MMM"
-                android:textSize="13sp"
                 android:layout_marginStart="2dp"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="2dp"
+                android:textSize="13sp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- The next event on the chosen calendars. Hidden until there is one. -->
+        <!-- The upcoming events on the chosen calendars, one line each (see widget_event_row). The app fills
+             this in and shows it when there is one. -->
         <LinearLayout
-            android:id="@+id/wEventRow"
+            android:id="@+id/wEvents"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:background="@drawable/widget_event_bg"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="9dp"
-            android:paddingBottom="2dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/wEventIcon"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:layout_marginEnd="5dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_event"
-                android:tint="@color/white" />
-
-            <!-- A long title ends in "…" when the row runs out of room. -->
-            <TextView
-                android:id="@+id/wEventText"
-                style="@style/WidgetText"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="--"
-                android:textSize="11sp" />
-        </LinearLayout>
+            android:orientation="vertical"
+            android:visibility="gone" />
     </LinearLayout>
 
     <!--

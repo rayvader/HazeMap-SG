@@ -37,24 +37,24 @@ object WidgetFits {
      * Light), and the emulator draws it at 2.53 to 2.58. Some makers' fonts have wider digits, and a clock
      * that does not fit breaks into two lines, so this counts 6% more.
      */
-    private const val CLOCK_DP_PER_SP = 2.75f
+    internal const val CLOCK_DP_PER_SP = 2.75f
 
     /**
      * The width a widget has when the home screen has not said: the four-column Wide and the two-column
      * Square the emulator test draws. Unlike an unknown height this errs on the roomy side, as it always has.
      */
-    private const val USUAL_WIDE_DP = 362
-    private const val USUAL_SMALL_DP = 180
+    internal const val USUAL_WIDE_DP = 362
+    internal const val USUAL_SMALL_DP = 180
 
     /**
      * The room for the clock before the picture, from the widget's width: the Wide's text starts 16 dp in
      * and stops 124 dp short of the right edge, the Square's starts 14 dp in and its picture box takes 70 dp.
      */
-    private const val WIDE_CLOCK_MARGINS_DP = 140
-    private const val SMALL_CLOCK_MARGINS_DP = 84
+    internal const val WIDE_CLOCK_MARGINS_DP = 140
+    internal const val SMALL_CLOCK_MARGINS_DP = 84
 
     /** The smallest clock the width cap will ask for. */
-    private const val MIN_CLOCK_SP = 12
+    internal const val MIN_CLOCK_SP = 12
 
     /**
      * The height the home screen gives a widget right now, in dp. It reports two heights: the one with

@@ -92,31 +92,40 @@ and add it again. Each widget keeps its own place, so a Square can show Singapor
 Tokyo. Tapping a city widget opens that city's page. A widget keeps its city even if you take the city
 off My places.
 
-**Next event** — the Wide and Square widgets can show your next calendar event, such as "15:00 Lunch".
+**Events** — the Wide and Square widgets can list your upcoming calendar events, such as "15:00 Lunch".
 On the widget's screen, open Calendars, allow calendar access, and tick the calendars to use. The list
 starts with the ones your Calendar app shows; a calendar switched off in its account has no events on
-the phone and cannot be ticked. One list serves every widget. With no event in the next week there is no
-line at all.
+the phone and cannot be ticked. One list serves every widget. With no event in the next week there are no
+lines at all.
 
-The line shows the first day that still has an event. On that day a timed event beats an all-day one,
-and one about to start beats one that has been running a while. Cancelled and declined events are
-skipped. Times follow the phone's clock, like your Calendar app. Tap the line to open your Calendar app
-on today. It changes as an event starts and ends, and when a calendar changes.
+The first line is the next event: the first day that still has an event, where a timed event beats an
+all-day one and one about to start beats one that has been running a while. The lines under it are the
+rest of the week in order, by day, then timed before all-day, then by start. The widget shows as many
+lines as its real height holds (see Short widgets); when events are left over, the last line says how
+many ("+3 more"). A widget with room for one line shows just the next event. Cancelled and declined
+events are skipped. Times follow the phone's clock, like your Calendar app. Tap a line to open your
+Calendar app on today. The lines change as an event starts and ends, and when a calendar changes.
 
 It is only the event: no weather, and no network. The app reads each event's title and time on the
 phone, and never sends them anywhere.
 
 **Short widgets** — a home screen app decides how tall a 4x2 widget is: about 220 dp on a Pixel, about
-140 dp on some other phones. The widget asks for its height and packs its text to fit. The date always
-sits under the clock. The Wide has its temperature, weather and place on one line, so its clock gets the
+140 dp on some other phones. The widget asks for its height and packs its text to fit. The date sits
+beside the time on the same row ("14:05  Sun 15 Nov"), which frees a line for events. When the two do not
+fit on one row, the clock shrinks by up to 15% to make them fit; if that is not enough (a big clock with
+larger text, a narrow widget), the date wraps under the clock on that size only. The Square is too narrow
+for the row and keeps the date under the clock; the Strip puts it beside the time only when it is at
+least about 450 dp wide, as on an unfolded phone, so that its row is not squeezed. The Wide has its
+temperature, weather and place on one line, so its clock gets the
 rest: as big as the height allows, from 60 sp on a tall one down to 22 sp on the shortest, and the same
 size with or without an event line. It keeps the event line down to about 108 dp. A Square shows the
 event only from about 170 dp up: its line sits under the sky picture and would cover it on a shorter
 widget. The date goes only where even the smallest clock leaves no room for it: on a Square below about
 122 dp, and on a Wide only at its shortest height with much larger text. A larger text size in Settings
 counts as less height, by as much as the text grows; the space around the text stays the same. A big
-clock also shrinks for very large text, so that it stays on one line. A 139 dp Wide has a 42 sp clock,
-the date and the event line, and keeps all three at 115% text with a 32 sp clock. If the home screen does
+clock also shrinks for very large text, so that it stays on one line. A 139 dp Wide has a 42 sp clock with
+the date beside it and two event lines (the next event and "+N more", or two events), and keeps all of it
+at 115% text with a 32 sp clock. A taller widget lists more: about 4 lines at 223 dp. If the home screen does
 not say how tall a widget is, it is drawn as the shortest one. The widgets cannot be resized, so they
 settle on a size when you add them.
 
@@ -289,8 +298,9 @@ All code is in `app/src/main/java/io/github/rayvader/hazemap/`:
 | `Areas.kt`, `Region.kt`, `Band.kt` | the 47 forecast areas, the five PSI regions, and the air-quality bands |
 | `PlaceData.kt`, `PlaceStore.kt`, `PlacesSheet.kt`, `PlaceActivity.kt` | My places: Open-Meteo search and weather, the saved list, the city page |
 | `UpdateChecker.kt`, `UpdateLogic.kt`, `Updater.kt`, `UpdateStatusReceiver.kt` | self-update from GitHub releases: check, verify, download, install |
-| `WidgetUpdater.kt`, `WidgetLogic.kt`, `WidgetFit.kt`, `WidgetTarget.kt`, `WidgetPlaceActivity.kt`, `WidgetPreview.kt` | the three widgets, what they show, how they fit their height, and which place each one shows |
-| `CalendarLogic.kt`, `PhoneCalendars.kt`, `CalendarsActivity.kt` | the next-event line and the calendar picker |
+| `WidgetUpdater.kt`, `WidgetLogic.kt`, `WidgetFit.kt`, `WidgetTarget.kt`, `WidgetPlaceActivity.kt`, `WidgetPreview.kt`, `WidgetPreviewCheck.kt` | the three widgets, what they show, how they fit their height, and which place each one shows |
+| `CalendarLogic.kt`, `PhoneCalendars.kt`, `CalendarsActivity.kt` | the upcoming events and the calendar picker |
+| `WidgetRows.kt` | where the date goes (beside the clock, or under it) and how many event lines a widget's height holds |
 | `ThemeChoice.kt`, `UiHelpers.kt` | saved settings, light/dark theme, shared view helpers |
 
 The layouts were chosen from three mockups; the one that was built is option A (tabs).

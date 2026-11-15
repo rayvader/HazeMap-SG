@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One line in a widget's event list: "15:00 Lunch" behind a small calendar picture, or "+3 more" (the picture
+     is hidden then). The app adds one of these for each event it shows (see WidgetUpdater.showEvents). The
+     3 dp under it is the space between two lines. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wEventRow"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/widget_event_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="7dp"
+    android:paddingTop="2dp"
+    android:paddingEnd="9dp"
+    android:paddingBottom="2dp">
+
+    <ImageView
+        android:id="@+id/wEventIcon"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="5dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_event"
+        android:tint="@color/white" />
+
+    <!-- A long title ends in "…" when the row runs out of room. -->
+    <TextView
+        android:id="@+id/wEventText"
+        style="@style/WidgetText"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="--"
+        android:textSize="11sp" />
+</LinearLayout>
