@@ -609,9 +609,12 @@ REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep 
 # ---- Clock tap: the clock and date open the phone's Clock app; the rest of the widget opens this app ----
 top_activity() { adb shell dumpsys activity activities | grep -m1 -o 'topResumedActivity=.*' | cut -c1-160; }
 say "clock apps for SHOW_ALARMS: $(adb shell cmd package query-activities --brief -a android.intent.action.SHOW_ALARMS | tr -d '\r' | grep '/' | tr '\n' ' ')"
+# The date is beside the clock (wDate) or, when the two do not fit on one row, under it (wDateWrapped).
 for part in wClock wDate; do
   dump
-  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part") || { say "FAIL clock tap: no $part on the home screen"; continue; }
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part" 2>/dev/null) ||
+    { [ "$part" = wDate ] && part=wDateWrapped && xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part" 2>/dev/null); } ||
+    { say "FAIL clock tap: no $part on the home screen"; continue; }
   adb shell input tap $xy
   sleep 4
   top=$(top_activity)
