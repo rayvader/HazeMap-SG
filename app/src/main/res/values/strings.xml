@@ -82,6 +82,8 @@
     <string name="widget_pick_calendars_off">Off</string>
     <string name="widget_pick_done">Done</string>
     <string name="widget_event_desc">Next event: %1$s</string>
+    <string name="widget_event_other_desc">Event: %1$s</string>
+    <string name="widget_event_more">+%1$d more</string>
 
     <!-- Calendars for the widget line -->
     <string name="calendars_title">Calendars</string>

@@ -169,19 +169,19 @@ object WidgetUpdater {
         val area = savedArea(app)
         val now = System.currentTimeMillis()
 
-        // The next event on the ticked calendars: the same on every widget that has room for it.
-        val event = if (placed.any { it.shape.hasEventLine }) {
-            withContext(Dispatchers.IO) { PhoneCalendars.nextEvent(app, now) }
+        // The upcoming events on the ticked calendars: the same on every widget that has room for them.
+        val events = if (placed.any { it.shape.hasEventLine }) {
+            withContext(Dispatchers.IO) { PhoneCalendars.upcoming(app, now) }
         } else {
-            null
+            emptyList()
         }
 
         val repo = WeatherRepository.get(app)
         // Paint what is already on disk, so a widget is never empty while the network answers.
         val cached = withContext(Dispatchers.IO) { readDisk(repo, wantSingapore, places) }
-        draw(app, manager, placed, targets, area, cached, event, now)
-        if (fetch) draw(app, manager, placed, targets, area, fetchAll(repo, wantSingapore, places, cached), event, now)
-        scheduleNextChange(app, event, now)
+        draw(app, manager, placed, targets, area, cached, events, now)
+        if (fetch) draw(app, manager, placed, targets, area, fetchAll(repo, wantSingapore, places, cached), events, now)
+        scheduleNextChange(app, events, now)
     }
 
     private fun readDisk(repo: WeatherRepository, wantSingapore: Boolean, places: List<Place>): Data = Data(
@@ -224,11 +224,11 @@ object WidgetUpdater {
     }
 
     /**
-     * Redraws the widgets when the shown event starts or ends, or at midnight, so the line never
-     * shows a finished event for long. Not a wake-up alarm: the line only matters with the screen on,
-     * and the redraw needs no network.
+     * Redraws the widgets when a listed event starts or ends, or at midnight, so the lines never show a
+     * finished event for long. Not a wake-up alarm: the lines only matter with the screen on, and the redraw
+     * needs no network.
      */
-    private fun scheduleNextChange(context: Context, event: CalendarEvent?, now: Long) {
+    private fun scheduleNextChange(context: Context, events: List<CalendarEvent>, now: Long) {
         val alarms = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val redraw = PendingIntent.getBroadcast(
             context,
@@ -236,11 +236,13 @@ object WidgetUpdater {
             Intent(context, WidgetRefreshReceiver::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        if (event == null) {
+        if (events.isEmpty()) {
             alarms.cancel(redraw)
             return
         }
-        alarms.set(AlarmManager.RTC, EventLogic.nextChangeMillis(event, now, ZoneId.systemDefault()) + 1_000L, redraw)
+        val zone = ZoneId.systemDefault()
+        val next = events.minOf { EventLogic.nextChangeMillis(it, now, zone) }
+        alarms.set(AlarmManager.RTC, next + 1_000L, redraw)
     }
 
     /** Asks for one redraw of every widget from the phone's saved data, with the time a receiver is given. */
@@ -299,24 +301,25 @@ object WidgetUpdater {
         targets: Map<Int, WidgetTarget>,
         area: Area,
         data: Data,
-        event: CalendarEvent?,
+        events: List<CalendarEvent>,
         now: Long
     ) {
         // Times follow the phone's clock, as the Calendar app shows them.
-        val text = event?.let { EventLogic.lineText(it, now, ZoneId.systemDefault()) }
+        val zone = ZoneId.systemDefault()
+        val allLines = events.map { EventLine(it, EventLogic.lineText(it, now, zone)) }
         for (w in placed) {
             val target = targets.getValue(w.id)
             val model = modelFor(target, area, data)
-            val line = if (event != null && text != null && w.shape.hasEventLine) EventLine(event, text) else null
+            val lines = if (w.shape.hasEventLine) allLines else emptyList()
             val heightDp = heightOf(context, manager, w.id)
             val widthDp = widthOf(context, manager, w.id)
             // The smoke test reads these lines to find the id of each widget. No event details: they stay private.
             Log.i(
                 TAG,
                 "draw id=${w.id} shape=${w.shape.key} place=${model.placeName} zone=${model.zoneId} " +
-                    "event=${line != null} h=$heightDp w=$widthDp"
+                    "events=${lines.size} h=$heightDp w=$widthDp"
             )
-            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, line, now, heightDp, widthDp = widthDp))
+            manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, lines, now, heightDp, widthDp = widthDp))
         }
     }
 
@@ -367,7 +370,7 @@ object WidgetUpdater {
         shape: WidgetShape,
         model: WidgetModel,
         widgetId: Int,
-        event: EventLine? = null,
+        events: List<EventLine> = emptyList(),
         nowMillis: Long = System.currentTimeMillis(),
         heightDp: Int = 0,
         /** Draws this sky whatever the weather. Only the emulator test's preview sets it. */
@@ -380,8 +383,12 @@ object WidgetUpdater {
         val clock = model.recordedMillis?.let { TimeFmt.clockIn(it, model.zoneId) }
         // A short widget drops the event line (and, if even that is not enough, the date) and shrinks the rest;
         // the Strip has no fit.
-        val fit = WidgetFits.of(shape, heightDp, event != null, context.resources.configuration.fontScale, widthDp)
-        if (fit != null) applyFit(context, v, shape, fit)
+        val fontScale = context.resources.configuration.fontScale
+        val fit = WidgetFits.of(shape, heightDp, events.isNotEmpty(), fontScale, widthDp)
+        // Where the date goes, and how many events get a line.
+        val plan = WidgetRows.plan(shape, heightDp, widthDp, fontScale, fit, events.size)
+        if (fit != null) applyFit(context, v, shape, fit, plan)
+        placeDate(v, plan)
 
         // The sky colour, and the one moving picture for this weather.
         v.setInt(R.id.wRoot, "setBackgroundResource", skyOf(scene))
@@ -392,6 +399,7 @@ object WidgetUpdater {
         // The clock and date tick by themselves, in the time of the place the widget shows.
         v.setString(R.id.wClock, "setTimeZone", model.zoneId)
         v.setString(R.id.wDate, "setTimeZone", model.zoneId)
+        v.setString(R.id.wDateWrapped, "setTimeZone", model.zoneId)
 
         v.setTextViewText(R.id.wTemp, model.tempText)
         v.setTextViewText(R.id.wCondition, model.conditionText)
@@ -410,16 +418,23 @@ object WidgetUpdater {
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
         // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
         v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
-        // The strip has no event line in its layout: setting one there would stop it drawing.
-        if (shape.hasEventLine) showEvent(context, v, event.takeIf { fit?.showEvent != false }, widgetId, model)
+        // The strip has no event lines in its layout: setting them there would stop it drawing.
+        if (shape.hasEventLine) showEvents(context, v, events, plan, widgetId, model)
         return v
     }
 
+    /** The plan a widget of this size is drawn with: the emulator test's preview logs it and checks the drawing against it. */
+    internal fun planOf(context: Context, shape: WidgetShape, heightDp: Int, widthDp: Int, eventCount: Int): RowPlan {
+        val fontScale = context.resources.configuration.fontScale
+        val fit = WidgetFits.of(shape, heightDp, eventCount > 0, fontScale, widthDp)
+        return WidgetRows.plan(shape, heightDp, widthDp, fontScale, fit, eventCount)
+    }
+
     /** Sizes the clock and the numbers, trims the space at the top and bottom, and shows the date when there is room. */
-    private fun applyFit(context: Context, v: RemoteViews, shape: WidgetShape, fit: WidgetFit) {
+    private fun applyFit(context: Context, v: RemoteViews, shape: WidgetShape, fit: WidgetFit, plan: RowPlan) {
         val density = context.resources.displayMetrics.density
         fun px(dp: Int) = (dp * density).roundToInt()
-        v.setTextViewTextSize(R.id.wClock, TypedValue.COMPLEX_UNIT_SP, fit.clockSp.toFloat())
+        v.setTextViewTextSize(R.id.wClock, TypedValue.COMPLEX_UNIT_SP, plan.clockSp.toFloat())
         v.setTextViewTextSize(R.id.wTemp, TypedValue.COMPLEX_UNIT_SP, fit.tempSp.toFloat())
         // The side space is what each layout has in XML (start and end); only the top and the bottom change.
         // setViewPadding takes left and right, so a right-to-left phone gets start and end the other way round.
@@ -436,22 +451,57 @@ object WidgetUpdater {
             if (rtl) start else end,
             px(fit.padBottomDp)
         )
-        v.setViewVisibility(R.id.wDate, if (fit.showDate) View.VISIBLE else View.GONE)
     }
 
-    /** "15:00 Lunch" behind a small calendar picture. The row stays hidden when there is no event. */
-    private fun showEvent(context: Context, v: RemoteViews, line: EventLine?, widgetId: Int, model: WidgetModel) {
-        if (line == null) {
-            v.setViewVisibility(R.id.wEventRow, View.GONE)
+    /** The date on the clock's row, or under the clock (see [WidgetRows]); hidden only when there is no room for it. */
+    private fun placeDate(v: RemoteViews, plan: RowPlan) {
+        val beside = plan.dateSpot == DateSpot.BESIDE
+        v.setViewVisibility(R.id.wDate, if (plan.showDate && beside) View.VISIBLE else View.GONE)
+        v.setViewVisibility(R.id.wDateWrapped, if (plan.showDate && !beside) View.VISIBLE else View.GONE)
+    }
+
+    /**
+     * "15:00 Lunch" behind a small calendar picture, one line for each of [plan]'s events, then "+3 more" for
+     * the rest. The list stays hidden when there is nothing to show.
+     */
+    private fun showEvents(
+        context: Context,
+        v: RemoteViews,
+        events: List<EventLine>,
+        plan: RowPlan,
+        widgetId: Int,
+        model: WidgetModel
+    ) {
+        // A redraw may reuse the views the home screen already has: clear the old lines first.
+        v.removeAllViews(R.id.wEvents)
+        if (plan.lines == 0) {
+            v.setViewVisibility(R.id.wEvents, View.GONE)
             return
         }
-        v.setViewVisibility(R.id.wEventRow, View.VISIBLE)
-        v.setTextViewText(R.id.wEventText, line.text)
-        v.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc, line.text))
-        v.setOnClickPendingIntent(R.id.wEventRow, calendarIntent(context, model, widgetId))
+        v.setViewVisibility(R.id.wEvents, View.VISIBLE)
+        // Every line opens the calendar app on today, not the event (see calendarIntent).
+        val open = calendarIntent(context, model, widgetId)
+        events.take(plan.events).forEachIndexed { i, line ->
+            val row = RemoteViews(context.packageName, R.layout.widget_event_row)
+            row.setTextViewText(R.id.wEventText, line.text)
+            row.setContentDescription(
+                R.id.wEventRow,
+                context.getString(if (i == 0) R.string.widget_event_desc else R.string.widget_event_other_desc, line.text)
+            )
+            row.setOnClickPendingIntent(R.id.wEventRow, open)
+            v.addView(R.id.wEvents, row)
+        }
+        if (plan.more > 0) {
+            val text = context.getString(R.string.widget_event_more, plan.more)
+            val row = RemoteViews(context.packageName, R.layout.widget_event_row)
+            row.setViewVisibility(R.id.wEventIcon, View.GONE)
+            row.setTextViewText(R.id.wEventText, text)
+            row.setContentDescription(R.id.wEventRow, text)
+            row.setOnClickPendingIntent(R.id.wEventRow, open)
+            v.addView(R.id.wEvents, row)
+        }
     }
 
-    /** Opens the event in the phone's Calendar app. Null when no app can, so a tap opens this app instead. */
     /**
      * The phone's calendar app at its usual view on today, never one event's page: the time view, else the
      * calendar category, else Samsung's or Google's Calendar by name, else this app (see [CalendarApps.choose]).

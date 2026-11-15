@@ -20,23 +20,42 @@
         android:minHeight="48dp"
         android:orientation="vertical">
 
-        <TextClock
-            android:id="@+id/wClock"
-            style="@style/WidgetText"
-            android:fontFamily="sans-serif"
-            android:textStyle="bold"
-            android:format12Hour="HH:mm"
-            android:format24Hour="HH:mm"
-            android:includeFontPadding="false"
-            android:textSize="28sp" />
+        <!-- The time and, on a wide Strip, the date beside it. -->
+        <LinearLayout
+            android:id="@+id/wClockRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:baselineAligned="true"
+            android:orientation="horizontal">
 
+            <TextClock
+                android:id="@+id/wClock"
+                style="@style/WidgetText"
+                android:fontFamily="sans-serif"
+                android:textStyle="bold"
+                android:format12Hour="HH:mm"
+                android:format24Hour="HH:mm"
+                android:includeFontPadding="false"
+                android:textSize="28sp" />
+
+            <TextClock
+                android:id="@+id/wDate"
+                style="@style/WidgetText"
+                android:format12Hour="EEE d MMM"
+                android:format24Hour="EEE d MMM"
+                android:layout_marginStart="8dp"
+                android:textSize="10sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Under the clock: where the Strip's date sits unless the widget is wide (see WidgetRows). -->
         <TextClock
-            android:id="@+id/wDate"
+            android:id="@+id/wDateWrapped"
             style="@style/WidgetText"
             android:format12Hour="EEE d MMM"
             android:format24Hour="EEE d MMM"
-            android:textSize="10sp"
-            android:layout_marginStart="1dp" />
+            android:layout_marginStart="1dp"
+            android:textSize="10sp" />
     </LinearLayout>
 
     <!-- One moving weather picture per scene; the app shows one and hides the others.

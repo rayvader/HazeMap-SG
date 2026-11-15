@@ -312,6 +312,21 @@ fit_shot fit-22-one-line-cities "wide@139+e+c/wide@139+e+cl/wide@139+e+c+lc/wide
 fit_shot fit-25-wide-narrow "wide@223+e+w=290/wide@223+e+w=250/wide@176+e+w=290"
 # The Square's clock has 96 dp before its picture: the three clocks, bold, one under the other.
 fit_shot fit-26-clocks "small@223,small@170+e/wide@176+e/strip@70"
+# The date beside the time and more event lines (see WidgetRows). "+e=6" gives a widget six made-up events and
+# "+min=N" says how many event lines the test wants to see; the app looks at each drawing itself
+# (see WidgetPreviewCheck) and logs "check ...: ok" or "FAIL ...". Sizes: the Wide at the heights the phone
+# gives it, the Square, the Strip.
+fit_shot fit-30-date-row-wide "wide@110+e=6+min=1/wide@125+e=6+min=1/wide@140+e=6+min=2/wide@160+e=6+min=2"
+fit_shot fit-31-date-row-wide-tall "wide@139+e=6+min=2/wide@190+e=6+min=2/wide@223+e=6+min=3"
+fit_shot fit-32-date-row-small "small@170+e=6,small@190+e=6/small@223+e=6+min=2,small@300+e=6+min=3"
+fit_shot fit-33-date-row-strip "strip@70+e=6/strip@55+e=6"
+# An unfolded phone is wider: the emulator's screen is made 540 dp wide for these (density 320), so a Wide of 500 dp fits.
+adb shell wm density 320
+sleep 5
+fit_shot fit-34-date-row-unfolded "wide@150+e=6+w=480+min=2/wide@200+e=6+w=480+min=3/wide@260+e=6+w=500+min=4"
+fit_shot fit-35-date-row-unfolded-small "small@230+e=6+w=230+min=3,small@260+e=6+w=240+min=3/strip@70+w=500/strip@70+w=456"
+adb shell wm density reset
+sleep 5
 # The Square's event line must clear every sky picture: the skies whose art reaches lowest (the night
 # thunderstorm's bolt, the star of the clear night, the haze lines), and the day skies, at 170 dp.
 fit_shot fit-13-small-event-skies "small@170+e+s=storm_night,small@170+e+s=night/small@170+e+s=haze_night,small@170+e+s=storm"
@@ -324,6 +339,13 @@ fit_shot fit-11-city-names "wide@140+e+c+s=rain_night/wide@140+cl/small@150+c,sm
 # Bigger text, as a person can set it in Settings: the same short widgets again.
 adb shell settings put system font_scale 1.15
 fit_shot fit-8-bigfont "wide@125+e/wide@139+e/wide@160+e/small@140,small@200+e"
+# The date beside the time and more event lines, at this text size too, on the phone and unfolded.
+fit_shot fit-36-date-row-bigfont "wide@139+e=6+min=2/wide@160+e=6+min=2/wide@223+e=6+min=2/small@223+e=6+min=2,small@300+e=6+min=2"
+adb shell wm density 320
+sleep 5
+fit_shot fit-37-date-row-bigfont-unfolded "wide@150+e=6+w=480+min=2/wide@200+e=6+w=480+min=2/strip@70+w=500/small@230+e=6+w=230,small@260+e=6+w=240"
+adb shell wm density reset
+sleep 5
 # The shortest height of each Wide fit at this text size, with the event line. Only the text grows, so
 # 139 dp at 115% counts as 121 dp (see WidgetFits): 202, 194, 176, 171, 158, 148, 137, 132 and 123 dp
 # are the lowest that still count as the fit of 176, 169, 154, 149, 138, 129, 120, 115 and 108 dp.
@@ -342,10 +364,20 @@ adb shell am force-stop "$PKG"
 adb shell settings put system font_scale 1.0
 adb logcat -d -s HazeWidget:I | grep " preview " | sed 's/^.* I HazeWidget: //' > "$OUT/fit.txt" || true
 cat "$OUT/fit.txt"
+# What the app saw when it looked at each drawing (see WidgetPreviewCheck): one line each, "ok" or "FAIL ...".
+adb logcat -d -s HazeWidget:I | grep " check " | sed 's/^.* I HazeWidget: //' > "$OUT/fit-checks.txt" || true
+cat "$OUT/fit-checks.txt"
+FIT_CHECK_FAILED=""
+if grep -q ': FAIL ' "$OUT/fit-checks.txt"; then
+  FIT_CHECK_FAILED=1
+  echo "FAIL: some widgets were not drawn well; see fit-checks.txt"
+fi
 # A crash while drawing would leave a blank screenshot: keep its trace beside it.
 adb logcat -d -s AndroidRuntime:E > "$OUT/fit-crash.txt" || true
 if [ "${SMOKE_ONLY:-}" = widget-fit ]; then
   echo "Only the widget fit was asked for. Screenshots in $OUT/"
+  # A widget drawn badly turns this quick run red; the full run reports it in interaction.txt.
+  [ -z "$FIT_CHECK_FAILED" ] || exit 1
   exit 0
 fi
 
@@ -365,6 +397,7 @@ adb shell cmd uimode night no
 # (The helpers it uses, say, dump, tap and attr, are defined near the top.)
 set +e
 : > "$LOG"
+[ -z "${FIT_CHECK_FAILED:-}" ] || say "FAIL widget drawing checks: $(grep ': FAIL ' "$OUT/fit-checks.txt" | head -3 | tr '\n' ' ')"
 
 adb shell am force-stop "$PKG"
 adb shell am start -W -n "$PKG/.MainActivity"
@@ -576,9 +609,12 @@ REAL=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-widgets.xml" | grep 
 # ---- Clock tap: the clock and date open the phone's Clock app; the rest of the widget opens this app ----
 top_activity() { adb shell dumpsys activity activities | grep -m1 -o 'topResumedActivity=.*' | cut -c1-160; }
 say "clock apps for SHOW_ALARMS: $(adb shell cmd package query-activities --brief -a android.intent.action.SHOW_ALARMS | tr -d '\r' | grep '/' | tr '\n' ' ')"
+# The date is beside the clock (wDate) or, when the two do not fit on one row, under it (wDateWrapped).
 for part in wClock wDate; do
   dump
-  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part") || { say "FAIL clock tap: no $part on the home screen"; continue; }
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part" 2>/dev/null) ||
+    { [ "$part" = wDate ] && part=wDateWrapped && xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$part" 2>/dev/null); } ||
+    { say "FAIL clock tap: no $part on the home screen"; continue; }
   adb shell input tap $xy
   sleep 4
   top=$(top_activity)

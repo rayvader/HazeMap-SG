@@ -100,14 +100,7 @@ object EventLogic {
      */
     fun pickNext(events: List<CalendarEvent>, nowMillis: Long, zone: ZoneId): CalendarEvent? {
         val today = day(nowMillis, zone)
-        val lastDay = day(nowMillis + LOOK_AHEAD_MS, zone)
-        val live = events.filter { e ->
-            if (e.allDay) {
-                e.dayAfter > today && e.firstDay <= lastDay
-            } else {
-                e.endMillis > nowMillis && e.beginMillis < nowMillis + LOOK_AHEAD_MS
-            }
-        }
+        val live = live(events, nowMillis, zone)
         if (live.isEmpty()) return null
         val firstDay = live.minOf { dayOf(it, today, zone) }
         val thatDay = live.filter { dayOf(it, today, zone) == firstDay }
@@ -115,6 +108,33 @@ object EventLogic {
         return timed.filter { it.beginMillis >= nowMillis - JUST_STARTED_MS }.minByOrNull { it.beginMillis }
             ?: timed.minByOrNull { it.endMillis }
             ?: thatDay.minByOrNull { it.title.lowercase(Locale.ROOT) }
+    }
+
+    /**
+     * The events the widget lists, the next one first (see [pickNext]), then the rest of the week in the
+     * order they come: by day, a timed event before an all-day one, then by start.
+     */
+    fun pickUpcoming(events: List<CalendarEvent>, nowMillis: Long, zone: ZoneId): List<CalendarEvent> {
+        val first = pickNext(events, nowMillis, zone) ?: return emptyList()
+        val today = day(nowMillis, zone)
+        val rest = live(events, nowMillis, zone).filterNot { it === first }.sortedWith(
+            compareBy<CalendarEvent>({ dayOf(it, today, zone) }, { it.allDay }, { it.beginMillis })
+                .thenBy { it.title.lowercase(Locale.ROOT) }
+        )
+        return listOf(first) + rest
+    }
+
+    /** The events still to come, or on now, within the look-ahead. */
+    private fun live(events: List<CalendarEvent>, nowMillis: Long, zone: ZoneId): List<CalendarEvent> {
+        val today = day(nowMillis, zone)
+        val lastDay = day(nowMillis + LOOK_AHEAD_MS, zone)
+        return events.filter { e ->
+            if (e.allDay) {
+                e.dayAfter > today && e.firstDay <= lastDay
+            } else {
+                e.endMillis > nowMillis && e.beginMillis < nowMillis + LOOK_AHEAD_MS
+            }
+        }
     }
 
     /** The day an event counts for: the day it starts, or today while it is still on. */

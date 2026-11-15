@@ -9,7 +9,7 @@ import androidx.core.content.ContextCompat
 import java.time.ZoneId
 
 /**
- * The phone's calendars: which ones there are, which ones the widget line reads, and the next event
+ * The phone's calendars: which ones there are, which ones the widget lines read, and the upcoming events
  * on them. Event details never leave the phone.
  */
 object PhoneCalendars {
@@ -115,13 +115,16 @@ object PhoneCalendars {
             .apply()
     }
 
-    /** The next event on the chosen calendars, or null without access, a choice, or an event this week. */
-    fun nextEvent(context: Context, nowMillis: Long): CalendarEvent? {
-        if (!hasAccess(context)) return null
+    /**
+     * The events the widget lists on the chosen calendars, the next one first (see [EventLogic.pickUpcoming]);
+     * empty without access, a choice, or an event this week.
+     */
+    fun upcoming(context: Context, nowMillis: Long): List<CalendarEvent> {
+        if (!hasAccess(context)) return emptyList()
         val ids = CalendarChoice.chosen(list(context), saved(context))
-        if (ids.isEmpty()) return null
+        if (ids.isEmpty()) return emptyList()
         // A day either side, so an all-day event, kept from midnight UTC, is never cut off.
         val events = events(context, ids, nowMillis - DAY_MS, nowMillis + EventLogic.LOOK_AHEAD_MS + DAY_MS)
-        return EventLogic.pickNext(events, nowMillis, ZoneId.systemDefault())
+        return EventLogic.pickUpcoming(events, nowMillis, ZoneId.systemDefault())
     }
 }

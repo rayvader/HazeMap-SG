@@ -104,8 +104,11 @@ class WidgetResourcesTest {
     @Test
     fun everyLayoutHasTheViewsTheAppFillsIn() {
         // A view missing from one layout only fails on a phone, when the widget refuses to draw.
-        val shared = listOf("wRoot", "wClockTap", "wClock", "wDate", "wTemp", "wCondition", "wPlace", "wBadge")
-        val eventLine = listOf("wEventRow", "wEventIcon", "wEventText")
+        val shared = listOf(
+            "wRoot", "wClockTap", "wClockRow", "wClock", "wDate", "wDateWrapped", "wTemp", "wCondition", "wPlace", "wBadge"
+        )
+        // The list the app adds one line to for each event (see widget_event_row).
+        val eventLine = listOf("wEvents")
         // The two blocks whose space the app trims on a short widget (see WidgetFit).
         val trimmed = listOf("wTopBlock", "wBottomBlock")
         for (shape in WidgetShape.entries) {
@@ -120,12 +123,25 @@ class WidgetResourcesTest {
     }
 
     @Test
-    fun theEventLineIsHiddenUntilThereIsAnEvent() {
+    fun theEventListIsHiddenUntilThereIsAnEvent() {
         // The widget picker's preview, and a phone with no calendar chosen, show no empty line.
         for (shape in WidgetShape.entries.filter { it.hasEventLine }) {
-            val row = views("widget_${shape.key}").single { it.attr("id") == "@+id/wEventRow" }
-            assertEquals(shape.key, "gone", row.attr("visibility"))
+            val list = views("widget_${shape.key}").single { it.attr("id") == "@+id/wEvents" }
+            assertEquals(shape.key, "gone", list.attr("visibility"))
+            assertTrue(shape.key, list.children().isEmpty())
         }
+    }
+
+    @Test
+    fun anEventLineHasItsPictureAndItsText() {
+        val line = views("widget_event_row")
+        val ids = line.mapNotNull { it.attr("id") }.toSet()
+        assertTrue(ids.containsAll(listOf("@+id/wEventRow", "@+id/wEventIcon", "@+id/wEventText")))
+        // One line, ending in "…" when the title is too long, and the space the plan counts under it.
+        val text = line.single { it.attr("id") == "@+id/wEventText" }
+        assertEquals("1", text.attr("maxLines"))
+        assertEquals("end", text.attr("ellipsize"))
+        assertEquals("3dp", line.first().attr("layout_marginBottom"))
     }
 
     @Test
@@ -177,15 +193,37 @@ class WidgetResourcesTest {
     }
 
     @Test
-    fun theDateIsInEveryLayoutUnderTheClockAndShownUntilTheAppAsksOtherwise() {
-        // The widget picker's preview, drawn before the app knows the height, shows the date under the clock.
-        for (layout in listOf("widget_small", "widget_wide")) {
-            val top = views(layout).single { it.attr("id") == "@+id/wTopBlock" }
-            assertEquals(layout, "@+id/wClockTap", top.children().first().attr("id"))
-            val tap = top.children().first()
-            val order = tap.children().mapNotNull { it.attr("id") }
-            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), order)
-            assertNull(layout, tap.children().single { it.attr("id") == "@+id/wDate" }.attr("visibility"))
+    fun theClockAndTheDateAreOneRowAndTheDateCanWrapUnderTheClock() {
+        // The time and the date share a row; the same date also sits under the clock, hidden, for when they do not fit.
+        for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
+            val tap = views(layout).single { it.attr("id") == "@+id/wClockTap" }
+            assertEquals(layout, listOf("@+id/wClockRow", "@+id/wDateWrapped"), tap.children().mapNotNull { it.attr("id") })
+            val row = tap.children().first()
+            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), row.children().mapNotNull { it.attr("id") })
+            assertEquals(layout, "horizontal", row.attr("orientation"))
+            assertEquals(layout, "true", row.attr("baselineAligned"))
+            for (clock in row.children().filter { it.localName == "TextClock" } + tap.children().filter { it.localName == "TextClock" }) {
+                // 24-hour time, and the same date format, in both spots.
+                if (clock.attr("id") == "@+id/wClock") {
+                    assertEquals(layout, "HH:mm", clock.attr("format24Hour"))
+                } else {
+                    assertEquals(layout, "EEE d MMM", clock.attr("format24Hour"))
+                    assertEquals(layout, "EEE d MMM", clock.attr("format12Hour"))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun theWidePicksTheDateBesideTheClockUntilTheAppAsksOtherwiseAndTheOthersKeepItUnder() {
+        // The widget picker's preview, drawn before the app knows the size: the Wide has room for the row, while the
+        // Square and the Strip are too narrow for it.
+        fun visibility(layout: String, id: String) = views(layout).single { it.attr("id") == "@+id/$id" }.attr("visibility")
+        assertNull(visibility("widget_wide", "wDate"))
+        assertEquals("gone", visibility("widget_wide", "wDateWrapped"))
+        for (layout in listOf("widget_small", "widget_strip")) {
+            assertEquals(layout, "gone", visibility(layout, "wDate"))
+            assertNull(layout, visibility(layout, "wDateWrapped"))
         }
     }
 
@@ -194,7 +232,8 @@ class WidgetResourcesTest {
         for (layout in listOf("widget_small", "widget_wide", "widget_strip")) {
             val tap = views(layout).single { it.attr("id") == "@+id/wClockTap" }
             assertEquals(layout, "48dp", tap.attr("minHeight"))
-            assertEquals(layout, listOf("@+id/wClock", "@+id/wDate"), tap.children().mapNotNull { it.attr("id") })
+            val inside = tap.descendants().mapNotNull { it.attr("id") }
+            assertTrue(layout, inside.containsAll(listOf("@+id/wClock", "@+id/wDate", "@+id/wDateWrapped")))
         }
     }
 

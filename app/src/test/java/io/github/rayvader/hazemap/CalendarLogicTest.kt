@@ -143,6 +143,44 @@ class CalendarLogicTest {
         assertEquals("Today", EventLogic.pickNext(events, sgt(28, 7), sgtZone)?.title)
     }
 
+    // ---- Which events, in order ----
+
+    @Test
+    fun theListStartsWithTheNextEventThenTheRestInOrder() {
+        val events = listOf(
+            timed(sgt(29, 9), title = "Tomorrow early"),
+            timed(sgt(28, 17), title = "Evening"),
+            timed(sgt(28, 13), title = "Lunch"),
+            timed(sgt(28, 9), title = "Over")
+        )
+        val list = EventLogic.pickUpcoming(events, sgt(28, 12), sgtZone).map { it.title }
+        assertEquals(listOf("Lunch", "Evening", "Tomorrow early"), list)
+    }
+
+    @Test
+    fun theFirstInTheListIsTheOneTheSingleLineShowed() {
+        // One running for hours comes after the one about to start, as the single line always chose.
+        val work = timed(sgt(28, 9), minutes = 9 * 60, title = "Work")
+        val lunch = timed(sgt(28, 13), title = "Lunch")
+        val list = EventLogic.pickUpcoming(listOf(work, lunch), sgt(28, 12), sgtZone)
+        assertEquals(EventLogic.pickNext(listOf(work, lunch), sgt(28, 12), sgtZone), list.first())
+        assertEquals(listOf("Lunch", "Work"), list.map { it.title })
+    }
+
+    @Test
+    fun onOneDayTimedEventsComeBeforeAllDayOnesInTheList() {
+        val events = listOf(allDay(28, title = "Holiday"), timed(sgt(28, 15), title = "Lunch"), timed(sgt(28, 20), title = "Film"))
+        assertEquals(listOf("Lunch", "Film", "Holiday"), EventLogic.pickUpcoming(events, sgt(28, 12), sgtZone).map { it.title })
+    }
+
+    @Test
+    fun theListLeavesOutWhatIsOverAndWhatIsBeyondTheWeek() {
+        val now = sgt(28, 12)
+        val events = listOf(timed(now - 3 * 3_600_000L, title = "Over"), timed(now + 2 * 3_600_000L, title = "Soon"), timed(now + 8 * DAY, title = "Far"))
+        assertEquals(listOf("Soon"), EventLogic.pickUpcoming(events, now, sgtZone).map { it.title })
+        assertEquals(emptyList<CalendarEvent>(), EventLogic.pickUpcoming(emptyList(), now, sgtZone))
+    }
+
     @Test
     fun nothingInTheNextWeekShowsNoLine() {
         val now = sgt(28, 12)
