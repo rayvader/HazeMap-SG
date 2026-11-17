@@ -133,22 +133,86 @@ class WidgetRowsTest {
     }
 
     @Test
-    fun theClockTapAreaKeepsItsFull48dpSoAShortWideGainsNothingYet() {
-        // At 110 and 125 dp the time and the date take about 30 to 42 dp, but the tap area is 48 dp tall and the lines
-        // start under it, so the date beside the clock frees no line there.
-        assertEquals(1, plan(WidgetShape.WIDE, 110, 6).lines)
-        assertEquals(1, plan(WidgetShape.WIDE, 125, 6).lines)
-        val f = fit(WidgetShape.WIDE, 125, true)!!
-        assertEquals(
-            WidgetRows.lineCapacity(WidgetShape.WIDE, 125, f, f.clockSp, DateSpot.BELOW, 1f),
-            WidgetRows.lineCapacity(WidgetShape.WIDE, 125, f, f.clockSp, DateSpot.BESIDE, 1f)
-        )
+    fun theClockTapAreaKeepsItsFull48dpSoTheShortestWideHoldsOneLine() {
+        // At 110 dp the time and the date take about 30 dp, but the tap area is 48 dp tall and the lines start
+        // under it: one line, with the count of the rest on it.
+        val p = plan(WidgetShape.WIDE, 110, 6)
+        assertEquals(1, p.lines)
+        assertEquals(5, p.more)
+        // 125 dp has room for a second line, now that the room is measured to the numbers' digits.
+        assertEquals(2, plan(WidgetShape.WIDE, 125, 6).lines)
+    }
+
+    @Test
+    fun theRoomIsMeasuredToTheDigitsOfTheNumbersNotToTheirBox() {
+        // 190 dp holds three lines and 160 dp two; with the numbers' whole box counted, 190 dp held two.
+        assertEquals(3, plan(WidgetShape.WIDE, 190, 6).lines)
+        assertEquals(2, plan(WidgetShape.WIDE, 160, 6).lines)
+        assertEquals(4, plan(WidgetShape.WIDE, 223, 6).lines)
+    }
+
+    @Test
+    fun theLinesStartAtTheClockRowBesideTheDateAndFourDpUnderItBelow() {
+        assertEquals(0, WidgetRows.eventsTopDp(DateSpot.BESIDE))
+        assertEquals(4, WidgetRows.eventsTopDp(DateSpot.BELOW))
+    }
+
+    // ---- The Wide's picture ----
+
+    @Test
+    fun theWidePictureShrinksOnAShortWidgetSoItsArtStaysAboveThePill() {
+        val f110 = fit(WidgetShape.WIDE, 110, true)!!
+        assertEquals(0.705f, WidgetRows.pictureScale(WidgetShape.WIDE, 110, f110, 1f, SkyScene.RAIN), 0.01f)
+        val f139 = fit(WidgetShape.WIDE, 139, true)!!
+        assertEquals(0.949f, WidgetRows.pictureScale(WidgetShape.WIDE, 139, f139, 1f, SkyScene.RAIN), 0.01f)
+        // A tall widget keeps its picture as it is.
+        val f223 = fit(WidgetShape.WIDE, 223, true)!!
+        assertEquals(1f, WidgetRows.pictureScale(WidgetShape.WIDE, 223, f223, 1f, SkyScene.RAIN), 0f)
+    }
+
+    @Test
+    fun thePictureOnlyGrowsWithTheHeightAndNeverPassesItsLimits() {
+        for (scene in SkyScene.entries) {
+            for (scale in scales) {
+                var before = 0f
+                for (h in heights) {
+                    val f = fit(WidgetShape.WIDE, h, true, scale)!!
+                    val k = WidgetRows.pictureScale(WidgetShape.WIDE, h, f, scale, scene)
+                    assertTrue("$scene ${h}dp at $scale: $k", k in WidgetRows.MIN_PICTURE_SCALE..1f)
+                    // The fit's own padding steps with the height, so allow the step.
+                    assertTrue("$scene ${h}dp at $scale shrank from $before to $k", k >= before - 0.06f)
+                    before = k
+                }
+            }
+        }
+    }
+
+    @Test
+    fun thePictureStaysAboveThePillWheneverItIsNotAtItsSmallestSize() {
+        for (scene in SkyScene.entries) {
+            for (scale in scales) {
+                for (h in heights) {
+                    val f = fit(WidgetShape.WIDE, h, true, scale)!!
+                    val k = WidgetRows.pictureScale(WidgetShape.WIDE, h, f, scale, scene)
+                    if (k <= WidgetRows.MIN_PICTURE_SCALE) continue
+                    val artBottom = 4 + k * WidgetRows.PICTURE_BOX_DP * WidgetRows.artBottomShare(scene)
+                    val pillTop = h - f.padBottomDp - (15.2f * maxOf(scale, 1f) + 6.6f)
+                    assertTrue("$scene ${h}dp at $scale: art to $artBottom, pill from $pillTop", artBottom <= pillTop - 2 + 0.01f)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun onlyTheWideShrinksItsPicture() {
+        assertEquals(1f, WidgetRows.pictureScale(WidgetShape.SMALL, 110, fit(WidgetShape.SMALL, 110, true)!!, 1f, SkyScene.RAIN), 0f)
+        assertEquals(1f, WidgetRows.pictureScale(WidgetShape.STRIP, 70, null, 1f, SkyScene.RAIN), 0f)
     }
 
     @Test
     fun aTallerWideHoldsMore() {
         val p = plan(WidgetShape.WIDE, 223, 6)
-        assertEquals(RowPlan(DateSpot.BESIDE, true, 53, events = 3, more = 3), p)
+        assertEquals(RowPlan(DateSpot.BESIDE, true, 53, events = 4, more = 2), p)
         assertEquals(4, p.lines)
         // Tall enough for every event: all six, and no "+N more".
         assertEquals(RowPlan(DateSpot.BESIDE, true, 53, events = 6, more = 0), plan(WidgetShape.WIDE, 300, 6))
@@ -158,29 +222,34 @@ class WidgetRowsTest {
     fun theSquareHoldsMoreLinesAsItGrows() {
         // At 170 dp its one line only just clears the sky picture.
         assertEquals(1, plan(WidgetShape.SMALL, 170, 6).lines)
-        assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 2, more = 4), plan(WidgetShape.SMALL, 223, 6))
+        assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 3, more = 3), plan(WidgetShape.SMALL, 223, 6))
         assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 3, more = 0), plan(WidgetShape.SMALL, 223, 3))
         assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 6, more = 0), plan(WidgetShape.SMALL, 300, 6))
-        assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 5, more = 5), plan(WidgetShape.SMALL, 300, 10))
+        assertEquals(RowPlan(DateSpot.BELOW, true, 32, events = 6, more = 4), plan(WidgetShape.SMALL, 300, 10))
     }
 
     @Test
-    fun leftOverEventsAreCountedOnTheLastLine() {
+    fun leftOverEventsAreCountedOnTheLastLineAndTakeNoLineOfTheirOwn() {
+        // The 139 dp Wide: two real events, and the other four counted on the second line.
         val p = plan(WidgetShape.WIDE, 139, 6)
-        assertEquals(1, p.events)
-        assertEquals(5, p.more)
+        assertEquals(2, p.events)
+        assertEquals(4, p.more)
         assertEquals(2, p.lines)
-        // Everything fits: no "+N more".
+        // One too many: still two events and a count of one.
+        val one = plan(WidgetShape.WIDE, 139, 3)
+        assertEquals(2, one.events)
+        assertEquals(1, one.more)
+        // Everything fits: no count.
         val all = plan(WidgetShape.WIDE, 139, 2)
         assertEquals(2, all.events)
         assertEquals(0, all.more)
     }
 
     @Test
-    fun oneLineAloneShowsJustTheNextEventAsItAlwaysDid() {
-        // The Square at 170 dp has room for one line: the next event, with no room to say there are more.
+    fun oneLineAloneStillCountsTheRest() {
+        // The Square at 170 dp has room for one line: the next event, with the other five counted on it.
         val p = plan(WidgetShape.SMALL, 170, 6)
-        assertEquals(RowPlan(DateSpot.BELOW, true, 26, events = 1, more = 0), p)
+        assertEquals(RowPlan(DateSpot.BELOW, true, 26, events = 1, more = 5), p)
     }
 
     @Test
@@ -218,11 +287,9 @@ class WidgetRowsTest {
                 for (n in 1..12) {
                     for (h in heights) {
                         val p = plan(shape, h, n, scale)
-                        if (p.lines < 2) continue
                         val tag = "$shape ${h}dp at $scale with $n"
-                        // With room for two lines or more, every event is on a line or counted in the "+N more".
-                        assertEquals(tag, n, p.events + p.more)
-                        assertTrue("$tag: a +N more of one", p.more != 1)
+                        // Whenever a line shows, every event is on a line or counted: the count is never missing.
+                        if (p.lines > 0) assertEquals(tag, n, p.events + p.more)
                     }
                 }
             }

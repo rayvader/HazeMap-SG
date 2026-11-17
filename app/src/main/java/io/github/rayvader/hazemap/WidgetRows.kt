@@ -16,7 +16,8 @@ enum class DateSpot {
  *
  * @property clockSp the clock's size: the fit's, or a little smaller so that the date fits beside it.
  * @property events how many events get a line of their own.
- * @property more how many are left over, shown on one "+N more" line; 0 for none.
+ * @property more how many are left over, counted in a small chip at the end of the last line ("+4 more");
+ * 0 for none. The count is on the last event's line, so it takes no line of its own.
  */
 data class RowPlan(
     val dateSpot: DateSpot,
@@ -25,8 +26,8 @@ data class RowPlan(
     val events: Int,
     val more: Int
 ) {
-    /** Event lines on the widget, the "+N more" line included. */
-    val lines: Int get() = events + if (more > 0) 1 else 0
+    /** Event lines on the widget. */
+    val lines: Int get() = events
 }
 
 /**
@@ -76,9 +77,20 @@ object WidgetRows {
     /** The clock and the date are one tap area at least this tall (see widget_*.xml), so the lines start under it. */
     private const val MIN_CLOCK_TAP_DP = 48
 
-    /** The Wide's first event line is 4 dp under the clock block, and the last needs this much before the numbers. */
-    private const val WIDE_FIRST_EVENT_DP = 4
-    private const val WIDE_MIN_GAP_DP = 2.5f
+    /**
+     * The Wide's first event line is 4 dp under the date when that is under the clock. Beside the clock the
+     * line starts at the clock row's bottom: the clock's own box ends 5 to 15 dp under its digits (the room
+     * a digit has for a tail, which the digits do not use) and the date's tails are 3 dp, so the line is
+     * still 2.7 dp clear of the date's tails at the smallest clock.
+     */
+    private const val WIDE_FIRST_EVENT_UNDER_DATE_DP = 4
+
+    /**
+     * The numbers' box starts above their digits: Roboto leaves 0.345 em over a figure (measured on the
+     * emulator, see WidgetPreviewCheck). The last event line may reach into that, and must stay this far above the digits.
+     */
+    private const val NUMBERS_INK_TOP_EM = 0.345f
+    private const val VISUAL_GAP_DP = 4
 
     /**
      * The Square's lines grow upwards from the numbers and must stay under the sky picture, whose art
@@ -158,8 +170,9 @@ object WidgetRows {
             WidgetShape.WIDE -> {
                 val dateUnder = if (spot == DateSpot.BELOW && fit.showDate) DATE_LINE * WIDE_DATE_SP * s + WIDE_DATE_MARGIN_DP else 0f
                 val blockTop = maxOf(MIN_CLOCK_TAP_DP.toFloat(), fit.padTopDp + CLOCK_LINE * clockSp * s + dateUnder)
-                val numbersTop = h - (TEMP_LINE * fit.tempSp * s + fit.padBottomDp)
-                numbersTop - WIDE_MIN_GAP_DP - blockTop - WIDE_FIRST_EVENT_DP
+                // Measured to the numbers' digits, not to their box.
+                val digitsTop = h - (TEMP_LINE * fit.tempSp * s + fit.padBottomDp) + NUMBERS_INK_TOP_EM * fit.tempSp * s
+                digitsTop - VISUAL_GAP_DP - blockTop - eventsTopDp(spot)
             }
             else -> {
                 val dateUnder = if (fit.showDate) SMALL_DATE_MARGIN_DP + DATE_LINE * SMALL_DATE_SP * s else 0f
@@ -175,8 +188,8 @@ object WidgetRows {
 
     /**
      * The plan for one widget: where the date goes, and which events get a line. When there are more events
-     * than lines, the last line says how many are left ("+N more"); one line alone shows just the next event,
-     * as the widget always has, as there is no room to say more.
+     * than lines, a chip at the end of the last line says how many are left ("+N more"), so the count never
+     * takes a line of its own and is there whenever an event is hidden.
      *
      * [fit] is null for the Strip, which has no events and no trimming. [eventCount] is how many events the
      * calendars have in the next week.
@@ -192,11 +205,42 @@ object WidgetRows {
         val (spot, clockSp) = dateSpot(shape, fit?.clockSp ?: STRIP_CLOCK_SP, widthDp, fontScale)
         val showDate = spot == DateSpot.BESIDE || fit?.showDate != false
         val capacity = if (fit == null || eventCount == 0) 0 else lineCapacity(shape, heightDp, fit, clockSp, spot, fontScale)
-        return when {
-            capacity == 0 -> RowPlan(spot, showDate, clockSp, 0, 0)
-            eventCount <= capacity -> RowPlan(spot, showDate, clockSp, eventCount, 0)
-            capacity == 1 -> RowPlan(spot, showDate, clockSp, 1, 0)
-            else -> RowPlan(spot, showDate, clockSp, capacity - 1, eventCount - (capacity - 1))
-        }
+        val shown = minOf(eventCount, capacity)
+        return RowPlan(spot, showDate, clockSp, shown, eventCount - shown)
+    }
+
+    /** The space above the Wide's first event line, in dp: none beside the clock, 4 under the date. */
+    fun eventsTopDp(spot: DateSpot): Int = if (spot == DateSpot.BELOW) WIDE_FIRST_EVENT_UNDER_DATE_DP else 0
+
+    // ---- The Wide's picture ----
+
+    /** The Wide's sky picture is a 112 dp box 4 dp from the top, anchored at the top right. */
+    const val PICTURE_BOX_DP = 112
+    private const val PICTURE_TOP_DP = 4
+    private const val PICTURE_PILL_GAP_DP = 2
+    /** The smallest the picture gets: only very large text on the shortest Wide asks for it. */
+    const val MIN_PICTURE_SCALE = 0.45f
+
+    /** The PSI pill under the picture: its text (11 sp) and 6.6 dp around it. */
+    private const val PILL_TEXT_DP = 15.2f
+    private const val PILL_PAD_DP = 6.6f
+
+    /**
+     * How far down a sky's art reaches in the picture box, as a share of its height. The tallest art (the
+     * thunderstorm's bolt, the haze lines) reaches the bottom edge, the rain's drops about three quarters.
+     */
+    fun artBottomShare(@Suppress("UNUSED_PARAMETER") scene: SkyScene): Float = 0.99f
+
+    /**
+     * How much to shrink the Wide's sky picture (1 = full size) so its art stays above the PSI pill under it.
+     * It shrinks towards the top right corner, so it only gets smaller where the widget is short.
+     */
+    fun pictureScale(shape: WidgetShape, heightDp: Int, fit: WidgetFit?, fontScale: Float, scene: SkyScene): Float {
+        if (shape != WidgetShape.WIDE || fit == null) return 1f
+        val s = textScale(fontScale)
+        val h = if (heightDp > 0) heightDp else SHORTEST_DP
+        val pillTop = h - fit.padBottomDp - (PILL_TEXT_DP * s + PILL_PAD_DP)
+        val room = pillTop - PICTURE_PILL_GAP_DP - PICTURE_TOP_DP
+        return (room / (PICTURE_BOX_DP * artBottomShare(scene))).coerceIn(MIN_PICTURE_SCALE, 1f)
     }
 }

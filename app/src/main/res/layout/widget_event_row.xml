@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One line in a widget's event list: "15:00 Lunch" behind a small calendar picture, or "+3 more" (the picture
-     is hidden then). The app adds one of these for each event it shows (see WidgetUpdater.showEvents). The
-     3 dp under it is the space between two lines. -->
+<!-- One line in a widget's event list: "15:00 Lunch" behind a small calendar picture, and on the last line a
+     "+3 more" chip when events are left over. The app adds one of these for each event it shows (see
+     WidgetUpdater.showEvents). The 3 dp under it is the space between two lines. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/wEventRow"
     android:layout_width="wrap_content"
@@ -24,12 +24,34 @@
         android:src="@drawable/ic_event"
         android:tint="@color/white" />
 
-    <!-- A long title ends in "…" when the row runs out of room. -->
+    <!-- A long title ends in "…" when the row runs out of room: this view shrinks first (the weight), so the
+         count after it always stays. -->
     <TextView
         android:id="@+id/wEventText"
         style="@style/WidgetText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
         android:text="--"
         android:textSize="11sp" />
+
+    <!-- "+4 more": how many events are left over. Only the last line has it, and only when some are. The space
+         before it is the text's end padding, which the app sets (see WidgetUpdater.showEvents). -->
+    <TextView
+        android:id="@+id/wEventMore"
+        style="@style/WidgetText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_event_more_bg"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:paddingStart="5dp"
+        android:paddingTop="1dp"
+        android:paddingEnd="5dp"
+        android:paddingBottom="1dp"
+        android:text="--"
+        android:textSize="10sp"
+        android:visibility="gone" />
 </LinearLayout>
