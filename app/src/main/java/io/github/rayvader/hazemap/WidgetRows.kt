@@ -218,7 +218,8 @@ object WidgetRows {
     const val PICTURE_BOX_DP = 112
     private const val PICTURE_TOP_DP = 4
     private const val PICTURE_PILL_GAP_DP = 2
-    private const val MIN_PICTURE_SCALE = 0.6f
+    /** The smallest the picture gets: only very large text on the shortest Wide asks for it. */
+    const val MIN_PICTURE_SCALE = 0.45f
 
     /** The PSI pill under the picture: its text (11 sp) and 6.6 dp around it. */
     private const val PILL_TEXT_DP = 15.2f

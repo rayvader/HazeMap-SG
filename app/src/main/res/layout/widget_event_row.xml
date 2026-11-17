@@ -37,13 +37,13 @@
         android:text="--"
         android:textSize="11sp" />
 
-    <!-- "+4 more": how many events are left over. Only the last line has it, and only when some are. -->
+    <!-- "+4 more": how many events are left over. Only the last line has it, and only when some are. The space
+         before it is the text's end padding, which the app sets (see WidgetUpdater.showEvents). -->
     <TextView
         android:id="@+id/wEventMore"
         style="@style/WidgetText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
         android:background="@drawable/widget_event_more_bg"
         android:includeFontPadding="false"
         android:maxLines="1"

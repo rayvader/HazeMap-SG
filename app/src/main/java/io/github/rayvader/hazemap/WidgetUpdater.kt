@@ -510,6 +510,15 @@ object WidgetUpdater {
                 )
                 row.setViewVisibility(R.id.wEventMore, View.VISIBLE)
                 row.setTextViewText(R.id.wEventMore, chip)
+                // The Square has 154 dp for the row: there the line drops its calendar picture and the chip is
+                // tighter, so the event's text keeps its room (at 115% text, "Sun 15:30 Dentist" and "+4" fit).
+                val density = context.resources.displayMetrics.density
+                fun px(dp: Int) = (dp * density).roundToInt()
+                val small = shape == WidgetShape.SMALL
+                if (small) row.setViewVisibility(R.id.wEventIcon, View.GONE)
+                row.setViewPadding(R.id.wEventText, 0, 0, px(if (small) 3 else 6), 0)
+                val pad = px(if (small) 3 else 5)
+                row.setViewPadding(R.id.wEventMore, pad, px(1), pad, px(1))
                 row.setContentDescription(R.id.wEventRow, context.getString(R.string.widget_event_desc_more, line.text, plan.more))
             } else {
                 row.setContentDescription(

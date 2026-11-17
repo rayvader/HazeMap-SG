@@ -178,7 +178,7 @@ class WidgetRowsTest {
                 for (h in heights) {
                     val f = fit(WidgetShape.WIDE, h, true, scale)!!
                     val k = WidgetRows.pictureScale(WidgetShape.WIDE, h, f, scale, scene)
-                    assertTrue("$scene ${h}dp at $scale: $k", k in 0.6f..1f)
+                    assertTrue("$scene ${h}dp at $scale: $k", k in WidgetRows.MIN_PICTURE_SCALE..1f)
                     // The fit's own padding steps with the height, so allow the step.
                     assertTrue("$scene ${h}dp at $scale shrank from $before to $k", k >= before - 0.06f)
                     before = k
@@ -194,7 +194,7 @@ class WidgetRowsTest {
                 for (h in heights) {
                     val f = fit(WidgetShape.WIDE, h, true, scale)!!
                     val k = WidgetRows.pictureScale(WidgetShape.WIDE, h, f, scale, scene)
-                    if (k <= 0.6f) continue
+                    if (k <= WidgetRows.MIN_PICTURE_SCALE) continue
                     val artBottom = 4 + k * WidgetRows.PICTURE_BOX_DP * WidgetRows.artBottomShare(scene)
                     val pillTop = h - f.padBottomDp - (15.2f * maxOf(scale, 1f) + 6.6f)
                     assertTrue("$scene ${h}dp at $scale: art to $artBottom, pill from $pillTop", artBottom <= pillTop - 2 + 0.01f)
