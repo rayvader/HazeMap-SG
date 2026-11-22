@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The cloud layer on the dark map. Same as CloudLogic.fillColour/edgeColour with dark = true. -->
+    <color name="cloud_fill">#FFDEE4EA</color>
+    <color name="cloud_edge">#FF96A0AC</color>
+    <color name="cloud_error_bg">#EB3C1914</color>
+    <color name="cloud_error_edge">#FFC84637</color>
+    <color name="cloud_error_text">#FFFFCDC3</color>
+</resources>

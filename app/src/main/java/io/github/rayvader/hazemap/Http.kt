@@ -107,6 +107,17 @@ object Http {
         }
     }
 
+    /**
+     * GET [url] as raw bytes, or null when the server says there is no such picture (HTTP 400 or 404), as
+     * NASA GIBS does for a time it has not drawn yet. Any other failure throws. Not rate limited.
+     */
+    suspend fun getBytesOrMissing(url: String): ByteArray? {
+        val response = withContext(Dispatchers.IO) { fetch(url) }
+        if (response.code == 400 || response.code == 404) return null
+        if (response.code !in 200..299) throw IOException("HTTP ${response.code} for $url")
+        return response.body
+    }
+
     /** GET [url] as raw bytes (map tiles). Not rate limited. */
     suspend fun getBytes(url: String): ByteArray {
         val response = withContext(Dispatchers.IO) { fetch(url) }

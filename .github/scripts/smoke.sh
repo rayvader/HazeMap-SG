@@ -271,6 +271,78 @@ if [ "${SMOKE_ONLY:-}" = places ]; then
   exit 0
 fi
 
+# ---- Clouds on the Rain tab: Himawari pictures from NASA GIBS under the rain ----
+# cloud_shot <name> <want: on|off|fail> <am start extras...>: open the Rain tab, wait for the pictures, keep a
+# screenshot and a dump, and check what the person sees (see cloud_check.py).
+cloud_shot() {
+  local name=$1 want=$2 i radar0 loaded0 failed0
+  shift 2
+  adb shell am force-stop "$PKG"
+  # Count the app's log lines first, rather than clearing the log, which the end of the test keeps.
+  radar0=$(adb logcat -d -s RainScreen:D | grep -c "radar ready")
+  loaded0=$(adb logcat -d -s RainScreen:I | grep -c "clouds loaded")
+  failed0=$(adb logcat -d -s RainScreen:W | grep -c "clouds failed")
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab rain --es source radar "$@" > /dev/null
+  # The radar and up to 13 cloud pictures load together: wait for both, 60 s at most.
+  for i in $(seq 1 20); do
+    sleep 3
+    [ "$(adb logcat -d -s RainScreen:D | grep -c "radar ready")" -gt "$radar0" ] || continue
+    [ "$want" = on ] && [ "$(adb logcat -d -s RainScreen:I | grep -c "clouds loaded")" -le "$loaded0" ] && continue
+    [ "$want" = fail ] && [ "$(adb logcat -d -s RainScreen:W | grep -c "clouds failed")" -le "$failed0" ] && continue
+    break
+  done
+  sleep 2
+  clear_anr
+  adb exec-out screencap -p > "$OUT/$name.png"
+  if dump; then
+    cp "$OUT/ui.xml" "$OUT/$name.xml"
+    say "$name: $(python3 .github/scripts/cloud_check.py "$OUT/ui.xml" "$want")"
+  else
+    say "FAIL $name: no dump"
+  fi
+  [ "$want" = on ] && adb logcat -d -s RainScreen:I | grep "clouds loaded" | tail -1 | sed 's/^.*: /app log: /' | tee -a "$LOG"
+  return 0
+}
+
+cloud_steps() {
+  say "--- clouds ---"
+  cloud_shot 9a-rain-clouds-light on --ez clouds true
+  cloud_shot 9b-rain-clouds-off off --ez clouds false
+  cloud_shot 9c-rain-clouds-failed fail --ez clouds true --ez clouds_fail true
+  adb shell cmd uimode night yes
+  cloud_shot 9d-rain-clouds-dark on --ez clouds true
+  cloud_shot 9e-rain-clouds-failed-dark fail --ez clouds true --ez clouds_fail true
+  adb shell cmd uimode night no
+  # The switch is remembered: turn it on by tapping it, then open the app again with no extras.
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab rain --es source radar --ez clouds false > /dev/null
+  sleep 10
+  tap cloudChip
+  sleep 3
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab rain --es source radar > /dev/null
+  sleep 10
+  say "clouds switch after a tap and a restart: checked='$(attr cloudChip checked)'"
+  tap cloudChip
+  sleep 2
+  adb shell am force-stop "$PKG"
+  adb shell am start -W -n "$PKG/.MainActivity" --es tab rain --es source radar > /dev/null
+  sleep 8
+  say "clouds switch after tapping it off and a restart: checked='$(attr cloudChip checked)'"
+}
+
+# Only the clouds: a few minutes instead of the whole test.
+if [ "${SMOKE_ONLY:-}" = clouds ]; then
+  set +e
+  sleep 10
+  clear_anr
+  : > "$LOG"
+  cloud_steps
+  echo "Only the clouds were asked for. Screenshots in $OUT/"
+  grep -q 'FAIL' "$LOG" && exit 1
+  exit 0
+fi
+
 # ---- Widget fit: the widgets drawn at exact sizes inside the app ----
 # A phone's home screen can give a two-row widget 140 dp or less, while the emulator's gives about 220.
 # So the app draws the same widgets at the short sizes itself (see MainActivity.EXTRA_WIDGET_PREVIEW), and
@@ -405,6 +477,7 @@ adb shell cmd uimode night no
 # (The helpers it uses, say, dump, tap and attr, are defined near the top.)
 set +e
 : > "$LOG"
+cloud_steps
 [ -z "${FIT_CHECK_FAILED:-}" ] || say "FAIL widget drawing checks: $(grep ': FAIL ' "$OUT/fit-checks.txt" | head -3 | tr '\n' ' ')"
 
 adb shell am force-stop "$PKG"
