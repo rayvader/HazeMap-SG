@@ -550,6 +550,12 @@ class MainActivity : AppCompatActivity() {
         /** Starts the Rain map at this zoom, to look beyond Singapore. Used by the emulator smoke test. */
         const val EXTRA_ZOOM = "zoom"
 
+        /** Turns the Rain tab's clouds on (true) or off (false) for this start. Used by the emulator smoke test. */
+        const val EXTRA_CLOUDS = "clouds"
+
+        /** Makes the cloud source fail, to look at the Rain tab's message for it. Used by the emulator smoke test. */
+        const val EXTRA_CLOUDS_FAIL = "clouds_fail"
+
         /** Asks the home screen to add a widget: "small", "wide" or "strip". Used by the emulator smoke test. */
         const val EXTRA_PIN_WIDGET = "pin_widget"
 

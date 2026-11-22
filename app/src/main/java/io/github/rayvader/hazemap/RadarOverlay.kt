@@ -10,30 +10,43 @@ import org.osmdroid.views.Projection
 import org.osmdroid.views.overlay.Overlay
 
 /**
- * Draws one radar frame: the RainViewer tiles for that moment, stretched onto the map.
- * Frames are swapped by [show]; the caller invalidates the map.
+ * Draws one frame of pictures stretched onto the map: the RainViewer radar tiles for one moment, or the
+ * cloud picture for one moment (see [CloudLayer]). Frames are swapped by [show]; the caller invalidates the map.
+ * [alpha] is the whole layer's see-through: the radar's colours are drawn at 80%, the clouds carry their own.
  */
-class RadarOverlay : Overlay() {
+open class RadarOverlay(alpha: Int = 205) : Overlay() {
 
-    class Tile(val x: Int, val y: Int, val bitmap: Bitmap)
+    /** One picture and the map edges it covers. Both edges are Mercator-linear, so two corners place it. */
+    class Patch(val bitmap: Bitmap, val north: Double, val west: Double, val south: Double, val east: Double)
 
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply { alpha = 205 }
-    private var tiles: List<Tile> = emptyList()
+    /** A radar tile at [TileMath.ZOOM]. */
+    class Tile(val x: Int, val y: Int, val bitmap: Bitmap) {
+        fun toPatch() = Patch(
+            bitmap,
+            TileMath.latTop(y), TileMath.lonLeft(x), TileMath.latTop(y + 1), TileMath.lonLeft(x + 1)
+        )
+    }
+
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply { this.alpha = alpha }
+    private var patches: List<Patch> = emptyList()
     private val topLeft = Point()
     private val bottomRight = Point()
     private val dst = Rect()
 
     fun show(tiles: List<Tile>) {
-        this.tiles = tiles
+        patches = tiles.map { it.toPatch() }
+    }
+
+    fun showPatches(next: List<Patch>) {
+        patches = next
     }
 
     override fun draw(canvas: Canvas, projection: Projection) {
-        for (t in tiles) {
-            // Both edges are Mercator-linear, so two corners place the whole tile.
-            projection.toPixels(GeoPoint(TileMath.latTop(t.y), TileMath.lonLeft(t.x)), topLeft)
-            projection.toPixels(GeoPoint(TileMath.latTop(t.y + 1), TileMath.lonLeft(t.x + 1)), bottomRight)
+        for (p in patches) {
+            projection.toPixels(GeoPoint(p.north, p.west), topLeft)
+            projection.toPixels(GeoPoint(p.south, p.east), bottomRight)
             dst.set(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
-            canvas.drawBitmap(t.bitmap, null, dst, paint)
+            canvas.drawBitmap(p.bitmap, null, dst, paint)
         }
     }
 }

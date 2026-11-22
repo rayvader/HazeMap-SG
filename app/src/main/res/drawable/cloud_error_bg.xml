@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The red box that says the clouds failed. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/cloud_error_bg" />
+    <stroke
+        android:width="1.5dp"
+        android:color="@color/cloud_error_edge" />
+    <corners android:radius="12dp" />
+</shape>

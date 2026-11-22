@@ -54,6 +54,13 @@
     <string name="radar_saved">Saved radar from %1$s. Tap to try again.</string>
     <string name="error_radar">Couldn\'t load the radar. Tap to retry.</string>
     <string name="error_gauges">Couldn\'t load the rain gauges. Tap to retry.</string>
+    <string name="clouds_chip">Clouds</string>
+    <string name="clouds_credit">Clouds: NASA GIBS, Himawari (JMA)</string>
+    <string name="legend_cloud">Cloud</string>
+    <string name="clouds_error">Clouds unavailable right now. Rain is still shown. Tap to try again.</string>
+    <string name="badge_rain_clouds">Rain %1$s\nClouds %2$s</string>
+    <string name="badge_clouds_loading">…</string>
+    <string name="badge_clouds_none">none</string>
     <string name="gauge_reading">%1$s: %2$s mm in 5 min</string>
 
     <!-- Haze -->

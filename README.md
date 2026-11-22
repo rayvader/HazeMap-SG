@@ -36,6 +36,16 @@ A switch at the top right picks the picture:
 It plays by itself and starts over when it reaches the newest picture. Press Pause or drag the slider to stop it;
 it stays still until you press Play. It does not start by itself when the phone has animations turned off.
 Zoom out to watch rain coming across the Strait.
+
+**Clouds** — the Clouds switch under Radar | Gauges draws the clouds under the rain: Himawari's infrared
+picture from [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api)
+(no key), a new one every 10 minutes, on GIBS about 20 to 30 minutes later. It sees clouds by night as by
+day. Clear sky is see-through; cloud is light grey with a darker edge, so it shows on the light map and the
+dark one. The pictures are coarse (about 2.4 km per dot), so clouds look soft. The switch is off at first
+and remembered. The rain stays on either way. With clouds on, the time box says both times, such as
+"Rain 17:20" and "Clouds 17:00": each rain frame gets the newest cloud picture taken no later. If the cloud
+pictures cannot be had, a red box says so and that the rain is still shown; tap it to try again. The last
+two hours of cloud pictures are saved on the phone (about 1.6 MB, 13 frames of two tiles each).
 Radar pictures are saved on the phone (about 1 MB). The app downloads only the pictures it does not have yet,
 and with no network it plays the last two hours it saved, with a note saying how old they are.
 Pictures older than two hours are deleted when new ones arrive.
@@ -151,6 +161,7 @@ Tap anywhere else to open Haze Map. With no Clock app, the clock opens Haze Map 
 |---|---|---|
 | Forecasts, temperature, humidity, wind, UV, rain gauges, PSI, PM2.5 | [NEA via data.gov.sg](https://data.gov.sg/) | Singapore Open Data Licence 1.0 |
 | Rain radar pictures | [RainViewer](https://www.rainviewer.com/api.html) free API | personal use, credit required |
+| Cloud pictures (Himawari Band 13 infrared) | [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api), from JMA's Himawari | NASA open data, credit asked: "Clouds: NASA GIBS, Himawari (JMA)" |
 | Base map | OpenStreetMap, through osmdroid | © OpenStreetMap contributors |
 
 - **NEA allows 6 calls per 10 seconds without a key.** The app keeps to 5. A cold start of the Now tab
@@ -311,6 +322,7 @@ See [docs/design](docs/design/weather-mockups.html).
 Contains information from NEA's real-time weather datasets, accessed from
 [data.gov.sg](https://data.gov.sg/), made available under the
 [Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
-Radar images by [RainViewer](https://www.rainviewer.com/). Map data © OpenStreetMap contributors.
+Radar images by [RainViewer](https://www.rainviewer.com/). Cloud pictures: NASA GIBS, from JMA's Himawari.
+Map data © OpenStreetMap contributors.
 Built with [osmdroid](https://github.com/osmdroid/osmdroid) and
 [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart).

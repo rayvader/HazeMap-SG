@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <!-- Time of the frame on screen -->
+        <!-- Time of the frame on screen: "17:20", or with clouds on "Rain 17:20" over "Clouds 17:00" -->
         <TextView
             android:id="@+id/rainBadge"
             android:layout_width="wrap_content"
@@ -58,6 +58,45 @@
                 android:text="@string/source_gauges"
                 app:backgroundTint="?attr/colorSurface" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <!-- Clouds on or off, under Radar | Gauges. Off at first, remembered. The rain stays on either way. -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/cloudChip"
+            style="@style/Widget.Material3.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="60dp"
+            android:layout_marginEnd="8dp"
+            android:checkable="true"
+            android:minHeight="48dp"
+            android:text="@string/clouds_chip"
+            app:chipBackgroundColor="?attr/colorSurface"
+            app:chipIcon="@drawable/ic_cloud_chip"
+            app:chipIconTint="?attr/colorOnSurface"
+            app:chipIconVisible="true" />
+
+        <!-- The cloud pictures failed: say so, and that the rain is still shown. Tap to try again. -->
+        <TextView
+            android:id="@+id/cloudError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/cloud_error_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:minHeight="48dp"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/clouds_error"
+            android:textColor="@color/cloud_error_text"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <!-- Loading and error messages; tap to retry -->
         <TextView
@@ -180,6 +219,45 @@
             android:ellipsize="end"
             android:gravity="end"
             android:maxLines="1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- With clouds on: what a cloud looks like, and whose pictures they are. -->
+    <LinearLayout
+        android:id="@+id/cloudLegend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/cloudSwatch"
+            android:layout_width="14dp"
+            android:layout_height="10dp"
+            android:background="@drawable/legend_cloud" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/legend_cloud"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/cloudSource"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text="@string/clouds_credit"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp" />
     </LinearLayout>

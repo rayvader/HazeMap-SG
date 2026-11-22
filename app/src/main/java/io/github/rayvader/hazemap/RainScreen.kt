@@ -39,6 +39,8 @@ enum class RainSource(val key: String) { RADAR("radar"), GAUGES("gauges") }
 /**
  * The "Rain" tab: a map of where it is raining, with the past two hours to scrub or play back.
  * RADAR shows RainViewer's radar images (10-minute steps); GAUGES shows NEA's 90 rain gauges (5-minute steps).
+ * With the Clouds switch on, Himawari's cloud pictures are drawn under the rain (see [CloudLayer]); the rain
+ * always stays on.
  */
 class RainScreen(
     private val activity: AppCompatActivity,
@@ -69,6 +71,18 @@ class RainScreen(
     private val tileCache = RadarCache(File(activity.filesDir, "radar"))
 
     private val radarOverlay = RadarOverlay()
+
+    /** The clouds carry their own see-through (see [CloudLogic.toCloud]), so the layer is drawn as it is. */
+    private val cloudOverlay = RadarOverlay(alpha = 255)
+    private val cloudLayer = CloudLayer(
+        File(activity.filesDir, "clouds"),
+        night,
+        failForTest = activity.intent?.getBooleanExtra(MainActivity.EXTRA_CLOUDS_FAIL, false) == true
+    )
+    private var cloudsOn = false
+    private var cloudFrames: List<CloudLayer.Loaded> = emptyList()
+    private var cloudJob: Job? = null
+    private var cloudFailed = false
     private val gaugeOverlay = GaugeOverlay(density, night) { station, mm ->
         val text = activity.getString(R.string.gauge_reading, station.name, String.format(Locale.US, "%.1f", mm))
         Toast.makeText(activity, text, Toast.LENGTH_SHORT).show()
@@ -77,6 +91,10 @@ class RainScreen(
     init {
         val wanted = activity.intent?.getStringExtra(MainActivity.EXTRA_SOURCE) ?: prefs.getString(KEY_SOURCE, null)
         source = RainSource.entries.firstOrNull { it.key == wanted } ?: RainSource.RADAR
+        // The smoke test can ask for clouds on or off; otherwise the last choice, off at first.
+        cloudsOn = activity.intent?.takeIf { it.hasExtra(MainActivity.EXTRA_CLOUDS) }
+            ?.getBooleanExtra(MainActivity.EXTRA_CLOUDS, false)
+            ?: prefs.getBoolean(KEY_CLOUDS, false)
         setupMap(state)
         setupControls()
         applySource()
@@ -91,6 +109,7 @@ class RainScreen(
     fun onShown() {
         visible = true
         ensureLoaded(force = false)
+        ensureClouds(force = false)
         maybeAutoplay()
     }
 
@@ -103,6 +122,7 @@ class RainScreen(
         userPaused = false
         stopPlay()
         ensureLoaded(force = true)
+        ensureClouds(force = true)
     }
 
     /** Keeps where the user has panned and zoomed, for when the activity is recreated. */
@@ -121,6 +141,7 @@ class RainScreen(
         playJob?.cancel()
         radarJob?.cancel()
         gaugeJob?.cancel()
+        cloudJob?.cancel()
         b.rainMap.onDetach()
     }
 
@@ -146,6 +167,8 @@ class RainScreen(
             map.controller.setZoom(if (wanted > 0f) wanted.toDouble() else DEFAULT_ZOOM)
             map.controller.setCenter(GeoPoint(1.3521, 103.8198))
         }
+        // Clouds first, so the rain and the gauges are drawn over them.
+        map.overlays.add(cloudOverlay)
         map.overlays.add(radarOverlay)
         map.overlays.add(gaugeOverlay)
         map.overlays.add(CopyrightOverlay(activity).apply {
@@ -190,6 +213,79 @@ class RainScreen(
             }
         }
         b.rainStatus.setOnClickListener { ensureLoaded(force = true) }
+        b.cloudChip.isChecked = cloudsOn
+        b.cloudChip.setOnCheckedChangeListener { _, on -> switchClouds(on) }
+        b.cloudError.setOnClickListener { ensureClouds(force = true) }
+        applyClouds()
+    }
+
+    // ---- Clouds ----
+
+    private fun switchClouds(on: Boolean) {
+        if (on == cloudsOn) return
+        cloudsOn = on
+        prefs.edit().putBoolean(KEY_CLOUDS, on).apply()
+        Log.d(TAG, "clouds ${if (on) "on" else "off"}")
+        applyClouds()
+        if (on && visible) ensureClouds(force = false)
+        showCurrentFrame()
+    }
+
+    private fun applyClouds() {
+        cloudOverlay.isEnabled = cloudsOn
+        b.cloudLegend.visibility = if (cloudsOn) View.VISIBLE else View.GONE
+        b.cloudError.visibility = if (cloudsOn && cloudFailed && cloudFrames.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun ensureClouds(force: Boolean) {
+        if (!cloudsOn || cloudJob?.isActive == true) return
+        if (!force && cloudFrames.isNotEmpty()) return
+        cloudJob = scope.launch { loadClouds() }
+    }
+
+    private suspend fun loadClouds() {
+        try {
+            val loaded = cloudLayer.load()
+            cloudFrames = loaded
+            cloudFailed = false
+            Log.i(TAG, "clouds loaded: ${loaded.size} frames, newest ${TimeFmt.clock(loaded.last().frame.timeMillis)}, " +
+                "cover ${(loaded.last().cover * 100).toInt()}%")
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "clouds failed", e)
+            // Saved pictures from before stay on screen; the box shows only when there are none.
+            cloudFailed = true
+        }
+        applyClouds()
+        showCurrentFrame()
+    }
+
+    /** Draws the current frame again, rain and clouds, and the time box. */
+    private fun showCurrentFrame() {
+        if (frameCount() > 0) showFrame(index) else showTimes(null)
+    }
+
+    /** The time box: the rain frame's time, and with clouds on the cloud picture's time too. */
+    private fun showTimes(rainMillis: Long?) {
+        val rain = rainMillis?.let { TimeFmt.clock(it) }
+        if (!cloudsOn) {
+            cloudOverlay.showPatches(emptyList())
+            b.rainBadge.text = rain ?: "--"
+            return
+        }
+        val match = cloudFrames.takeIf { it.isNotEmpty() }?.let { frames ->
+            val picked = CloudLogic.matching(frames.map { it.frame }, rainMillis ?: Long.MAX_VALUE)
+            frames.firstOrNull { it.frame == picked }
+        }
+        cloudOverlay.showPatches(listOfNotNull(match?.patch))
+        val clouds = when {
+            match != null -> TimeFmt.clock(match.frame.timeMillis)
+            cloudJob?.isActive == true -> activity.getString(R.string.badge_clouds_loading)
+            else -> activity.getString(R.string.badge_clouds_none)
+        }
+        b.rainBadge.text = activity.getString(R.string.badge_rain_clouds, rain ?: "--", clouds)
+        b.rainMap.invalidate()
     }
 
     // ---- Source switch ----
@@ -394,7 +490,7 @@ class RainScreen(
             radarOverlay.show(emptyList())
             gaugeOverlay.show(emptyList(), null)
             b.rainClock.text = ""
-            b.rainBadge.text = "--"
+            showTimes(null)
             b.rainMap.invalidate()
         }
     }
@@ -413,9 +509,8 @@ class RainScreen(
             gaugeOverlay.show(g.stations, g.frames[index])
             time = g.frames[index].timeMillis
         }
-        val label = TimeFmt.clock(time)
-        b.rainClock.text = label
-        b.rainBadge.text = label
+        b.rainClock.text = TimeFmt.clock(time)
+        showTimes(time)
         b.rainMap.invalidate()
     }
 
@@ -471,6 +566,7 @@ class RainScreen(
         private const val DEFAULT_ZOOM = 10.0
         private const val KEY_SOURCE = "rain_source"
         private const val KEY_VIEW = "rain_view"
+        private const val KEY_CLOUDS = "rain_clouds"
         private const val MAX_RADAR_FRAMES = 13
         private const val GAUGE_FRAMES = 25
         private const val DAY_MS = 86_400_000L
