@@ -135,9 +135,10 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # The run takes about 29 minutes with every check; the calendar line adds about 3, the widget
-    # fit pictures about 3 more, and the six night skies about 3.
-    timeout-minutes: 50
+    # The run takes about 45 minutes with every check; the calendar line adds about 3, the widget
+    # fit pictures about 3 more, the six night skies about 3, and the cloud layer about 15 (it
+    # fetches and caches Himawari tiles, then shoots clouds on/off/fail in light and dark).
+    timeout-minutes: 65
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
