@@ -9,6 +9,9 @@ import kotlin.math.tan
 /** One cloud picture: Himawari's infrared view of the sky at [timeMillis] (UTC). */
 data class CloudFrame(val timeMillis: Long)
 
+/** Where a cloud picture came from, shown in the time box so the reading is honest. */
+enum class CloudSourceId(val label: String) { NICT("NICT"), GIBS("GIBS") }
+
 /**
  * The cloud layer's rules, with no Android in them: which pictures to ask NASA GIBS for, which part of them
  * covers the Rain tab's map, how a picture's grey becomes see-through cloud, and which picture goes with a
@@ -146,6 +149,108 @@ object CloudLogic {
         val n = Math.PI - 2.0 * Math.PI * (py / 256.0 + TILE_Y.first()) / (1 shl ZOOM)
         return Math.toDegrees(Math.atan(Math.sinh(n)))
     }
+
+    // ---- NICT Himawari Real-time: the newer source, a full-disk geostationary view ----
+    //
+    // NICT serves Band 13 infrared as a black-and-white cloud mask (white = cloud, black = clear sky), a new
+    // frame every 10 minutes and usually only about 25 minutes late, much fresher than GIBS. The picture is
+    // not a flat map: it is the whole Earth as the satellite sees it from 140.7 degrees east, so a tile must
+    // be bent (reprojected) onto the map to line up with the rain. The maths below (the GEOS projection, from
+    // the CGMS/LRIT standard) was checked against the Earth's edge and the Singapore, KL, Kuching and Jakarta
+    // coasts on 2026-11-24.
+
+    const val NICT_SUB_LON = 140.7
+    /** The full-disk 2 km grid is 5500 wide; its centre and scaling (CGMS LRIT constants). */
+    const val NICT_FLDK = 5500.0
+    const val NICT_COFF = 2750.5
+    const val NICT_CFAC = 20466275.0
+    /** NICT draws the disk at level n as an n-by-n grid of 550-dot tiles. Level 8 is about 2.5 km a dot here. */
+    const val NICT_LEVEL = 8
+    const val NICT_TILE = 550
+
+    private val nictStamp = DateTimeFormatter.ofPattern("yyyy/MM/dd/HHmmss").withZone(ZoneOffset.UTC)
+
+    /** The address of NICT's newest-time note. Its JSON is {"date":"YYYY-MM-DD HH:MM:SS"} in UTC. */
+    const val NICT_LATEST_URL = "https://himawari8.nict.go.jp/img/FULL_24h/latest.json"
+
+    /** One NICT Band 13 disk tile. The time and tile indices are joined with underscores. */
+    fun nictTileUrl(frame: CloudFrame, level: Int, tx: Int, ty: Int): String =
+        "https://himawari8.nict.go.jp/img/FULL_24h/B13/${level}d/$NICT_TILE/" +
+            "${nictStamp.format(Instant.ofEpochMilli(frame.timeMillis))}_${tx}_${ty}.png"
+
+    /** NICT's {"date":"2026-11-24 12:10:00"} parsed to epoch millis (UTC), or null when it cannot be read. */
+    fun parseNictLatest(json: String): Long? {
+        val m = Regex("\"date\"\\s*:\\s*\"([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})\"").find(json) ?: return null
+        val (y, mo, d, h, mi, s) = m.destructured
+        return try {
+            java.time.LocalDateTime.of(y.toInt(), mo.toInt(), d.toInt(), h.toInt(), mi.toInt(), s.toInt())
+                .toInstant(ZoneOffset.UTC).toEpochMilli()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+
+    private const val SAT_DIST = 42164.0       // satellite distance from Earth centre, km
+    private const val R_POL = 6356.7523        // polar radius, km
+    private const val E2 = 0.00669438444       // eccentricity squared
+    private const val GEO_RATIO = 0.993305616  // (R_pol/R_eq)^2, geodetic to geocentric latitude
+
+    /**
+     * A lat/lon turned into a dot in NICT's whole-disk picture frame (the n-by-n grid as one image), or null
+     * when the point is round the back of the Earth. [level] is the zoom (8 by default).
+     */
+    fun nictFramePixel(lon: Double, lat: Double, level: Int = NICT_LEVEL): DoubleArray? {
+        val lonR = Math.toRadians(lon)
+        val subR = Math.toRadians(NICT_SUB_LON)
+        val cLat = Math.atan(GEO_RATIO * Math.tan(Math.toRadians(lat)))
+        val rl = R_POL / Math.sqrt(1 - E2 * Math.cos(cLat) * Math.cos(cLat))
+        val r1 = SAT_DIST - rl * Math.cos(cLat) * Math.cos(lonR - subR)
+        val r2 = -rl * Math.cos(cLat) * Math.sin(lonR - subR)
+        val r3 = rl * Math.sin(cLat)
+        // Behind the Earth's edge: not visible.
+        if (r1 * (r1 - SAT_DIST) + (r2 * r2 + r3 * r3) > 0) return null
+        val rn = Math.sqrt(r1 * r1 + r2 * r2 + r3 * r3)
+        val x = Math.atan(-r2 / r1)
+        val y = Math.asin(-r3 / rn)
+        val col = NICT_COFF + Math.toDegrees(x) * TWO_POW_M16 * NICT_CFAC
+        val lin = NICT_COFF + Math.toDegrees(y) * TWO_POW_M16 * NICT_CFAC
+        val scale = level * NICT_TILE / NICT_FLDK
+        return doubleArrayOf(col * scale, lin * scale)
+    }
+
+    private const val TWO_POW_M16 = 1.0 / 65536.0
+
+    /** The whole-disk frame width in dots at [level]: level 8 is 4400. */
+    fun nictFrameSize(level: Int = NICT_LEVEL): Int = level * NICT_TILE
+
+    /** The lon/lat at the centre of each dot of the Mercator crop, left-to-right then top-to-bottom. */
+    fun cropCellLonLat(): Pair<DoubleArray, DoubleArray> {
+        val c = crop()
+        val lons = DoubleArray(c[2]) { lonAt(c[0] + it + 0.5) }
+        val lats = DoubleArray(c[3]) { latAt(c[1] + it + 0.5) }
+        return lons to lats
+    }
+
+    /** Which NICT disk tiles (x,y pairs) the crop falls in, at [level]. Two tiles over Singapore. */
+    fun nictTilesForCrop(level: Int = NICT_LEVEL): List<Pair<Int, Int>> {
+        val (lons, lats) = cropCellLonLat()
+        var minX = Int.MAX_VALUE; var maxX = Int.MIN_VALUE
+        var minY = Int.MAX_VALUE; var maxY = Int.MIN_VALUE
+        for (lat in doubleArrayOf(lats.first(), lats.last())) {
+            for (lon in doubleArrayOf(lons.first(), lons.last())) {
+                val p = nictFramePixel(lon, lat, level) ?: continue
+                val tx = (p[0] / NICT_TILE).toInt(); val ty = (p[1] / NICT_TILE).toInt()
+                minX = minOf(minX, tx); maxX = maxOf(maxX, tx)
+                minY = minOf(minY, ty); maxY = maxOf(maxY, ty)
+            }
+        }
+        if (minX == Int.MAX_VALUE) return emptyList()
+        val out = ArrayList<Pair<Int, Int>>()
+        for (ty in minY..maxY) for (tx in minX..maxX) out.add(tx to ty)
+        return out
+    }
+
 
     // ---- Grey picture to see-through cloud ----
 

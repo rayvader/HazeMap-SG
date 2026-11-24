@@ -81,6 +81,7 @@ class RainScreen(
     )
     private var cloudsOn = false
     private var cloudFrames: List<CloudLayer.Loaded> = emptyList()
+    private var cloudSource: CloudSourceId? = null
     private var cloudJob: Job? = null
     private var cloudFailed = false
     private val gaugeOverlay = GaugeOverlay(density, night) { station, mm ->
@@ -250,11 +251,13 @@ class RainScreen(
 
     private suspend fun loadClouds() {
         try {
-            val loaded = cloudLayer.load()
-            cloudFrames = loaded
+            val result = cloudLayer.load()
+            cloudFrames = result.frames
+            cloudSource = result.source
             cloudFailed = false
-            Log.i(TAG, "clouds loaded: ${loaded.size} frames, newest ${TimeFmt.clock(loaded.last().frame.timeMillis)}, " +
-                "cover ${(loaded.last().cover * 100).toInt()}%")
+            Log.i(TAG, "clouds loaded from ${result.source.label}: ${result.frames.size} frames, " +
+                "newest ${TimeFmt.clock(result.frames.last().frame.timeMillis)}, " +
+                "cover ${(result.frames.last().cover * 100).toInt()}%")
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -285,10 +288,11 @@ class RainScreen(
         }
         cloudOverlay.showPatches(listOfNotNull(match?.patch))
         if (match != null) {
-            val cloudClock = TimeFmt.clock(match.frame.timeMillis)
+            val src = cloudSource?.label ?: CloudSourceId.NICT.label
+            val cloudClock = activity.getString(R.string.badge_clouds_time, TimeFmt.clock(match.frame.timeMillis), src)
             val behind = rainMillis?.let { CloudLogic.cloudBehindMs(match.frame.timeMillis, it) } ?: 0L
             b.rainBadge.text = if (behind >= CloudLogic.CLOUD_BEHIND_WARN_MS) {
-                // The cloud picture is well behind the rain (GIBS is slow): say so plainly, never hide it.
+                // The cloud picture is well behind the rain: say so plainly, never hide it.
                 activity.getString(R.string.badge_rain_clouds_old, rain ?: "--", cloudClock, (behind / 60_000L).toInt())
             } else {
                 activity.getString(R.string.badge_rain_clouds, rain ?: "--", cloudClock)

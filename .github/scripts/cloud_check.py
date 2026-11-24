@@ -5,7 +5,7 @@
 
 Prints one line: "clouds <want> ok: ..." or "FAIL clouds <want>: ...". It checks what the person sees:
 the time box says the rain time and, with clouds on, the cloud time (24 h); the Clouds switch is in the state
-asked for; the credit line names NASA GIBS and Himawari (JMA); the red box shows only when the clouds failed,
+asked for; the credit line names NICT and JMA Himawari; the red box shows only when the clouds failed,
 and says the rain is still shown; no two of the map's boxes cover each other, and each is inside the screen.
 """
 import re
@@ -37,11 +37,11 @@ def main():
         if not re.fullmatch(r"\d\d:\d\d|--", text):
             problems.append(f"time box '{text}' is not just the rain time")
     else:
-        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d|…|none)(\n\(\d+ min older\))?", text)
+        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d · (?:NICT|GIBS)|…|none)(\n\(\d+ min older\))?", text)
         if not m:
-            problems.append(f"time box '{text}' is not 'Rain HH:mm' over 'Clouds HH:mm'")
-        elif want == "on" and not re.fullmatch(r"\d\d:\d\d", m.group(2)):
-            problems.append(f"no cloud time in '{text}'")
+            problems.append(f"time box '{text}' is not 'Rain HH:mm' over 'Clouds HH:mm · SRC'")
+        elif want == "on" and not re.match(r"\d\d:\d\d · (?:NICT|GIBS)", m.group(2)):
+            problems.append(f"no cloud time and source in '{text}'")
         elif want == "fail" and m.group(2) != "none":
             problems.append(f"the clouds failed, but the time box says '{m.group(2)}'")
         elif want == "fail" and m.group(3):
@@ -59,7 +59,7 @@ def main():
     credit = by.get("cloudSource")
     if want != "off":
         ctext = credit.get("text", "") if credit is not None else ""
-        if ctext != "Clouds: NASA GIBS, Himawari (JMA)":
+        if ctext != "Clouds: NICT / JMA Himawari":
             problems.append(f"credit line '{ctext}'")
     elif credit is not None:
         problems.append("the cloud credit shows with clouds off")
