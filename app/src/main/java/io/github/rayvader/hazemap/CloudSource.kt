@@ -38,11 +38,14 @@ class GibsCloudSource(private val cache: RadarCache) : CloudSource {
     private val c = CloudLogic.crop()
     override val cropW = c[2]
     override val cropH = c[3]
+    private val xs = CloudLogic.gibsTileX()
+    private val ys = CloudLogic.gibsTileY()
+    private val blockW = xs.count() * 256
 
     override suspend fun newest(nowMillis: Long): CloudFrame? {
         var failures = 0
         for (candidate in CloudLogic.newestCandidates(nowMillis)) {
-            val url = CloudLogic.tileUrl(candidate, CloudLogic.TILE_Y.first())
+            val url = CloudLogic.tileUrl(candidate, xs.first, ys.first)
             if (withContext(Dispatchers.IO) { cache.read(url) } != null) return candidate
             try {
                 val bytes = Http.getBytesOrMissing(url) ?: continue
@@ -59,23 +62,30 @@ class GibsCloudSource(private val cache: RadarCache) : CloudSource {
     }
 
     override suspend fun cropPixels(frame: CloudFrame): IntArray? {
-        val tiles = ArrayList<Bitmap>()
-        for (y in CloudLogic.TILE_Y) {
-            val bytes = tileBytes(CloudLogic.tileUrl(frame, y)) ?: return null
-            val bmp = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) } ?: return null
-            tiles += bmp
-        }
-        return withContext(Dispatchers.Default) {
-            val full = IntArray(256 * 256 * tiles.size)
-            tiles.forEachIndexed { i, t ->
-                t.getPixels(full, i * 256 * 256, 256, 0, 0, 256, 256)
-                t.recycle()
+        // The block of tiles the crop sits in, laid out left-to-right then top-to-bottom.
+        val blockH = ys.count() * 256
+        val block = IntArray(blockW * blockH)
+        for ((gy, ty) in ys.withIndex()) {
+            for ((gx, tx) in xs.withIndex()) {
+                val bytes = tileBytes(CloudLogic.tileUrl(frame, tx, ty)) ?: return null
+                val tile = withContext(Dispatchers.Default) {
+                    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext null
+                    val arr = IntArray(256 * 256)
+                    bmp.getPixels(arr, 0, 256, 0, 0, 256, 256)
+                    bmp.recycle()
+                    arr
+                } ?: return null
+                // Paste this 256x256 tile into the block.
+                for (row in 0 until 256) {
+                    System.arraycopy(tile, row * 256, block, (gy * 256 + row) * blockW + gx * 256, 256)
+                }
             }
-            // Cut the crop rectangle out of the stacked 256-wide pair.
+        }
+        // Cut the crop rectangle out of the block.
+        return withContext(Dispatchers.Default) {
             val out = IntArray(cropW * cropH)
             for (row in 0 until cropH) {
-                val srcRow = c[1] + row
-                System.arraycopy(full, srcRow * 256 + c[0], out, row * cropW, cropW)
+                System.arraycopy(block, (c[1] + row) * blockW + c[0], out, row * cropW, cropW)
             }
             out
         }
@@ -97,7 +107,7 @@ class GibsCloudSource(private val cache: RadarCache) : CloudSource {
 
     /** The GIBS tiles this source keeps for a set of frames, so the cache can drop the rest. */
     fun tileUrls(frames: List<CloudFrame>): List<String> =
-        frames.flatMap { f -> CloudLogic.TILE_Y.map { y -> CloudLogic.tileUrl(f, y) } }
+        frames.flatMap { f -> ys.flatMap { ty -> xs.map { tx -> CloudLogic.tileUrl(f, tx, ty) } } }
 
     private companion object {
         const val TAG = "GibsCloudSource"

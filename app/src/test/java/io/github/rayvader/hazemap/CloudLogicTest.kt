@@ -68,7 +68,7 @@ class CloudLogicTest {
         assertEquals(
             "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari_AHI_Band13_Clean_Infrared/default/" +
                 "2026-11-22T09:00:00Z/GoogleMapsCompatible_Level6/6/31/50.png",
-            CloudLogic.tileUrl(CloudFrame(utc("2026-11-22T09:00:00Z")), 31)
+            CloudLogic.tileUrl(CloudFrame(utc("2026-11-22T09:00:00Z")), 50, 31)
         )
     }
 
@@ -158,27 +158,37 @@ class CloudLogicTest {
     // ---- Where the kept part sits ----
 
     @Test
-    fun theKeptPartCoversSingaporeAndTheMapAroundIt() {
+    fun theKeptPartCoversPastEveryScreenEdgeAtLeastZoom() {
         val c = CloudLogic.crop()
-        // Inside the stacked pair of tiles: 256 wide, 512 tall.
-        assertTrue(c[0] >= 0 && c[0] + c[2] <= 256)
-        assertTrue(c[1] >= 0 && c[1] + c[3] <= 512)
+        // The crop sits inside the block of GIBS tiles it needs: x 49..50, y 30..32.
+        val xs = CloudLogic.gibsTileX()
+        val ys = CloudLogic.gibsTileY()
+        assertEquals(49..50, xs)
+        assertEquals(30..32, ys)
+        val blockW = xs.count() * 256
+        val blockH = ys.count() * 256
+        assertTrue(c[0] >= 0 && c[0] + c[2] <= blockW)
+        assertTrue(c[1] >= 0 && c[1] + c[3] <= blockH)
         val e = CloudLogic.cropBounds()
         val (north, west, south, east) = e.toList()
-        assertTrue("north $north", north >= 3.2 && north < 3.3)
-        assertTrue("south $south", south <= -0.6 && south > -0.7)
-        assertTrue("west $west", west <= 102.0 && west > 101.9)
-        assertTrue("east $east", east >= 105.6 && east < 105.7)
-        // Singapore, and the radar's area, are inside it.
+        // At zoom 8.5 centred on Singapore the viewport reaches ~lon 101.72..105.92, lat -3.19..5.89.
+        // The crop must cover past all four of those, so clouds never stop in a line on screen.
+        assertTrue("north $north covers 5.89", north >= 5.89)
+        assertTrue("south $south covers -3.19", south <= -3.19)
+        assertTrue("west $west covers 101.72", west <= 101.72)
+        assertTrue("east $east covers 105.92", east >= 105.92)
+        // Singapore and the radar area are well inside it.
         assertTrue(1.35 in south..north && 103.82 in west..east)
     }
 
     @Test
-    fun pictureDotsMatchTheTileEdges() {
-        assertEquals(0.0, CloudLogic.pixelX(101.25), 1e-9)
-        assertEquals(256.0, CloudLogic.pixelX(106.875), 1e-9)
-        // The equator is where tile 31 ends and tile 32 starts.
-        assertEquals(256.0, CloudLogic.pixelY(0.0), 1e-9)
+    fun pictureDotsAreMeasuredFromTheTopLeftTileOfTheBlock() {
+        // The block's top-left tile is x 49 (lon from 95.625) and y 30 (lat down from 11.178).
+        // Tile 50 starts at lon 101.25, which is one tile (256 dots) in from the left of tile 49.
+        assertEquals(256.0, CloudLogic.pixelX(101.25), 1e-6)
+        assertEquals(512.0, CloudLogic.pixelX(106.875), 1e-6)
+        // The equator is the bottom of tile 31, i.e. two tiles (512 dots) down from the top of tile 30.
+        assertEquals(512.0, CloudLogic.pixelY(0.0), 1e-6)
     }
 
     // ---- Grey to see-through cloud ----
