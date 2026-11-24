@@ -1,6 +1,7 @@
 package io.github.rayvader.hazemap
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,6 +44,51 @@ class CloudLogicTest {
     fun theTimesFallOnTenMinuteMarks() {
         assertEquals(utc("2026-11-22T09:20:00Z"), CloudLogic.floorToStep(utc("2026-11-22T09:29:59Z")))
         assertEquals(utc("2026-11-22T09:20:00Z"), CloudLogic.floorToStep(utc("2026-11-22T09:20:00Z")))
+    }
+
+    // ---- Staleness: GIBS runs ~50 min behind, so reload while the app stays open ----
+
+    @Test
+    fun theNewestExpectedPictureIsAboutFiftyMinutesOldFlooredToTenMinutes() {
+        // At 08:21Z the newest GIBS could have is 07:30Z (08:21 - 50 min = 07:31, floored to 07:30).
+        assertEquals(utc("2026-11-22T07:30:00Z"), CloudLogic.newestExpected(utc("2026-11-22T08:21:00Z")))
+    }
+
+    @Test
+    fun cloudsAreStaleOnceANewerPictureShouldExist() {
+        val now = utc("2026-11-22T08:21:00Z") // newest expected: 07:30Z
+        // Nothing loaded is never "stale", only missing.
+        assertFalse(CloudLogic.cloudsStale(null, now))
+        // The newest we hold is the newest expected: fresh.
+        assertFalse(CloudLogic.cloudsStale(utc("2026-11-22T07:30:00Z"), now))
+        // One step behind the newest expected: stale, reload.
+        assertTrue(CloudLogic.cloudsStale(utc("2026-11-22T07:20:00Z"), now))
+        // Well behind (what a picture left on screen becomes after a while): stale.
+        assertTrue(CloudLogic.cloudsStale(utc("2026-11-22T06:40:00Z"), now))
+        // Holding something newer than expected (GIBS caught up early): not stale.
+        assertFalse(CloudLogic.cloudsStale(utc("2026-11-22T07:50:00Z"), now))
+    }
+
+    // ---- The cloud picture can lag the rain; the time box must say so ----
+
+    @Test
+    fun cloudBehindIsHowFarTheCloudTrailsTheRainNeverNegative() {
+        val rain = utc("2026-11-22T08:20:00Z")
+        // Cloud 50 min behind the rain.
+        assertEquals(50 * 60_000L, CloudLogic.cloudBehindMs(utc("2026-11-22T07:30:00Z"), rain))
+        // Cloud as new as the rain: zero.
+        assertEquals(0L, CloudLogic.cloudBehindMs(rain, rain))
+        // Cloud newer than the rain (scrubbed back): clamped to zero, never negative.
+        assertEquals(0L, CloudLogic.cloudBehindMs(utc("2026-11-22T08:40:00Z"), rain))
+    }
+
+    @Test
+    fun theWarnThresholdIsFifteenMinutes() {
+        val rain = utc("2026-11-22T08:20:00Z")
+        // 14 min behind: under the warn line.
+        assertTrue(CloudLogic.cloudBehindMs(utc("2026-11-22T08:06:00Z"), rain) < CloudLogic.CLOUD_BEHIND_WARN_MS)
+        // 15 min behind: at the warn line.
+        assertTrue(CloudLogic.cloudBehindMs(utc("2026-11-22T08:05:00Z"), rain) >= CloudLogic.CLOUD_BEHIND_WARN_MS)
     }
 
     // ---- Which picture goes with a rain frame ----

@@ -16,7 +16,8 @@ data class CloudFrame(val timeMillis: Long)
  *
  * The pictures are Himawari's Band 13 ("clean infrared"), served by NASA GIBS with no key. Infrared sees
  * clouds by night as by day: cold cloud tops are bright, warm ground and sea are dark grey. A new picture
- * comes every 10 minutes and is on GIBS about 20 to 30 minutes later.
+ * comes every 10 minutes, but GIBS runs well behind real time: the newest one there is usually about 50
+ * minutes old (seen Nov 2026: at 08:21Z the newest was 07:30Z). So the "now" cloud picture lags the rain.
  */
 object CloudLogic {
 
@@ -31,11 +32,43 @@ object CloudLogic {
     const val STEP_MS = 10 * 60_000L
     const val FRAMES = 13
 
-    /** How far back to look for the newest picture: GIBS has it about 30 minutes late, sometimes later. */
+    /** How far back to look for the newest picture, in 10-minute steps: GIBS runs about 50 minutes behind,
+     * sometimes more, so two hours of candidates leaves plenty of room. */
     const val LOOK_BACK_STEPS = 12
+
+    /**
+     * How late GIBS usually is: the newest picture there is about this old. Used to tell when the clouds on
+     * screen have gone stale (a newer picture should exist by now) and should be reloaded.
+     */
+    const val LOOK_BACK_MS = 50 * 60_000L
 
     /** The first try is this long ago: nothing newer is ever there yet. */
     const val FIRST_TRY_AGO_MS = 10 * 60_000L
+
+    /**
+     * The newest 10-minute mark GIBS could plausibly have a picture for at [nowMillis]: now minus the usual
+     * ~50-minute lag, floored to a 10-minute mark.
+     */
+    fun newestExpected(nowMillis: Long): Long = floorToStep(nowMillis - LOOK_BACK_MS)
+
+    /**
+     * True when the clouds on screen are stale and should be reloaded: the newest one loaded is at least one
+     * step (10 min) older than the newest GIBS could now have. This mirrors the rain's "a newer frame exists"
+     * rule. [loadedNewestMillis] is null when nothing is loaded yet (then it is not "stale", just missing).
+     */
+    fun cloudsStale(loadedNewestMillis: Long?, nowMillis: Long): Boolean {
+        if (loadedNewestMillis == null) return false
+        return newestExpected(nowMillis) - loadedNewestMillis >= STEP_MS
+    }
+
+    /**
+     * How far behind the rain the shown cloud picture is, in milliseconds (0 when the cloud is as new as the
+     * rain or newer). The time box warns when this passes [CLOUD_BEHIND_WARN_MS].
+     */
+    fun cloudBehindMs(cloudMillis: Long, rainMillis: Long): Long = (rainMillis - cloudMillis).coerceAtLeast(0L)
+
+    /** Past this much behind the rain, the time box says the cloud picture is older, and by how much. */
+    const val CLOUD_BEHIND_WARN_MS = 15 * 60_000L
 
     /**
      * The part of the pictures the app keeps: wider than the map can show at its least zoom (8.5) around

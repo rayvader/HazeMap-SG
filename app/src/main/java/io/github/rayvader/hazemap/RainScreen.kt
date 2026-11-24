@@ -239,7 +239,12 @@ class RainScreen(
 
     private fun ensureClouds(force: Boolean) {
         if (!cloudsOn || cloudJob?.isActive == true) return
-        if (!force && cloudFrames.isNotEmpty()) return
+        // Reload when asked, when nothing is loaded yet, or when the clouds on screen have gone stale: GIBS
+        // runs about 50 min behind, so a picture left on screen goes old while the app stays open. This
+        // mirrors the rain's "a newer frame exists" rule.
+        val newest = cloudFrames.lastOrNull()?.frame?.timeMillis
+        val stale = CloudLogic.cloudsStale(newest, System.currentTimeMillis())
+        if (!force && cloudFrames.isNotEmpty() && !stale) return
         cloudJob = scope.launch { loadClouds() }
     }
 
@@ -279,10 +284,22 @@ class RainScreen(
             frames.firstOrNull { it.frame == picked }
         }
         cloudOverlay.showPatches(listOfNotNull(match?.patch))
-        val clouds = when {
-            match != null -> TimeFmt.clock(match.frame.timeMillis)
-            cloudJob?.isActive == true -> activity.getString(R.string.badge_clouds_loading)
-            else -> activity.getString(R.string.badge_clouds_none)
+        if (match != null) {
+            val cloudClock = TimeFmt.clock(match.frame.timeMillis)
+            val behind = rainMillis?.let { CloudLogic.cloudBehindMs(match.frame.timeMillis, it) } ?: 0L
+            b.rainBadge.text = if (behind >= CloudLogic.CLOUD_BEHIND_WARN_MS) {
+                // The cloud picture is well behind the rain (GIBS is slow): say so plainly, never hide it.
+                activity.getString(R.string.badge_rain_clouds_old, rain ?: "--", cloudClock, (behind / 60_000L).toInt())
+            } else {
+                activity.getString(R.string.badge_rain_clouds, rain ?: "--", cloudClock)
+            }
+            b.rainMap.invalidate()
+            return
+        }
+        val clouds = if (cloudJob?.isActive == true) {
+            activity.getString(R.string.badge_clouds_loading)
+        } else {
+            activity.getString(R.string.badge_clouds_none)
         }
         b.rainBadge.text = activity.getString(R.string.badge_rain_clouds, rain ?: "--", clouds)
         b.rainMap.invalidate()

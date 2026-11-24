@@ -37,13 +37,15 @@ def main():
         if not re.fullmatch(r"\d\d:\d\d|--", text):
             problems.append(f"time box '{text}' is not just the rain time")
     else:
-        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d|…|none)", text)
+        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d|…|none)( \(\d+ min older\))?", text)
         if not m:
             problems.append(f"time box '{text}' is not 'Rain HH:mm' over 'Clouds HH:mm'")
         elif want == "on" and not re.fullmatch(r"\d\d:\d\d", m.group(2)):
             problems.append(f"no cloud time in '{text}'")
         elif want == "fail" and m.group(2) != "none":
             problems.append(f"the clouds failed, but the time box says '{m.group(2)}'")
+        elif want == "fail" and m.group(3):
+            problems.append(f"the clouds failed, but the time box claims an older picture ('{text}')")
 
     chip = by.get("cloudChip")
     if chip is None:
