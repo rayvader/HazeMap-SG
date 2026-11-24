@@ -11,6 +11,56 @@ class CloudLogicTest {
 
     private fun utc(text: String) = Instant.parse(text).toEpochMilli()
 
+    // ---- NICT: the full-disk geostationary projection (checked against the coast 2026-11-24) ----
+
+    @Test
+    fun nictSubSatellitePointLandsAtTheFrameCentre() {
+        // 0N, 140.7E is straight below the satellite: the exact middle of the 4400px level-8 frame.
+        val p = CloudLogic.nictFramePixel(140.7, 0.0, 8)!!
+        assertEquals(2200.0, p[0], 0.6)
+        assertEquals(2200.0, p[1], 0.6)
+    }
+
+    @Test
+    fun nictPlacesSingaporeWhereItWasMeasured() {
+        // Singapore 1.29N 103.85E -> frame px (728.6, 2145.6) at level 8, from the validated run.
+        val p = CloudLogic.nictFramePixel(103.85, 1.29, 8)!!
+        assertEquals(728.6, p[0], 1.0)
+        assertEquals(2145.6, p[1], 1.0)
+        // That dot sits in disk tile 1_3.
+        assertEquals(1, (p[0] / CloudLogic.NICT_TILE).toInt())
+        assertEquals(3, (p[1] / CloudLogic.NICT_TILE).toInt())
+    }
+
+    @Test
+    fun nictReturnsNullRoundTheBackOfTheEarth() {
+        // The opposite side of the globe from the satellite is not visible.
+        assertNull(CloudLogic.nictFramePixel(-39.3, 0.0, 8))
+    }
+
+    @Test
+    fun nictCropNeedsJustTheTwoTilesOverSingapore() {
+        val tiles = CloudLogic.nictTilesForCrop(8)
+        assertTrue("1_3 in $tiles", (1 to 3) in tiles)
+        assertTrue("1_4 in $tiles", (1 to 4) in tiles)
+        assertEquals(2, tiles.size)
+    }
+
+    @Test
+    fun nictTileUrlIsTheRealtimeB13Path() {
+        val f = CloudFrame(utc("2026-11-24T12:10:00Z"))
+        assertEquals(
+            "https://himawari8.nict.go.jp/img/FULL_24h/B13/8d/550/2026/11/24/121000_1_3.png",
+            CloudLogic.nictTileUrl(f, 8, 1, 3)
+        )
+    }
+
+    @Test
+    fun nictLatestJsonGivesTheNewestTime() {
+        assertEquals(utc("2026-11-24T12:10:00Z"), CloudLogic.parseNictLatest("{\"date\":\"2026-11-24 12:10:00\"}"))
+        assertNull(CloudLogic.parseNictLatest("{\"oops\":true}"))
+    }
+
     // ---- Which pictures ----
 
     @Test

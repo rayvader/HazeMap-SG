@@ -38,17 +38,20 @@ it stays still until you press Play. It does not start by itself when the phone 
 Zoom out to watch rain coming across the Strait.
 
 **Clouds** — the Clouds switch under Radar | Gauges draws the clouds under the rain: Himawari's infrared
-picture from [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api)
-(no key), a new one every 10 minutes. GIBS runs well behind real time, usually about 50 minutes, so the
-newest cloud picture lags the rain. It sees clouds by night as by day. Clear sky is see-through; cloud is
+picture, a new one every 10 minutes. It sees clouds by night as by day. The app uses two sources and shows
+which one in the time box. [NICT's Himawari Real-time](https://himawari8.nict.go.jp/) is tried first: it is
+usually only about 25 minutes behind, but its picture is a whole-disk satellite view, so each tile is bent
+onto the map (a geostationary-to-Mercator reprojection) to line up with the rain. When NICT cannot be reached
+or is no newer, the app falls back to [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api)
+(no key), which is already map-shaped but runs about 50 minutes behind. Clear sky is see-through; cloud is
 light grey with a darker edge, so it shows on the light map and the dark one. The pictures are coarse (about
-2.4 km per dot), so clouds look soft. The switch is off at first and remembered. The rain stays on either
-way. With clouds on, the time box says both times, such as "Rain 17:20" and "Clouds 17:00": each rain frame
-gets the newest cloud picture taken no later. When the cloud picture trails the rain by more than 15 minutes
-(GIBS being slow), the time box says so, such as "Clouds 16:30 (50 min older)", never hiding it. The clouds
-reload when the tab is opened and a newer picture should exist, so they do not go stale while the app is
-open. If the cloud pictures cannot be had, a red box says so and that the rain is still shown; tap it to try
-again. The last two hours of cloud pictures are saved on the phone (about 1.6 MB, 13 frames of two tiles each).
+2.5 km per dot), so clouds look soft. The switch is off at first and remembered. The rain stays on either
+way. With clouds on, the time box says both times and the source, such as "Rain 17:20" and "Clouds 17:00 ·
+NICT": each rain frame gets the newest cloud picture taken no later. When the cloud picture trails the rain
+by more than 15 minutes, the time box says so, such as "Clouds 16:30 (50 min older)", never hiding it. The
+clouds reload when the tab is opened and a newer picture should exist, so they do not go stale while the app
+is open. If the cloud pictures cannot be had from either source, a red box says so and that the rain is still
+shown; tap it to try again. The last two hours of cloud pictures are saved on the phone.
 Radar pictures are saved on the phone (about 1 MB). The app downloads only the pictures it does not have yet,
 and with no network it plays the last two hours it saved, with a note saying how old they are.
 Pictures older than two hours are deleted when new ones arrive.
@@ -164,7 +167,7 @@ Tap anywhere else to open Haze Map. With no Clock app, the clock opens Haze Map 
 |---|---|---|
 | Forecasts, temperature, humidity, wind, UV, rain gauges, PSI, PM2.5 | [NEA via data.gov.sg](https://data.gov.sg/) | Singapore Open Data Licence 1.0 |
 | Rain radar pictures | [RainViewer](https://www.rainviewer.com/api.html) free API | personal use, credit required |
-| Cloud pictures (Himawari Band 13 infrared) | [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api), from JMA's Himawari | NASA open data, credit asked: "Clouds: NASA GIBS, Himawari (JMA)" |
+| Cloud pictures (Himawari Band 13 infrared) | [NICT Himawari Real-time](https://himawari8.nict.go.jp/) first, [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api) as fallback, both from JMA's Himawari | NICT: free, non-commercial use, credit shown "Clouds: NICT / JMA Himawari". NASA: open data. |
 | Base map | OpenStreetMap, through osmdroid | © OpenStreetMap contributors |
 
 - **NEA allows 6 calls per 10 seconds without a key.** The app keeps to 5. A cold start of the Now tab
@@ -325,7 +328,7 @@ See [docs/design](docs/design/weather-mockups.html).
 Contains information from NEA's real-time weather datasets, accessed from
 [data.gov.sg](https://data.gov.sg/), made available under the
 [Singapore Open Data Licence version 1.0](https://data.gov.sg/open-data-licence).
-Radar images by [RainViewer](https://www.rainviewer.com/). Cloud pictures: NASA GIBS, from JMA's Himawari.
+Radar images by [RainViewer](https://www.rainviewer.com/). Cloud pictures: NICT / JMA Himawari (NASA GIBS as fallback).
 Map data © OpenStreetMap contributors.
 Built with [osmdroid](https://github.com/osmdroid/osmdroid) and
 [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart).

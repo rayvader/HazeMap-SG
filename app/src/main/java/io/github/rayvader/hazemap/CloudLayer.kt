@@ -1,115 +1,114 @@
 package io.github.rayvader.hazemap
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.util.Log
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.IOException
 
 /**
- * Loads the cloud layer for the Rain tab: the newest Himawari infrared pictures from NASA GIBS for the last
- * two hours, cut to Singapore and made see-through (see [CloudLogic]). A picture never changes once it is
- * published, so each one is kept on the phone and fetched only once.
+ * Loads the cloud layer for the Rain tab: the last two hours of Himawari infrared, cut to Singapore and made
+ * see-through (see [CloudLogic]). Two sources: NICT (newer, bent onto the map) first, NASA GIBS as the
+ * fallback when NICT fails or is no newer. A picture never changes once published, so each tile is kept on
+ * the phone and fetched only once.
  */
 class CloudLayer(dir: File, private val dark: Boolean, private val failForTest: Boolean = false) {
 
     /** One loaded cloud frame: its time and its picture on the map. */
     class Loaded(val frame: CloudFrame, val patch: RadarOverlay.Patch, val cover: Float)
 
+    /** The frames plus which source they came from, so the Rain tab can name it. */
+    class Result(val frames: List<Loaded>, val source: CloudSourceId)
+
     private val cache = RadarCache(dir)
+    private val nict = NictCloudSource(cache)
+    private val gibs = GibsCloudSource(cache)
 
     /**
-     * The cloud frames, oldest first. Throws when not one picture could be had, saved or fetched: the
-     * Rain tab then says clouds are unavailable, and keeps the rain.
+     * The cloud frames and their source. Throws when neither source can give one picture: the Rain tab then
+     * says clouds are unavailable, and keeps the rain.
      */
-    suspend fun load(nowMillis: Long = System.currentTimeMillis()): List<Loaded> {
+    suspend fun load(nowMillis: Long = System.currentTimeMillis()): Result {
         if (failForTest) throw IOException("cloud source turned off by the test")
-        val newest = findNewest(nowMillis) ?: throw IOException("no cloud picture in the last two hours")
+
+        val nictNewest = try { nict.newest(nowMillis) } catch (e: Exception) { null }
+        val gibsNewest = try { gibs.newest(nowMillis) } catch (e: Exception) { null }
+
+        // Prefer NICT unless GIBS is actually newer (NICT is usually fresher). Fall back either way.
+        val order = pickOrder(nictNewest, gibsNewest)
+        var lastError: Exception? = null
+        for (choice in order) {
+            val (source, newest) = choice
+            if (newest == null) continue
+            try {
+                val frames = loadFrom(source, newest)
+                if (frames.isNotEmpty()) {
+                    Log.i(TAG, "clouds from ${source.id.label}: ${frames.size} frames, newest ${TimeFmt.clock(newest.timeMillis)}")
+                    return Result(frames, source.id)
+                }
+            } catch (e: IOException) {
+                lastError = e
+                Log.w(TAG, "clouds from ${source.id.label} failed", e)
+            }
+        }
+        throw lastError ?: IOException("no cloud picture from NICT or GIBS")
+    }
+
+    /** NICT first, then GIBS, unless GIBS's newest is more than one step fresher than NICT's. */
+    private fun pickOrder(
+        nictNewest: CloudFrame?,
+        gibsNewest: CloudFrame?
+    ): List<Pair<CloudSource, CloudFrame?>> {
+        val nictFirst = when {
+            nictNewest == null -> false
+            gibsNewest == null -> true
+            else -> gibsNewest.timeMillis - nictNewest.timeMillis < CloudLogic.STEP_MS
+        }
+        return if (nictFirst) listOf(nict to nictNewest, gibs to gibsNewest)
+        else listOf(gibs to gibsNewest, nict to nictNewest)
+    }
+
+    private suspend fun loadFrom(source: CloudSource, newest: CloudFrame): List<Loaded> {
         val frames = CloudLogic.framesEndingAt(newest)
         val gate = Semaphore(4)
         val loaded = coroutineScope {
-            frames.map { f -> async { gate.withPermit { loadFrame(f) } } }.awaitAll()
+            frames.map { f -> async { gate.withPermit { loadFrame(source, f) } } }.awaitAll()
         }.filterNotNull()
-        if (loaded.isEmpty()) throw IOException("no cloud pictures")
-        // Pictures older than the last two hours are no longer needed.
-        cache.keepOnly(frames.flatMap { f -> CloudLogic.TILE_Y.map { y -> CloudLogic.tileUrl(f, y) } })
-        Log.d(TAG, "clouds ready: ${loaded.size} frames, newest ${TimeFmt.clock(newest.timeMillis)}")
+        if (loaded.isNotEmpty()) {
+            // Drop tiles older than the last two hours.
+            val keep = when (source) {
+                is NictCloudSource -> source.tileUrls(frames)
+                is GibsCloudSource -> source.tileUrls(frames)
+                else -> emptyList()
+            }
+            if (keep.isNotEmpty()) cache.keepOnly(keep)
+        }
         return loaded
     }
 
-    /**
-     * The newest picture there is, found by asking for one time after another, newest first, rather than
-     * downloading GIBS's 5.8 MB list of every layer. A saved picture counts, so this works offline too.
-     */
-    private suspend fun findNewest(nowMillis: Long): CloudFrame? {
-        var failures = 0
-        for (candidate in CloudLogic.newestCandidates(nowMillis)) {
-            val url = CloudLogic.tileUrl(candidate, CloudLogic.TILE_Y.first())
-            if (withContext(Dispatchers.IO) { cache.read(url) } != null) return candidate
-            try {
-                val bytes = Http.getBytesOrMissing(url) ?: continue
-                withContext(Dispatchers.IO) { cache.write(url, bytes) }
-                return candidate
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // No network: two failures in a row are enough to know.
-                Log.w(TAG, "cloud lookup failed at ${TimeFmt.clock(candidate.timeMillis)}", e)
-                if (++failures >= 2) throw e
-            }
-        }
-        return null
+    private suspend fun loadFrame(source: CloudSource, frame: CloudFrame): Loaded? {
+        val cropPixels = source.cropPixels(frame) ?: return null
+        return withContext(Dispatchers.Default) { build(source, frame, cropPixels) }
     }
 
-    /** Both tiles of one frame, stacked, cut and made see-through; null when a tile is missing. */
-    private suspend fun loadFrame(frame: CloudFrame): Loaded? {
-        val tiles = ArrayList<Bitmap>()
-        for (y in CloudLogic.TILE_Y) {
-            val bytes = tileBytes(CloudLogic.tileUrl(frame, y)) ?: return null
-            val bitmap = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) } ?: return null
-            tiles += bitmap
-        }
-        return withContext(Dispatchers.Default) { build(frame, tiles) }
-    }
-
-    private suspend fun tileBytes(url: String): ByteArray? {
-        withContext(Dispatchers.IO) { cache.read(url) }?.let { return it }
-        return try {
-            val bytes = Http.getBytesOrMissing(url) ?: return null
-            withContext(Dispatchers.IO) { cache.write(url, bytes) }
-            bytes
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "cloud tile failed: $url", e)
-            null
-        }
-    }
-
-    private fun build(frame: CloudFrame, tiles: List<Bitmap>): Loaded {
-        val stacked = Bitmap.createBitmap(256, 256 * tiles.size, Bitmap.Config.ARGB_8888)
-        Canvas(stacked).apply { tiles.forEachIndexed { i, t -> drawBitmap(t, 0f, 256f * i, null) } }
-        tiles.forEach { it.recycle() }
-        val c = CloudLogic.crop()
-        val cut = Bitmap.createBitmap(stacked, c[0], c[1], c[2], c[3])
-        // Bigger first, smoothly, then see-through: the cloud edges come out soft rather than in 2.4 km steps.
-        val big = Bitmap.createScaledBitmap(cut, c[2] * CloudLogic.UPSCALE, c[3] * CloudLogic.UPSCALE, true)
-        if (cut !== big) cut.recycle()
-        if (stacked !== cut && stacked !== big) stacked.recycle()
+    /** The crop grid, upscaled smoothly then made see-through: soft cloud edges rather than hard dots. */
+    private fun build(source: CloudSource, frame: CloudFrame, cropPixels: IntArray): Loaded {
+        val w = source.cropW
+        val h = source.cropH
+        val small = Bitmap.createBitmap(cropPixels, w, h, Bitmap.Config.ARGB_8888)
+        val big = Bitmap.createScaledBitmap(small, w * CloudLogic.UPSCALE, h * CloudLogic.UPSCALE, true)
+        if (small !== big) small.recycle()
         val pixels = IntArray(big.width * big.height)
         big.getPixels(pixels, 0, big.width, 0, 0, big.width, big.height)
+        big.recycle()
         CloudLogic.toClouds(pixels, dark)
         val out = Bitmap.createBitmap(pixels, big.width, big.height, Bitmap.Config.ARGB_8888)
-        big.recycle()
         val e = CloudLogic.cropBounds()
         return Loaded(frame, RadarOverlay.Patch(out, e[0], e[1], e[2], e[3]), CloudLogic.cover(pixels))
     }
