@@ -39,13 +39,16 @@ Zoom out to watch rain coming across the Strait.
 
 **Clouds** — the Clouds switch under Radar | Gauges draws the clouds under the rain: Himawari's infrared
 picture from [NASA GIBS](https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api)
-(no key), a new one every 10 minutes, on GIBS about 20 to 30 minutes later. It sees clouds by night as by
-day. Clear sky is see-through; cloud is light grey with a darker edge, so it shows on the light map and the
-dark one. The pictures are coarse (about 2.4 km per dot), so clouds look soft. The switch is off at first
-and remembered. The rain stays on either way. With clouds on, the time box says both times, such as
-"Rain 17:20" and "Clouds 17:00": each rain frame gets the newest cloud picture taken no later. If the cloud
-pictures cannot be had, a red box says so and that the rain is still shown; tap it to try again. The last
-two hours of cloud pictures are saved on the phone (about 1.6 MB, 13 frames of two tiles each).
+(no key), a new one every 10 minutes. GIBS runs well behind real time, usually about 50 minutes, so the
+newest cloud picture lags the rain. It sees clouds by night as by day. Clear sky is see-through; cloud is
+light grey with a darker edge, so it shows on the light map and the dark one. The pictures are coarse (about
+2.4 km per dot), so clouds look soft. The switch is off at first and remembered. The rain stays on either
+way. With clouds on, the time box says both times, such as "Rain 17:20" and "Clouds 17:00": each rain frame
+gets the newest cloud picture taken no later. When the cloud picture trails the rain by more than 15 minutes
+(GIBS being slow), the time box says so, such as "Clouds 16:30 (50 min older)", never hiding it. The clouds
+reload when the tab is opened and a newer picture should exist, so they do not go stale while the app is
+open. If the cloud pictures cannot be had, a red box says so and that the rain is still shown; tap it to try
+again. The last two hours of cloud pictures are saved on the phone (about 1.6 MB, 13 frames of two tiles each).
 Radar pictures are saved on the phone (about 1 MB). The app downloads only the pictures it does not have yet,
 and with no network it plays the last two hours it saved, with a note saying how old they are.
 Pictures older than two hours are deleted when new ones arrive.
