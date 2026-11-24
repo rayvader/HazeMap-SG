@@ -402,6 +402,7 @@ class RainScreen(
             val shown = frames.zip(tiles).filter { it.second.isNotEmpty() }
             check(shown.isNotEmpty()) { "no radar tiles" }
             radarFrames = shown.map { it.first }
+            radarOverlay.clearStitched()
             radarTiles = shown.map { it.second }
             if (!loaded.stale) {
                 // Online: pictures older than the last two hours are no longer needed.

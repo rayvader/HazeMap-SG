@@ -32,13 +32,51 @@ open class RadarOverlay(alpha: Int = 205) : Overlay() {
     private val topLeft = Point()
     private val bottomRight = Point()
     private val dst = Rect()
+    /** Stitched pictures kept per frame's tile list, so swapping frames in playback does not re-stitch. */
+    private val stitched = HashMap<List<Tile>, List<Patch>>()
 
     fun show(tiles: List<Tile>) {
-        patches = tiles.map { it.toPatch() }
+        patches = if (tiles.isEmpty()) emptyList() else stitched.getOrPut(tiles) { stitch(tiles) }
     }
 
     fun showPatches(next: List<Patch>) {
         patches = next
+    }
+
+    /** Drops the stitched pictures (and frees them) when a fresh set of radar frames is loaded. */
+    fun clearStitched() {
+        stitched.values.flatten().forEach { it.bitmap.recycle() }
+        stitched.clear()
+    }
+
+    /**
+     * Joins the radar tiles of one frame into a single picture, so there is no seam where two tiles meet.
+     * Drawing each tile as its own stretched, bitmap-filtered rectangle left a hard line at the join (the
+     * edges rounded to pixels on their own and the filter could not read across the gap). The tiles are a
+     * neat grid at one zoom, so one bitmap covers them all; its map edges are the outer tile edges.
+     */
+    private fun stitch(tiles: List<Tile>): List<Patch> {
+        if (tiles.isEmpty()) return emptyList()
+        if (tiles.size == 1) return listOf(tiles.first().toPatch())
+        val minX = tiles.minOf { it.x }
+        val maxX = tiles.maxOf { it.x }
+        val minY = tiles.minOf { it.y }
+        val maxY = tiles.maxOf { it.y }
+        val cols = maxX - minX + 1
+        val rows = maxY - minY + 1
+        val size = TILE_PX
+        val combined = Bitmap.createBitmap(cols * size, rows * size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(combined)
+        for (t in tiles) {
+            canvas.drawBitmap(t.bitmap, ((t.x - minX) * size).toFloat(), ((t.y - minY) * size).toFloat(), null)
+        }
+        return listOf(
+            Patch(
+                combined,
+                TileMath.latTop(minY), TileMath.lonLeft(minX),
+                TileMath.latTop(maxY + 1), TileMath.lonLeft(maxX + 1)
+            )
+        )
     }
 
     override fun draw(canvas: Canvas, projection: Projection) {
@@ -48,5 +86,10 @@ open class RadarOverlay(alpha: Int = 205) : Overlay() {
             dst.set(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y)
             canvas.drawBitmap(p.bitmap, null, dst, paint)
         }
+    }
+
+    private companion object {
+        /** RainViewer radar tiles are 256 px (see [TileMath.radarUrl]). */
+        const val TILE_PX = 256
     }
 }
