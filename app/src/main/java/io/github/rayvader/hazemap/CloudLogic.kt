@@ -27,9 +27,7 @@ object CloudLogic {
     /** GIBS draws this layer up to zoom 6, where one picture dot is about 2.4 km here. */
     const val ZOOM = 6
 
-    /** The zoom-6 tiles over Singapore: x 50 (lon 101.25 to 106.9), y 31 (lat 0 to 5.6) and y 32 (0 to -5.6). */
-    const val TILE_X = 50
-    val TILE_Y = listOf(31, 32)
+    /** The zoom-6 tiles over Singapore are worked out from the crop bounds (see [gibsTileX]/[gibsTileY]). */
 
     /** A picture every 10 minutes, and two hours of them, like the radar. */
     const val STEP_MS = 10 * 60_000L
@@ -75,21 +73,42 @@ object CloudLogic {
 
     /**
      * The part of the pictures the app keeps: wider than the map can show at its least zoom (8.5) around
-     * Singapore, so the clouds never stop at an edge on screen.
+     * Singapore, so the clouds cover past every screen edge and never stop in a line on screen. At zoom 8.5
+     * the viewport reaches about lon 101.7 to 105.9 and lat -3.2 to 5.9; these bounds leave a margin past
+     * that on every side.
      */
-    const val NORTH = 3.2
-    const val SOUTH = -0.6
-    const val WEST = 102.0
-    const val EAST = 105.6
+    const val NORTH = 6.4
+    const val SOUTH = -3.8
+    const val WEST = 101.0
+    const val EAST = 106.4
 
     /** The kept part is drawn this many times bigger before it is made see-through, so cloud edges are smooth. */
     const val UPSCALE = 3
 
     private val stamp = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC)
 
-    fun tileUrl(frame: CloudFrame, y: Int): String =
+    /** The zoom-6 GIBS tile columns and rows the crop needs. Derived from the bounds, so widening them here
+     * is all it takes. */
+    fun gibsTileX(): IntRange {
+        val left = Math.floorDiv(tileXOf(WEST), 256)
+        val right = Math.floorDiv(tileXOf(EAST - 1e-9), 256)
+        return left..right
+    }
+
+    fun gibsTileY(): IntRange {
+        val top = Math.floorDiv(tileYOf(NORTH), 256)
+        val bottom = Math.floorDiv(tileYOf(SOUTH - 1e-9), 256)
+        return top..bottom
+    }
+
+    private fun tileXOf(lon: Double): Int = Math.floor((lon + 180.0) / 360.0 * (1 shl ZOOM) * 256.0).toInt()
+    private fun tileYOf(lat: Double): Int = Math.floor((1 - mercatorY(lat) / Math.PI) / 2 * (1 shl ZOOM) * 256.0).toInt()
+
+    /** One GIBS tile of [frame]. */
+    fun tileUrl(frame: CloudFrame, x: Int, y: Int): String =
         "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari_AHI_Band13_Clean_Infrared/default/" +
-            "${stamp.format(Instant.ofEpochMilli(frame.timeMillis))}/GoogleMapsCompatible_Level$ZOOM/$ZOOM/$y/$TILE_X.png"
+            "${stamp.format(Instant.ofEpochMilli(frame.timeMillis))}/GoogleMapsCompatible_Level$ZOOM/$ZOOM/$y/$x.png"
+
 
     /** The 10-minute mark at or before [millis]. */
     fun floorToStep(millis: Long): Long = Math.floorDiv(millis, STEP_MS) * STEP_MS
@@ -117,18 +136,24 @@ object CloudLogic {
 
     private const val LEEWAY_MS = 5 * 60_000L
 
-    // ---- Where the kept part sits in the pictures ----
+    // ---- Where the kept part sits in the GIBS tile block ----
+    //
+    // The GIBS tiles the crop needs (see [gibsTileX]/[gibsTileY]) are laid out as one block, its top-left at
+    // tile (gibsTileX().first, gibsTileY().first). Every dot position below is measured from that corner.
 
     private fun mercatorY(lat: Double): Double = ln(tan(Math.PI / 4 + Math.toRadians(lat) / 2))
 
-    /** Picture dots from the left of tile [TILE_X], at [lon]. */
-    fun pixelX(lon: Double): Double = ((lon + 180.0) / 360.0 * (1 shl ZOOM) - TILE_X) * 256.0
+    private fun originCol(): Int = gibsTileX().first
+    private fun originRow(): Int = gibsTileY().first
 
-    /** Picture dots from the top of tile [TILE_Y].first, at [lat]: both tiles are stacked, 512 dots tall. */
+    /** Picture dots from the left of the GIBS block, at [lon]. */
+    fun pixelX(lon: Double): Double = ((lon + 180.0) / 360.0 * (1 shl ZOOM) - originCol()) * 256.0
+
+    /** Picture dots from the top of the GIBS block, at [lat]. */
     fun pixelY(lat: Double): Double =
-        ((1 - mercatorY(lat) / Math.PI) / 2 * (1 shl ZOOM) - TILE_Y.first()) * 256.0
+        ((1 - mercatorY(lat) / Math.PI) / 2 * (1 shl ZOOM) - originRow()) * 256.0
 
-    /** The kept part, in dots of the stacked pair: left, top, width, height. */
+    /** The kept part, in dots of the GIBS block: left, top, width, height. */
     fun crop(): IntArray {
         val left = pixelX(WEST).toInt()
         val right = Math.ceil(pixelX(EAST)).toInt()
@@ -143,10 +168,10 @@ object CloudLogic {
         return doubleArrayOf(latAt(c[1].toDouble()), lonAt(c[0].toDouble()), latAt((c[1] + c[3]).toDouble()), lonAt((c[0] + c[2]).toDouble()))
     }
 
-    private fun lonAt(px: Double): Double = (px / 256.0 + TILE_X) / (1 shl ZOOM) * 360.0 - 180.0
+    private fun lonAt(px: Double): Double = (px / 256.0 + originCol()) / (1 shl ZOOM) * 360.0 - 180.0
 
     private fun latAt(py: Double): Double {
-        val n = Math.PI - 2.0 * Math.PI * (py / 256.0 + TILE_Y.first()) / (1 shl ZOOM)
+        val n = Math.PI - 2.0 * Math.PI * (py / 256.0 + originRow()) / (1 shl ZOOM)
         return Math.toDegrees(Math.atan(Math.sinh(n)))
     }
 
