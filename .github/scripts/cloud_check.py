@@ -37,7 +37,7 @@ def main():
         if not re.fullmatch(r"\d\d:\d\d|--", text):
             problems.append(f"time box '{text}' is not just the rain time")
     else:
-        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d|…|none)( \(\d+ min older\))?", text)
+        m = re.fullmatch(r"Rain (\d\d:\d\d|--)\nClouds (\d\d:\d\d|…|none)(\n\(\d+ min older\))?", text)
         if not m:
             problems.append(f"time box '{text}' is not 'Rain HH:mm' over 'Clouds HH:mm'")
         elif want == "on" and not re.fullmatch(r"\d\d:\d\d", m.group(2)):

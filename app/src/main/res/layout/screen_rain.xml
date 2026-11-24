@@ -23,6 +23,7 @@
             android:layout_gravity="top|start"
             android:layout_margin="8dp"
             android:background="@drawable/badge_bg"
+            android:maxWidth="190dp"
             android:paddingStart="12dp"
             android:paddingTop="6dp"
             android:paddingEnd="12dp"
