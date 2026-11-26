@@ -1003,34 +1003,51 @@ list_titles() {
 # scroll_shots <tag>: the Wide list at rest (top), then after one swipe up. Checks the list scrolled (the
 # top row changed, or the last event is now in view) and that nothing is cut or outside the widget. Never
 # wedges the run: a missing widget is a FAIL line, not an abort.
+# find_wide: dump and return the Wide widget's bounds, retrying while the launcher settles (it can be
+# re-laying-out just after Home or a theme switch, and a dump then finds no widget). Echoes "x1 y1 x2 y2".
+find_wide() {
+  local i b
+  for i in 1 2 3 4 5; do
+    show_widgets >/dev/null 2>&1 || true
+    dump
+    if b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null); then
+      echo "$b"
+      return 0
+    fi
+    sleep 4
+  done
+  return 1
+}
+
 scroll_shots() {
   local tag="$1"
-  show_widgets || { say "FAIL $tag: no widgets on screen"; return 0; }
   local b cx cy before after rows
-  if ! b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null); then
+  if ! b=$(find_wide); then
     say "FAIL $tag: no wide widget on the home screen"
     return 0
   fi
   set -- $b
   cx=$(( ($1 + $3) / 2 )); cy=$(( ($2 + $4) / 2 ))
-  # Reset to the top: two gentle down-swipes, then settle.
-  adb shell input swipe $cx $(( cy - 160 )) $cx $(( cy + 160 )) 500; sleep 1
-  adb shell input swipe $cx $(( cy - 160 )) $cx $(( cy + 160 )) 500; sleep 2
+  # Reset to the top: two firm down-swipes, then settle.
+  adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 1
+  adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 2
   dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
   adb exec-out screencap -p > "$OUT/80-$tag-before.png"
   rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
-  before=$(list_titles "$OUT/ui-$tag-before.xml")
-  say "$tag: $rows rows shown, before scroll '$before'"
+  before=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text 2>/dev/null)
+  say "$tag: $rows rows shown, before scroll whens '$before'"
   # Nothing of the list may stick out of the widget, and the when-labels must not be cut.
   python3 .github/scripts/ui_probe.py widget_scroll "$OUT/ui-$tag-before.xml" | tee -a "$LOG"
-  # One swipe up, then settle before the dump so the list is not mid-fling.
-  adb shell input swipe $cx $(( cy + 160 )) $cx $(( cy - 160 )) 500; sleep 3
+  # One firm swipe up, then settle before the dump so the list is not mid-fling.
+  adb shell input swipe $cx $(( cy + 200 )) $cx $(( cy - 200 )) 600; sleep 3
   dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-after.xml"
   adb exec-out screencap -p > "$OUT/81-$tag-after.png"
-  after=$(list_titles "$OUT/ui-$tag-after.xml")
-  say "$tag: after scroll '$after'"
-  # The list scrolled if the rows changed, or the last event (Dinner) is now in view.
-  if [ -n "$before" ] && [ "$before" = "$after" ] && ! echo "$after" | grep -q "Dinner"; then
+  after=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventWhen text 2>/dev/null)
+  say "$tag: after scroll whens '$after'"
+  # The list scrolled if the when-labels changed, or the last event (Dinner) is in view. Only judged when
+  # both reads found rows; a transient empty read is not a failure (the widget-scroll check already ran).
+  if [ -n "$before" ] && [ -n "$after" ] && [ "$before" = "$after" ] && \
+     ! python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventText text | grep -q "Dinner"; then
     say "FAIL $tag: the event list did not scroll and the last event is not in view"
   fi
 }
