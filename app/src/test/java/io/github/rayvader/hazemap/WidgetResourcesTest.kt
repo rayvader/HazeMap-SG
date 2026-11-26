@@ -222,10 +222,15 @@ class WidgetResourcesTest {
 
     @Test
     fun theWideEventListFillsTheRoomAndScrolls() {
-        // The list takes the weight between the clock and the temperature, so it grows with the widget's height.
-        val list = views("widget_wide").single { it.attr("id") == "@+id/wEventList" }
-        assertEquals("0dp", list.attr("layout_height"))
-        assertEquals("1", list.attr("layout_weight"))
+        // The list sits in a box that takes the weight between the clock and the temperature, so the list
+        // grows with the widget's height; the list fills that box.
+        val wide = views("widget_wide")
+        val list = wide.single { it.attr("id") == "@+id/wEventList" }
+        assertEquals("match_parent", list.attr("layout_height"))
+        // Its parent box is the weighted one (0dp height + weight 1).
+        val listBox = wide.single { box -> box.children().any { it.attr("id") == "@+id/wEventList" } }
+        assertEquals("0dp", listBox.attr("layout_height"))
+        assertEquals("1", listBox.attr("layout_weight"))
     }
 
     @Test
