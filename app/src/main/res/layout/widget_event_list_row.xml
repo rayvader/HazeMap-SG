@@ -1,42 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row of the Wide widget's scrolling event list (see WidgetEventsFactory): a bold when-label
-     ("15:00", "Tmrw", "Fri 12:30") that is never cut, then the event's title. The title wraps to a second
-     line when it does not fit, and only ends in "…" when even two lines are not enough. A tap opens that
-     event in the calendar app (the list's pending-intent template plus this row's fill-in intent). -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- One row of the Wide widget's scrolling event list (see WidgetEventsFactory): a rounded pill tinted the
+     event's colour, with a bold when-label ("15:00", "Tmrw", "Fri 12:30") that is never cut and the event's
+     title. The title wraps to a second line when it does not fit, and only ends in "…" when even two lines
+     are not enough. A tap opens that event in the calendar app.
+
+     The pill is an ImageView behind the text (wEventPill): a RemoteViews factory can tint an ImageView's
+     picture to the event's colour and set its alpha, keeping the rounded shape (setBackgroundColor would
+     drop the corners, and a background tint list needs API 31 while this app runs from API 26). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/wEventRow"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/widget_event_bg"
-    android:gravity="top"
-    android:orientation="horizontal"
-    android:paddingStart="7dp"
-    android:paddingTop="4dp"
-    android:paddingEnd="9dp"
-    android:paddingBottom="4dp">
+    android:layout_height="wrap_content">
 
-    <!-- The when-label: bold, one line, never shrunk or cut, so the time is always whole. -->
-    <TextView
-        android:id="@+id/wEventWhen"
-        style="@style/WidgetText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="7dp"
-        android:ellipsize="none"
-        android:maxLines="1"
-        android:textStyle="bold"
-        android:text="--"
-        android:textSize="12sp" />
+    <!-- The tinted pill, filling the row behind the text. -->
+    <ImageView
+        android:id="@+id/wEventPill"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_event_pill" />
 
-    <!-- The title: up to two lines, then "…". It takes the room the when-label leaves (the weight). -->
-    <TextView
-        android:id="@+id/wEventText"
-        style="@style/WidgetText"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:text="--"
-        android:textSize="12sp" />
-</LinearLayout>
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingStart="7dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="9dp"
+        android:paddingBottom="4dp">
+
+        <!-- The when-label: bold, one line, never shrunk or cut, so the time is always whole. -->
+        <TextView
+            android:id="@+id/wEventWhen"
+            style="@style/WidgetText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="7dp"
+            android:ellipsize="none"
+            android:maxLines="1"
+            android:textStyle="bold"
+            android:text="--"
+            android:textSize="12sp" />
+
+        <!-- The title: up to two lines, then "…". It takes the room the when-label leaves (the weight). -->
+        <TextView
+            android:id="@+id/wEventText"
+            style="@style/WidgetText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="--"
+            android:textSize="12sp" />
+    </LinearLayout>
+</FrameLayout>

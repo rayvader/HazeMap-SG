@@ -71,7 +71,9 @@ object PhoneCalendars {
             CalendarContract.Instances.TITLE,
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.END,
-            CalendarContract.Instances.ALL_DAY
+            CalendarContract.Instances.ALL_DAY,
+            // The event's colour if it has one, else its calendar's. The Wide widget tints each row with it.
+            CalendarContract.Instances.DISPLAY_COLOR
         )
         val status = CalendarContract.Instances.STATUS
         val mine = CalendarContract.Instances.SELF_ATTENDEE_STATUS
@@ -91,7 +93,8 @@ object PhoneCalendars {
                                 title = c.getString(2).orEmpty(),
                                 beginMillis = c.getLong(3),
                                 endMillis = c.getLong(4),
-                                allDay = c.getInt(5) != 0
+                                allDay = c.getInt(5) != 0,
+                                displayColor = if (c.isNull(6)) 0 else c.getInt(6)
                             )
                         )
                     }

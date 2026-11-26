@@ -248,6 +248,10 @@ class WidgetResourcesTest {
         assertEquals("1", text.attr("layout_weight"))
         assertEquals("2", text.attr("maxLines"))
         assertEquals("end", text.attr("ellipsize"))
+        // The tinted pill behind the text: an ImageView the app colours per event (see WidgetEventColour).
+        val pill = row.single { it.attr("id") == "@+id/wEventPill" }
+        assertEquals("ImageView", pill.localName)
+        assertEquals("@drawable/widget_event_pill", pill.attr("src"))
     }
 
     @Test

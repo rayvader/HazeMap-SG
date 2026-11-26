@@ -121,7 +121,9 @@ rest of the week in order, by day, then timed before all-day, then by start.
 The **Wide** widget shows a scrolling list: drag its bottom edge to make it taller and it fits more
 rows, and you can scroll the list when there are more than fit. Each row has the time in bold ("15:00",
 "Tmrw", "Fri 12:30"), which is never cut, and the event's title, which wraps to a second line before it
-is ever shortened. Tap a row to open that event in your Calendar app. The **Square** keeps its fitted
+is ever shortened. Each row's pill is tinted the event's own colour (its calendar's colour when the event
+has none), so you can tell them apart; a very pale colour is darkened a little so the white text stays
+readable. Tap a row to open that event in your Calendar app. The **Square** keeps its fitted
 lines: as many as its height holds, and a "+3 more" count on the last line when some are left over; a
 tap opens the Calendar app on today. Cancelled and declined events are skipped. Times follow the phone's
 clock, like your Calendar app. The list refreshes as an event starts and ends, and when a calendar changes.

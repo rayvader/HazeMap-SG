@@ -59,6 +59,12 @@ class WidgetEventsFactory(private val context: Context) : RemoteViewsService.Rem
             R.id.wEventRow,
             context.getString(R.string.widget_event_row_desc, row.whenLabel, row.title)
         )
+        // Tint the pill the event's colour, keeping the pill's see-through amount (its alpha) and its rounded
+        // shape: colour the white pill picture, then set that same alpha (see WidgetEventColour). A pale
+        // calendar colour is darkened there so the white text stays readable.
+        val pill = WidgetEventColour.pillColor(row.event.displayColor)
+        views.setInt(R.id.wEventPill, "setColorFilter", pill or (0xFF shl 24))
+        views.setInt(R.id.wEventPill, "setImageAlpha", WidgetEventColour.PILL_ALPHA)
         // Each row fills in its own event into the list's template intent (see WidgetUpdater): the event's
         // page in the calendar app, with its begin and end so a repeating event opens the right time.
         val target = CalendarApps.eventTarget(row.event)

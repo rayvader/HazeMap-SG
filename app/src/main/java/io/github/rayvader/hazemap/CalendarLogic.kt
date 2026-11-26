@@ -44,7 +44,12 @@ data class CalendarEvent(
     val title: String,
     val beginMillis: Long,
     val endMillis: Long,
-    val allDay: Boolean
+    val allDay: Boolean,
+    /**
+     * The event's display colour (its own colour if set, else its calendar's), as the provider's
+     * DISPLAY_COLOR gives it, or 0 when none is known. The Wide widget tints each row's pill with it.
+     */
+    val displayColor: Int = 0
 ) {
     /** The first day of an all-day event. Android keeps all-day events from midnight UTC. */
     val firstDay: Long get() = utcDay(beginMillis)
