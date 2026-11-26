@@ -993,22 +993,39 @@ event_insert "$FAMILY" "Parent teacher evening at the school hall" $(( MORE_BASE
 event_insert "$GYM"    Swim      $(( MORE_BASE + 3000 * 60000 )) $(( MORE_BASE + 3060 * 60000 ))
 event_insert "$FAMILY" Dinner    $(( MORE_BASE + 4000 * 60000 )) $(( MORE_BASE + 4060 * 60000 ))
 
-# resize_wide_tall: long-press the Wide widget, then drag its bottom edge down so it is about 4 cells tall.
-# The launcher shows resize handles after a long-press; the bottom handle sits at the widget's lower edge.
+# resize_wide_tall: make the Wide about 4 cells tall by long-pressing it (the launcher shows resize
+# handles) and dragging the bottom handle down one step at a time. The widget is picked up with a slow
+# press-and-hold in place, which the launcher reads as "configure", then the handle drag resizes it.
+# Returns non-zero if the widget is lost, so the caller can skip rather than wedge the run.
 resize_wide_tall() {
   show_widgets || return 1
   dump
   local b
   b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null) || return 1
   set -- $b
-  local cx=$(( ($1 + $3) / 2 )) bottom=$4
-  # Long-press the middle to pick the widget up, then drag the bottom edge down about two cells (~500 px).
-  adb shell input swipe $cx $(( ($2 + $4) / 2 )) $cx $(( ($2 + $4) / 2 )) 900
+  local cx=$(( ($1 + $3) / 2 )) top=$2 bottom=$4
+  # Long-press in place to enter resize mode (hold ~1 s, no movement).
+  adb shell input swipe $cx $(( (top + bottom) / 2 )) $cx $(( (top + bottom) / 2 )) 1100
   sleep 2
-  adb shell input swipe $cx $(( bottom - 8 )) $cx $(( bottom + 500 )) 700
-  sleep 2
-  adb shell input tap 60 1500   # tap away to drop the resize frame
-  sleep 2
+  # Drag the bottom handle (just below the widget's lower edge) down about 420 px, twice, slowly.
+  for step in 1 2; do
+    adb shell input swipe $cx $(( bottom - 4 )) $cx $(( bottom + 230 )) 800
+    sleep 1
+    dump
+    b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null) || break
+    set -- $b
+    bottom=$4
+  done
+  adb shell input keyevent KEYCODE_HOME
+  sleep 3
+  # If the widget was lost (drag dropped it), add a fresh Wide so the next check still has one.
+  if ! show_widgets; then
+    add_widget wide
+    adb shell input keyevent KEYCODE_HOME
+    sleep 18
+    show_widgets || return 1
+  fi
+  return 0
 }
 
 # scroll_shots <tag>: the Wide's list before and after a scroll, and a check that it moved and nothing is cut.
