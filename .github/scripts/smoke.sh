@@ -1032,23 +1032,40 @@ resize_wide_tall() {
 scroll_shots() {
   local tag="$1"
   show_widgets || { say "FAIL $tag: no widgets on screen"; return 0; }
+  # Put the list back at the top first (a resize or an earlier scroll may have left it part way down), so
+  # "before" is the top of the list and a later swipe can be checked for movement.
+  local bb
+  if bb=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null); then
+    set -- $bb
+    local bcx=$(( ($1 + $3) / 2 )) bcy=$(( ($2 + $4) / 2 ))
+    adb shell input swipe $bcx $(( bcy - 180 )) $bcx $(( bcy + 180 )) 500
+    sleep 1
+    adb shell input swipe $bcx $(( bcy - 180 )) $bcx $(( bcy + 180 )) 500
+    sleep 1
+  fi
   dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
   adb exec-out screencap -p > "$OUT/80-$tag-before.png"
   local before after rows b
   rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
   before=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventText text)
   say "$tag: $rows rows shown, before scroll '$before'"
-  # Scroll the list: swipe up inside the Wide widget, if it is on screen.
+  # Scroll the list: swipe up inside the Wide widget, if it is on screen. The "before" dump is the list at
+  # rest (top), so the first event must be the next one; after a swipe a later event must be on screen. A
+  # swipe that shows the same rows is only ok when the last event is already visible (a short list, or the
+  # list is already at its end).
   if b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui-$tag-before.xml" 2>/dev/null); then
     set -- $b
     local cx=$(( ($1 + $3) / 2 )) cy=$(( ($2 + $4) / 2 ))
-    adb shell input swipe $cx $(( cy + 150 )) $cx $(( cy - 150 )) 500
+    adb shell input swipe $cx $(( cy + 180 )) $cx $(( cy - 180 )) 500
     sleep 2
     dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-after.xml"
     adb exec-out screencap -p > "$OUT/81-$tag-after.png"
     after=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventText text)
     say "$tag: after scroll '$after'"
-    [ -n "$before" ] && [ "$before" = "$after" ] && say "FAIL $tag: the event list did not scroll (same rows before and after)"
+    # The last event in the week's set is Dinner; if it already shows, being at the end is fine.
+    if [ -n "$before" ] && [ "$before" = "$after" ] && ! echo "$after" | grep -q "Dinner"; then
+      say "FAIL $tag: the event list did not scroll and the last event is not in view"
+    fi
   else
     say "FAIL $tag: no wide widget on the home screen"
   fi
