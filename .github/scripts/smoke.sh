@@ -1022,16 +1022,22 @@ find_wide() {
 scroll_shots() {
   local tag="$1"
   local b cx cy before after rows
+  # find_wide settles the launcher and leaves the widget in $OUT/ui.xml; reset to the top and re-find, so
+  # the "before" read is a dump that actually has the widget (not one caught mid-relayout).
   if ! b=$(find_wide); then
     say "FAIL $tag: no wide widget on the home screen"
     return 0
   fi
   set -- $b
   cx=$(( ($1 + $3) / 2 )); cy=$(( ($2 + $4) / 2 ))
-  # Reset to the top: two firm down-swipes, then settle.
+  # Reset to the top: two firm down-swipes, then settle and re-find.
   adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 1
   adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 2
-  dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
+  if ! b=$(find_wide); then
+    say "FAIL $tag: no wide widget on the home screen"
+    return 0
+  fi
+  cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
   adb exec-out screencap -p > "$OUT/80-$tag-before.png"
   rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
   before=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text 2>/dev/null)
@@ -1052,13 +1058,19 @@ scroll_shots() {
   fi
 }
 
-# theme_toggle: flip light/dark if the button is there, then back to the home screen. Never fatal.
+# theme_toggle: flip light/dark, then back to the home screen with a long settle. The button needs a moment
+# to appear on the Now tab; retry the tap. Never fatal.
 theme_toggle() {
   home_again --es tab now
-  tap btnTheme || say "note: no btnTheme to toggle theme"
+  sleep 4
+  local i
+  for i in 1 2 3; do
+    tap btnTheme && break
+    sleep 3
+  done
   sleep 6
   adb shell input keyevent KEYCODE_HOME
-  sleep 18
+  sleep 25
 }
 
 # 4x2 at the size the launcher gives the Wide (about 2-3 cells here): the list shows what fits and scrolls.
@@ -1069,11 +1081,11 @@ sleep 4
 scroll_shots "wide-light"
 theme_toggle
 scroll_shots "wide-dark"
-# Back to light.
-dump && grep -q "Switch to light theme" "$OUT/ui.xml" 2>/dev/null && { tap btnTheme; sleep 6; adb shell input keyevent KEYCODE_HOME; sleep 12; }
+# Back to light (same robust toggle), then bigger font.
+theme_toggle
 adb shell settings put system font_scale 1.3
 home_again
-sleep 4
+sleep 8
 scroll_shots "wide-bigfont"
 adb shell settings put system font_scale 1.0
 
