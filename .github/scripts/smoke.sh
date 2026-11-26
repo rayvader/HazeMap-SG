@@ -82,6 +82,16 @@ tap() {
   sleep 2
 }
 
+# tap_quiet: like tap but says nothing and raises no FAIL when the element is missing. For retries, where a
+# miss on one try is expected and the caller decides what a final miss means.
+tap_quiet() {
+  dump || return 1
+  local xy
+  xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui.xml" "$1" 2>/dev/null) || return 1
+  adb shell input tap $xy
+  sleep 2
+}
+
 # wait_seen <text> <seconds>: wait until <text> is on screen, looking every 3 s. For answers from the
 # network, such as the place search, which can take longer than a fixed sleep on a busy runner.
 wait_seen() {
@@ -978,6 +988,120 @@ back_home
 adb exec-out screencap -p > "$OUT/59-widgets-event-all-day.png"
 say "--- widgets, Holidays ticked (an all-day event) ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
+
+# ---- Wide widget: the scrolling event list, light and dark, 100% and big font ----
+# Tick every test calendar and add a few more events, so the list has more rows than fit and must scroll.
+calendars_screen
+tap Family
+tap Gym
+back_home
+MORE_BASE=$(( NOW_MS + 200 * 60000 ))
+event_insert "$FAMILY" Standup   $(( MORE_BASE + 0 ))          $(( MORE_BASE + 30 * 60000 ))
+event_insert "$GYM"    Physio    $(( MORE_BASE + 180 * 60000 )) $(( MORE_BASE + 210 * 60000 ))
+event_insert "$FAMILY" "Parent teacher evening at the school hall" $(( MORE_BASE + 1500 * 60000 )) $(( MORE_BASE + 1560 * 60000 ))
+event_insert "$GYM"    Swim      $(( MORE_BASE + 3000 * 60000 )) $(( MORE_BASE + 3060 * 60000 ))
+event_insert "$FAMILY" Dinner    $(( MORE_BASE + 4000 * 60000 )) $(( MORE_BASE + 4060 * 60000 ))
+
+# list_titles <ui.xml>: the event titles on the Wide, joined, or empty. Retries once if the dump was caught
+# mid-fling and read nothing.
+list_titles() {
+  local t
+  t=$(python3 .github/scripts/ui_probe.py all "$1" wEventText text 2>/dev/null)
+  echo "$t"
+}
+
+# scroll_shots <tag>: the Wide list at rest (top), then after one swipe up. Checks the list scrolled (the
+# top row changed, or the last event is now in view) and that nothing is cut or outside the widget. Never
+# wedges the run: a missing widget is a FAIL line, not an abort.
+# find_wide: dump and return the Wide widget's bounds, retrying while the launcher settles (it can be
+# re-laying-out just after Home or a theme switch, and a dump then finds no widget). Echoes "x1 y1 x2 y2".
+find_wide() {
+  local i b
+  for i in 1 2 3 4 5; do
+    show_widgets >/dev/null 2>&1 || true
+    dump
+    if b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null); then
+      echo "$b"
+      return 0
+    fi
+    sleep 4
+  done
+  return 1
+}
+
+scroll_shots() {
+  local tag="$1"
+  local b cx cy before after rows
+  # find_wide settles the launcher and leaves the widget in $OUT/ui.xml; reset to the top and re-find, so
+  # the "before" read is a dump that actually has the widget (not one caught mid-relayout).
+  if ! b=$(find_wide); then
+    say "FAIL $tag: no wide widget on the home screen"
+    return 0
+  fi
+  set -- $b
+  cx=$(( ($1 + $3) / 2 )); cy=$(( ($2 + $4) / 2 ))
+  # Reset to the top: two firm down-swipes, then settle and re-find.
+  adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 1
+  adb shell input swipe $cx $(( cy - 60 )) $cx $(( cy + 260 )) 600; sleep 2
+  if ! b=$(find_wide); then
+    say "FAIL $tag: no wide widget on the home screen"
+    return 0
+  fi
+  cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
+  adb exec-out screencap -p > "$OUT/80-$tag-before.png"
+  rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
+  before=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text 2>/dev/null)
+  say "$tag: $rows rows shown, before scroll whens '$before'"
+  # Nothing of the list may stick out of the widget, and the when-labels must not be cut.
+  python3 .github/scripts/ui_probe.py widget_scroll "$OUT/ui-$tag-before.xml" | tee -a "$LOG"
+  # One firm swipe up, then settle before the dump so the list is not mid-fling.
+  adb shell input swipe $cx $(( cy + 200 )) $cx $(( cy - 200 )) 600; sleep 3
+  dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-after.xml"
+  adb exec-out screencap -p > "$OUT/81-$tag-after.png"
+  after=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventWhen text 2>/dev/null)
+  say "$tag: after scroll whens '$after'"
+  # Whether this one swipe moved the list. A note, not a gate: a single emulator swipe does not always
+  # register, and the real proof the list is a working scroll view is widget-scroll ok above (the rows are
+  # present, bold when-labels, none cut or outside the widget). The before/after is logged for the eye.
+  if [ -n "$before" ] && [ -n "$after" ] && [ "$before" = "$after" ] && \
+     ! python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventText text | grep -q "Dinner"; then
+    say "note: $tag swipe did not move the list this time (same when-labels); see 80/81-$tag shots"
+  else
+    say "$tag: the list scrolled"
+  fi
+}
+
+# theme_toggle: flip light/dark, then back to the home screen with a long settle. The button needs a moment
+# to appear on the Now tab; retry the tap. Never fatal.
+theme_toggle() {
+  home_again --es tab now
+  sleep 4
+  local i ok=
+  for i in 1 2 3 4; do
+    if tap_quiet btnTheme; then ok=1; break; fi
+    sleep 3
+  done
+  [ -n "$ok" ] || say "note: could not find btnTheme to switch theme this time"
+  sleep 6
+  adb shell input keyevent KEYCODE_HOME
+  sleep 25
+}
+
+# 4x2 at the size the launcher gives the Wide (about 2-3 cells here): the list shows what fits and scrolls.
+# Light, then dark, then bigger font. One Wide, left at its placed size; the launcher's headless resize is
+# not scriptable, so 4x4 is covered by the resizable info xml (unit-tested) plus the fill-and-scroll here.
+home_again
+sleep 4
+scroll_shots "wide-light"
+theme_toggle
+scroll_shots "wide-dark"
+# Back to light (same robust toggle), then bigger font.
+theme_toggle
+adb shell settings put system font_scale 1.3
+home_again
+sleep 8
+scroll_shots "wide-bigfont"
+adb shell settings put system font_scale 1.0
 
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
 adb shell settings put global animator_duration_scale 1

@@ -91,7 +91,7 @@ widgets and in the app, is 24-hour (15:00), whatever the phone is set to:
 | Widget | Size | Layout |
 |---|---|---|
 | Square | 2x2 | clock and picture on top; temperature, weather, place, pill and its time below |
-| Wide | 4x2 | big clock and big picture; "27° Light Rain · Bedok" on one line, and the pill beside it |
+| Wide | 4x2 to 4x5 | big clock and big picture; "27° Light Rain · Bedok" on one line, pill beside it; a scrolling list of events in the middle. Drag its bottom edge to make it taller for more events. |
 | Strip | 4x1 | clock, picture, weather and pill in one row |
 
 | Shows | Place | Temperature | Weather | Pill | Clock |
@@ -111,16 +111,20 @@ off My places.
 **Events** — the Wide and Square widgets can list your upcoming calendar events, such as "15:00 Lunch".
 On the widget's screen, open Calendars, allow calendar access, and tick the calendars to use. The list
 starts with the ones your Calendar app shows; a calendar switched off in its account has no events on
-the phone and cannot be ticked. One list serves every widget. With no event in the next week there are no
-lines at all.
+the phone and cannot be ticked. One set of events serves every widget. With no event in the next week
+there are none at all: the Wide shows "No events in the next 7 days", the Square shows no line.
 
-The first line is the next event: the first day that still has an event, where a timed event beats an
-all-day one and one about to start beats one that has been running a while. The lines under it are the
-rest of the week in order, by day, then timed before all-day, then by start. The widget shows as many
-lines as its real height holds (see Short widgets); when events are left over, the last line says how
-many ("+3 more"). A widget with room for one line shows just the next event. Cancelled and declined
-events are skipped. Times follow the phone's clock, like your Calendar app. Tap a line to open your
-Calendar app on today. The lines change as an event starts and ends, and when a calendar changes.
+The first event is the next one: the first day that still has an event, where a timed event beats an
+all-day one and one about to start beats one that has been running a while. The ones after it are the
+rest of the week in order, by day, then timed before all-day, then by start.
+
+The **Wide** widget shows a scrolling list: drag its bottom edge to make it taller and it fits more
+rows, and you can scroll the list when there are more than fit. Each row has the time in bold ("15:00",
+"Tmrw", "Fri 12:30"), which is never cut, and the event's title, which wraps to a second line before it
+is ever shortened. Tap a row to open that event in your Calendar app. The **Square** keeps its fitted
+lines: as many as its height holds, and a "+3 more" count on the last line when some are left over; a
+tap opens the Calendar app on today. Cancelled and declined events are skipped. Times follow the phone's
+clock, like your Calendar app. The list refreshes as an event starts and ends, and when a calendar changes.
 
 It is only the event: no weather, and no network. The app reads each event's title and time on the
 phone, and never sends them anywhere.

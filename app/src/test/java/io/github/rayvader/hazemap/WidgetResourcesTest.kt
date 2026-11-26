@@ -107,15 +107,21 @@ class WidgetResourcesTest {
         val shared = listOf(
             "wRoot", "wClockTap", "wClockRow", "wClock", "wDate", "wDateWrapped", "wTemp", "wCondition", "wPlace", "wBadge"
         )
-        // The list the app adds one line to for each event (see widget_event_row).
-        val eventLine = listOf("wEvents")
+        // The Small adds one static line per event to wEvents; the Wide has a scrolling list and its empty note.
+        val smallEventLine = listOf("wEvents")
+        val wideEventList = listOf("wEventList", "wEventEmpty")
         // The two blocks whose space the app trims on a short widget (see WidgetFit).
         val trimmed = listOf("wTopBlock", "wBottomBlock")
         for (shape in WidgetShape.entries) {
             val layout = "widget_${shape.key}"
+            val events = when (shape) {
+                WidgetShape.WIDE -> wideEventList
+                WidgetShape.SMALL -> smallEventLine
+                WidgetShape.STRIP -> emptyList()
+            }
             val wanted = shared +
                 (if (shape == WidgetShape.WIDE) emptyList() else listOf("wWhen")) +
-                (if (shape.hasEventLine) eventLine else emptyList()) +
+                events +
                 (if (WidgetFits.of(shape, 100, false) != null) trimmed else emptyList())
             val have = views(layout).mapNotNull { it.attr("id") }.toSet()
             for (id in wanted) assertTrue("$layout has no $id", "@+id/$id" in have)
@@ -123,13 +129,22 @@ class WidgetResourcesTest {
     }
 
     @Test
-    fun theEventListIsHiddenUntilThereIsAnEvent() {
+    fun theSmallEventLineIsHiddenUntilThereIsAnEvent() {
         // The widget picker's preview, and a phone with no calendar chosen, show no empty line.
-        for (shape in WidgetShape.entries.filter { it.hasEventLine }) {
-            val list = views("widget_${shape.key}").single { it.attr("id") == "@+id/wEvents" }
-            assertEquals(shape.key, "gone", list.attr("visibility"))
-            assertTrue(shape.key, list.children().isEmpty())
-        }
+        val list = views("widget_small").single { it.attr("id") == "@+id/wEvents" }
+        assertEquals("gone", list.attr("visibility"))
+        assertTrue(list.children().isEmpty())
+    }
+
+    @Test
+    fun theWideEventListAndItsEmptyNoteStartHidden() {
+        // The list and the empty note both start gone; the app shows one of them once it knows the events.
+        val wide = views("widget_wide")
+        val list = wide.single { it.attr("id") == "@+id/wEventList" }
+        assertEquals("ListView", list.localName)
+        assertEquals("gone", list.attr("visibility"))
+        val empty = wide.single { it.attr("id") == "@+id/wEventEmpty" }
+        assertEquals("gone", empty.attr("visibility"))
     }
 
     @Test
@@ -197,13 +212,42 @@ class WidgetResourcesTest {
     }
 
     @Test
-    fun theWideHasItsPictureBoxAndNoSpaceAboveItsEventListInXml() {
-        // The app shrinks the picture box on a short widget, and sets the space above the events (none, or 4 dp).
+    fun theWideHasItsPictureBox() {
+        // The app shrinks the picture box on a short widget.
         val wide = views("widget_wide")
         val box = wide.single { it.attr("id") == "@+id/wPicture" }
         assertEquals("112dp", box.attr("layout_width"))
         assertEquals("112dp", box.attr("layout_height"))
-        assertNull(wide.single { it.attr("id") == "@+id/wEvents" }.attr("layout_marginTop"))
+    }
+
+    @Test
+    fun theWideEventListFillsTheRoomAndScrolls() {
+        // The list sits in a box that takes the weight between the clock and the temperature, so the list
+        // grows with the widget's height; the list fills that box.
+        val wide = views("widget_wide")
+        val list = wide.single { it.attr("id") == "@+id/wEventList" }
+        assertEquals("match_parent", list.attr("layout_height"))
+        // Its parent box is the weighted one (0dp height + weight 1).
+        val listBox = wide.single { box -> box.children().any { it.attr("id") == "@+id/wEventList" } }
+        assertEquals("0dp", listBox.attr("layout_height"))
+        assertEquals("1", listBox.attr("layout_weight"))
+    }
+
+    @Test
+    fun aListRowKeepsTheWhenLabelBoldAndWholeAndLetsTheTitleWrap() {
+        val row = views("widget_event_list_row")
+        val ids = row.mapNotNull { it.attr("id") }.toSet()
+        assertTrue(ids.containsAll(listOf("@+id/wEventRow", "@+id/wEventWhen", "@+id/wEventText")))
+        // The when-label is bold, one line, never cut.
+        val whenLabel = row.single { it.attr("id") == "@+id/wEventWhen" }
+        assertEquals("bold", whenLabel.attr("textStyle"))
+        assertEquals("1", whenLabel.attr("maxLines"))
+        assertEquals("none", whenLabel.attr("ellipsize"))
+        // The title takes the room left (weight), wraps to two lines, then ends in "…".
+        val text = row.single { it.attr("id") == "@+id/wEventText" }
+        assertEquals("1", text.attr("layout_weight"))
+        assertEquals("2", text.attr("maxLines"))
+        assertEquals("end", text.attr("ellipsize"))
     }
 
     @Test
@@ -292,6 +336,45 @@ class WidgetResourcesTest {
         }
         // The class is named in XML, which the compiler does not check, so look for its file.
         assertTrue(File(main, "java/io/github/rayvader/hazemap/WidgetPlaceActivity.kt").isFile)
+    }
+
+    @Test
+    fun onlyTheWideResizesVertically() {
+        // The Wide grows taller for more event rows; the Small and the Strip keep their size.
+        val wide = parse("xml/widget_wide_info.xml")
+        assertEquals("vertical", wide.attr("resizeMode"))
+        assertEquals("4", wide.attr("targetCellWidth"))
+        assertEquals("2", wide.attr("targetCellHeight"))
+        assertNotNull("the Wide needs a max resize height", wide.attr("maxResizeHeight"))
+        for (info in listOf("widget_small_info", "widget_strip_info")) {
+            assertEquals(info, "none", parse("xml/$info.xml").attr("resizeMode"))
+        }
+    }
+
+    @Test
+    fun theEventListServiceIsDeclaredForThePlatformOnly() {
+        // The home screen binds the list's service; the system-only permission keeps other apps out.
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val service = manifest.descendants().single {
+            it.localName == "service" && it.attr("name") == ".WidgetEventsService"
+        }
+        assertEquals("false", service.attr("exported"))
+        assertEquals("android.permission.BIND_REMOTEVIEWS", service.attr("permission"))
+        assertTrue(File(res.parentFile, "java/io/github/rayvader/hazemap/WidgetEventsService.kt").isFile)
+    }
+
+    @Test
+    fun theEventTapTrampolineIsDeclaredAndNotExported() {
+        // A tapped list row goes through this activity (explicit), because Android 14+ forbids a mutable
+        // template with an implicit intent. It is started only by this app's widget, so it is not exported.
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val tap = manifest.descendants().single {
+            it.localName == "activity" && it.attr("name") == ".EventTapActivity"
+        }
+        assertEquals("false", tap.attr("exported"))
+        assertTrue(File(res.parentFile, "java/io/github/rayvader/hazemap/EventTapActivity.kt").isFile)
     }
 
     @Test

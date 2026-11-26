@@ -128,6 +128,7 @@ class MainActivity : AppCompatActivity() {
                 WidgetUpdater.sceneOverride = SkyScene.fromKey(key)
                 lifecycleScope.launch { WidgetUpdater.update(this@MainActivity) }
             }
+
         }
     }
 

@@ -99,6 +99,54 @@ def frames(path, raws):
     print("; ".join(out))
 
 
+def wide_root(path):
+    """The Wide widget's root node: the one whose subtree has the event list or its empty note."""
+    for root in widget_roots(path):
+        kids = [short_id(n) for n in root.iter("node")]
+        if "wEventEmpty" in kids or "wEventWhen" in kids or any(
+            (n.get("class") or "").endswith("ListView") for n in root.iter("node")
+        ):
+            return root
+    return None
+
+
+def widget_bounds(path):
+    """Prints the Wide widget root's bounds as 'x1 y1 x2 y2', for swiping and resizing it."""
+    root = wide_root(path)
+    if root is None:
+        sys.exit("no wide widget on screen")
+    print(*box(root.get("bounds")))
+
+
+def widget_scroll(path):
+    """Checks the Wide's scrolling event list: each visible row is inside the widget, and no bold when-label
+    is cut (a cut one ends in the ellipsis character). Prints 'widget-scroll ok: ...' or 'FAIL widget-scroll: ...'."""
+    problems = []
+    seen = 0
+    root = wide_root(path)
+    if root is not None:
+        rx1, ry1, rx2, ry2 = box(root.get("bounds"))
+        for n in root.iter("node"):
+            sid = short_id(n)
+            if sid not in ("wEventWhen", "wEventText"):
+                continue
+            seen += 1
+            x1, y1, x2, y2 = box(n.get("bounds"))
+            # A row may be clipped by the list edge, but never drawn outside the widget itself.
+            if x1 < rx1 - 2 or x2 > rx2 + 2 or y1 < ry1 - 2 or y2 > ry2 + 2:
+                problems.append(f"{sid} '{n.get('text')}' sticks out of the widget")
+            if sid == "wEventWhen" and n.get("text", "").endswith("\u2026"):
+                problems.append(f"the when-label '{n.get('text')}' is cut")
+    if root is None:
+        problems.append("no wide widget on the home screen")
+    elif seen == 0:
+        problems.append("no event rows in the wide widget")
+    if problems:
+        print("FAIL widget-scroll: " + "; ".join(problems))
+    else:
+        print(f"widget-scroll ok: {seen} row views on screen, none cut or outside the widget")
+
+
 def main():
     mode, path = sys.argv[1], sys.argv[2]
     if mode == "bounds":
@@ -125,6 +173,10 @@ def main():
         print(" | ".join(n.get(attr, "") for n in nodes(path) if n.get("resource-id", "").endswith("/" + suffix)))
     if mode == "widgets":
         widgets(path)
+    if mode == "widget_bounds":
+        widget_bounds(path)
+    if mode == "widget_scroll":
+        widget_scroll(path)
     if mode == "frames":
         frames(path, sys.argv[3:])
 

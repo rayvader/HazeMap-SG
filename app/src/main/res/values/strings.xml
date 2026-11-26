@@ -95,6 +95,8 @@
     <string name="widget_event_more">+%1$d more</string>
     <string name="widget_event_more_short">+%1$d</string>
     <string name="widget_event_desc_more">%1$s. %2$d more events</string>
+    <string name="widget_no_events">No events in the next 7 days</string>
+    <string name="widget_event_row_desc">%1$s %2$s</string>
 
     <!-- Calendars for the widget line -->
     <string name="calendars_title">Calendars</string>

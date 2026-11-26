@@ -10,6 +10,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.provider.AlarmClock
 import android.provider.CalendarContract
@@ -119,6 +120,9 @@ object WidgetUpdater {
 
     /** Keeps the clock's tap targets apart from the rest. */
     private const val CLOCK_REQUEST_BASE = 2_000_000
+
+    /** Keeps the Wide event list's row-tap template apart from the rest. */
+    private const val EVENT_ROW_REQUEST_BASE = 3_000_000
 
     private class Docs(
         val forecast: Forecast2h?,
@@ -320,6 +324,8 @@ object WidgetUpdater {
                     "events=${lines.size} h=$heightDp w=$widthDp"
             )
             manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, lines, now, heightDp, widthDp = widthDp))
+            // The Wide's events are a scrolling list; tell its factory to rebuild the rows on every redraw.
+            if (w.shape == WidgetShape.WIDE) manager.notifyAppWidgetViewDataChanged(w.id, R.id.wEventList)
         }
     }
 
@@ -419,9 +425,47 @@ object WidgetUpdater {
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
         // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
         v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
-        // The strip has no event lines in its layout: setting them there would stop it drawing.
-        if (shape.hasEventLine) showEvents(context, v, shape, events, plan, widgetId, model)
+        // The Wide shows a scrolling list of events; the Small keeps its single line and "+N more". The
+        // Strip has no event views in its layout: setting them there would stop it drawing.
+        when {
+            shape == WidgetShape.WIDE -> setupEventList(context, v, widgetId)
+            shape.hasEventLine -> showEvents(context, v, shape, events, plan, widgetId, model)
+        }
         return v
+    }
+
+    /**
+     * Binds the Wide's scrolling event list: the list reads its rows from [WidgetEventsService], shows the
+     * empty note when there are none, and a tap on a row opens that event in the calendar app (the template
+     * intent plus each row's fill-in, see [WidgetEventsFactory]). Each widget's list has its own data URI so
+     * the home screen keeps their adapters apart.
+     */
+    private fun setupEventList(context: Context, v: RemoteViews, widgetId: Int) {
+        val service = Intent(context, WidgetEventsService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            // A unique URI per widget, so each ListView gets its own adapter (the extras are ignored otherwise).
+            data = Uri.parse("hazemap://widget/$widgetId/events")
+        }
+        v.setRemoteAdapter(R.id.wEventList, service)
+        v.setEmptyView(R.id.wEventList, R.id.wEventEmpty)
+        v.setPendingIntentTemplate(R.id.wEventList, eventRowTemplate(context, widgetId))
+    }
+
+    /**
+     * The template a tapped event row fills in. A collection's template must be mutable, but Android 14+
+     * forbids a mutable PendingIntent with an implicit intent, so the template points at [EventTapActivity]
+     * in this app (an explicit intent). Each row fills in the event's URI and begin/end (see
+     * [WidgetEventsFactory]); the activity opens that event in the calendar app. Its own request code, apart
+     * from the clock's, the list-less event line's and the widget's.
+     */
+    private fun eventRowTemplate(context: Context, widgetId: Int): PendingIntent {
+        val trampoline = Intent(context, EventTapActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return PendingIntent.getActivity(
+            context,
+            EVENT_ROW_REQUEST_BASE + widgetId,
+            trampoline,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
     }
 
     /** The plan a widget of this size is drawn with: the emulator test's preview logs it and checks the drawing against it. */
@@ -455,12 +499,11 @@ object WidgetUpdater {
     }
 
     /**
-     * The Wide's own spacing: the space above the event lines (none beside the clock, 4 dp under the date), and
-     * the sky picture, shrunk towards the top right corner on a short widget so its art stays above the PSI pill.
+     * The Wide's sky picture, shrunk towards the top right corner on a short widget so its art stays above
+     * the PSI pill. The event list sets its own spacing now, so there is nothing to pad here.
      */
     private fun placeWideParts(context: Context, v: RemoteViews, plan: RowPlan, pictureScale: Float) {
         val density = context.resources.displayMetrics.density
-        v.setViewPadding(R.id.wEvents, 0, (WidgetRows.eventsTopDp(plan.dateSpot) * density).roundToInt(), 0, 0)
         v.setFloat(R.id.wPicture, "setPivotX", WidgetRows.PICTURE_BOX_DP * density)
         v.setFloat(R.id.wPicture, "setPivotY", 0f)
         v.setFloat(R.id.wPicture, "setScaleX", pictureScale)

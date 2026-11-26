@@ -234,6 +234,52 @@ class CalendarLogicTest {
         assertEquals(sgt(29, 0), EventLogic.nextChangeMillis(allDay(28), now, sgtZone))
     }
 
+    // ---- The scrolling list's rows (the Wide widget) ----
+
+    @Test
+    fun aRowKeepsTheWhenLabelAndTheTitleApart() {
+        val now = sgt(28, 12)
+        val rows = EventLogic.rows(listOf(timed(sgt(28, 15), title = "Lunch with Mei")), now, sgtZone)
+        assertEquals(1, rows.size)
+        assertEquals("15:00", rows[0].whenLabel)
+        assertEquals("Lunch with Mei", rows[0].title)
+    }
+
+    @Test
+    fun theRowsAreInTheUpcomingOrderNextFirst() {
+        val now = sgt(28, 12)
+        // Today's lunch, tomorrow 09:00, Friday all-day: the next one leads, then the rest of the week in order.
+        val events = listOf(allDay(30, title = "Holiday"), timed(sgt(29, 9), title = "Sync"), timed(sgt(28, 15), title = "Lunch"))
+        val rows = EventLogic.rows(events, now, sgtZone)
+        assertEquals(listOf("Lunch", "Sync", "Holiday"), rows.map { it.title })
+        assertEquals("15:00", rows[0].whenLabel)
+        assertEquals("Tmrw 09:00", rows[1].whenLabel)
+        assertEquals("Fri", rows[2].whenLabel)
+    }
+
+    @Test
+    fun aTitleWithNoWordsReadsEvent() {
+        val now = sgt(28, 12)
+        val rows = EventLogic.rows(listOf(timed(sgt(28, 15), title = "   ")), now, sgtZone)
+        assertEquals("Event", rows[0].title)
+    }
+
+    @Test
+    fun noEventsMakesNoRows() {
+        assertTrue(EventLogic.rows(emptyList(), sgt(28, 12), sgtZone).isEmpty())
+    }
+
+    @Test
+    fun rowsFromPickedDoNotReorderOrRepick() {
+        val now = sgt(28, 12)
+        val a = timed(sgt(28, 15), title = "Lunch")
+        val b = timed(sgt(29, 9), title = "Sync")
+        // Already in order: rowsFromPicked keeps it one-to-one, no second pick.
+        val rows = EventLogic.rowsFromPicked(listOf(a, b), now, sgtZone)
+        assertEquals(listOf("Lunch", "Sync"), rows.map { it.title })
+        assertEquals(listOf(a, b), rows.map { it.event })
+    }
+
     private companion object {
         const val MINUTE = 60_000L
         const val DAY = 24 * 60 * MINUTE
