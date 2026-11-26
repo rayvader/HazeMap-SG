@@ -109,6 +109,15 @@
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
+        <!-- Opens one event in the calendar app when a row of the Wide's list is tapped. Shows nothing; it
+             is started only by this app's own widget, so it is not exported. -->
+        <activity
+            android:name=".EventTapActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <receiver
             android:name=".HazeWidgetStrip"
             android:exported="false"

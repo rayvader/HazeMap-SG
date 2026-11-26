@@ -365,6 +365,19 @@ class WidgetResourcesTest {
     }
 
     @Test
+    fun theEventTapTrampolineIsDeclaredAndNotExported() {
+        // A tapped list row goes through this activity (explicit), because Android 14+ forbids a mutable
+        // template with an implicit intent. It is started only by this app's widget, so it is not exported.
+        val manifest = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+            .newDocumentBuilder().parse(File(res.parentFile, "AndroidManifest.xml")).documentElement
+        val tap = manifest.descendants().single {
+            it.localName == "activity" && it.attr("name") == ".EventTapActivity"
+        }
+        assertEquals("false", tap.attr("exported"))
+        assertTrue(File(res.parentFile, "java/io/github/rayvader/hazemap/EventTapActivity.kt").isFile)
+    }
+
+    @Test
     fun picturesOnlyMovePartsTheyHave() {
         for (s in SkyScene.entries) {
             val scene = parse("drawable/scene_${s.key}.xml")

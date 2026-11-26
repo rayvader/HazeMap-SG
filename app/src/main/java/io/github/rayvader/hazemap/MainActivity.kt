@@ -128,10 +128,7 @@ class MainActivity : AppCompatActivity() {
                 WidgetUpdater.sceneOverride = SkyScene.fromKey(key)
                 lifecycleScope.launch { WidgetUpdater.update(this@MainActivity) }
             }
-            // The emulator test resizes the Wide to a cell height, to see the event list grow and scroll.
-            intent.getIntExtra(EXTRA_RESIZE_WIDE, 0).takeIf { it > 0 }?.let { cells ->
-                WidgetUpdater.forceWideHeightCells(this, cells)
-            }
+
         }
     }
 
@@ -571,9 +568,6 @@ class MainActivity : AppCompatActivity() {
          * back to the real one. Used by the emulator smoke test.
          */
         const val EXTRA_WIDGET_SCENE = "widget_scene"
-
-        /** Emulator test only: resize every Wide widget to this many 70-dp cells tall, to test the event list. */
-        const val EXTRA_RESIZE_WIDE = "resize_wide"
 
         /**
          * Shows widgets drawn at exact sizes instead of the app, such as "wide@140+e,wide@160/small@140":

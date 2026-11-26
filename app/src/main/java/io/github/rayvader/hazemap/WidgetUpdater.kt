@@ -254,29 +254,6 @@ object WidgetUpdater {
         context.sendBroadcast(Intent(context, WidgetRefreshReceiver::class.java))
     }
 
-    /** One home-screen cell is about this tall, so a widget [cells] tall reports about this height, less margins. */
-    private const val CELL_DP = 70
-    private const val CELL_MARGIN_DP = 14
-
-    /**
-     * Emulator test only: tells every Wide widget it is [cells] cells tall, so the home screen re-measures it
-     * and the event list grows. An app may set the options of its own widgets. Then redraws them.
-     */
-    internal fun forceWideHeightCells(context: Context, cells: Int) {
-        val manager = AppWidgetManager.getInstance(context)
-        val heightDp = cells * CELL_DP - CELL_MARGIN_DP
-        for (id in idsOf(manager, context, WidgetShape.WIDE)) {
-            val options = Bundle().apply {
-                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, heightDp)
-                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, heightDp)
-                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, WidgetFits.USUAL_WIDE_DP)
-                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, WidgetFits.USUAL_WIDE_DP)
-            }
-            manager.updateAppWidgetOptions(id, options)
-        }
-        requestRefreshAll(context)
-    }
-
     /** The answer, or null when there is neither a network nor a saved copy. */
     private suspend fun <T> tryLoad(repo: WeatherRepository, endpoint: Endpoint<T>): Loaded<T>? =
         try {
@@ -475,19 +452,18 @@ object WidgetUpdater {
     }
 
     /**
-     * The template a tapped event row fills in: VIEW on the calendar's events table. Each row adds its own
-     * event id and begin/end (see [WidgetEventsFactory]). A mutable PendingIntent, as a fill-in template must
-     * be. Its own request code, apart from the clock's, the list-less event line's and the widget's.
+     * The template a tapped event row fills in. A collection's template must be mutable, but Android 14+
+     * forbids a mutable PendingIntent with an implicit intent, so the template points at [EventTapActivity]
+     * in this app (an explicit intent). Each row fills in the event's URI and begin/end (see
+     * [WidgetEventsFactory]); the activity opens that event in the calendar app. Its own request code, apart
+     * from the clock's, the list-less event line's and the widget's.
      */
     private fun eventRowTemplate(context: Context, widgetId: Int): PendingIntent {
-        val view = Intent(Intent.ACTION_VIEW)
-            .setData(Uri.parse(CalendarApps.EVENTS_URI))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        // A collection's template must be mutable so each row's fill-in intent can merge into it.
+        val trampoline = Intent(context, EventTapActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return PendingIntent.getActivity(
             context,
             EVENT_ROW_REQUEST_BASE + widgetId,
-            view,
+            trampoline,
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
     }

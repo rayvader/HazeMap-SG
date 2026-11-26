@@ -993,28 +993,47 @@ event_insert "$FAMILY" "Parent teacher evening at the school hall" $(( MORE_BASE
 event_insert "$GYM"    Swim      $(( MORE_BASE + 3000 * 60000 )) $(( MORE_BASE + 3060 * 60000 ))
 event_insert "$FAMILY" Dinner    $(( MORE_BASE + 4000 * 60000 )) $(( MORE_BASE + 4060 * 60000 ))
 
+# resize_wide_tall: long-press the Wide widget, then drag its bottom edge down so it is about 4 cells tall.
+# The launcher shows resize handles after a long-press; the bottom handle sits at the widget's lower edge.
+resize_wide_tall() {
+  show_widgets || return 1
+  dump
+  local b
+  b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui.xml" 2>/dev/null) || return 1
+  set -- $b
+  local cx=$(( ($1 + $3) / 2 )) bottom=$4
+  # Long-press the middle to pick the widget up, then drag the bottom edge down about two cells (~500 px).
+  adb shell input swipe $cx $(( ($2 + $4) / 2 )) $cx $(( ($2 + $4) / 2 )) 900
+  sleep 2
+  adb shell input swipe $cx $(( bottom - 8 )) $cx $(( bottom + 500 )) 700
+  sleep 2
+  adb shell input tap 60 1500   # tap away to drop the resize frame
+  sleep 2
+}
+
 # scroll_shots <tag>: the Wide's list before and after a scroll, and a check that it moved and nothing is cut.
 scroll_shots() {
   local tag="$1"
-  show_widgets || return 0
+  show_widgets || { say "FAIL $tag: no widgets on screen"; return 0; }
   dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
   adb exec-out screencap -p > "$OUT/80-$tag-before.png"
-  local before after rows
-  before=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-$tag-before.xml" | grep -o -m1 "eventtext='[^']*'")
+  local before after rows b
   rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
-  say "$tag: $rows rows shown, before scroll $before"
-  # Scroll the list: swipe up inside the Wide's event list, if it is on screen.
-  local xy
-  if xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui-$tag-before.xml" wEventList 2>/dev/null); then
-    adb shell input swipe $(echo "$xy" | awk '{print $1, $2+120, $1, $2-120}') 400
+  before=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventText text)
+  say "$tag: $rows rows shown, before scroll '$before'"
+  # Scroll the list: swipe up inside the Wide widget, if it is on screen.
+  if b=$(python3 .github/scripts/ui_probe.py widget_bounds "$OUT/ui-$tag-before.xml" 2>/dev/null); then
+    set -- $b
+    local cx=$(( ($1 + $3) / 2 )) cy=$(( ($2 + $4) / 2 ))
+    adb shell input swipe $cx $(( cy + 150 )) $cx $(( cy - 150 )) 500
     sleep 2
     dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-after.xml"
     adb exec-out screencap -p > "$OUT/81-$tag-after.png"
-    after=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-$tag-after.xml" | grep -o -m1 "eventtext='[^']*'")
-    say "$tag: after scroll $after"
-    [ "$before" = "$after" ] && say "FAIL $tag: the event list did not scroll (same rows before and after)"
+    after=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-after.xml" wEventText text)
+    say "$tag: after scroll '$after'"
+    [ -n "$before" ] && [ "$before" = "$after" ] && say "FAIL $tag: the event list did not scroll (same rows before and after)"
   else
-    say "FAIL $tag: no wEventList on the home screen"
+    say "FAIL $tag: no wide widget on the home screen"
   fi
   # Nothing of the list may stick out of the widget, and the when-labels must not be cut.
   python3 .github/scripts/ui_probe.py widget_scroll "$OUT/ui-$tag-before.xml" | tee -a "$LOG"
@@ -1022,11 +1041,12 @@ scroll_shots() {
 
 for mode in light dark; do
   [ "$mode" = dark ] && { home_again --es tab now; tap btnTheme; sleep 6; adb shell input keyevent KEYCODE_HOME; sleep 18; }
-  home_again --ei resize_wide 2
-  sleep 6
+  # 4x2: the Wide at the size the launcher gives it (about two cells); the list shows what fits and scrolls.
+  home_again
+  sleep 4
   scroll_shots "wide-4x2-$mode"
-  home_again --ei resize_wide 4
-  sleep 6
+  # 4x4: drag the Wide taller, so the list has room for more rows.
+  resize_wide_tall
   scroll_shots "wide-4x4-$mode"
 done
 # Back to light for the rest of the run.
@@ -1034,11 +1054,10 @@ dump && grep -q "Switch to light theme" "$OUT/ui.xml" 2>/dev/null && { tap btnTh
 
 # Bigger font: the list at 4x2 and 4x4 again, so big rows still fit and scroll.
 adb shell settings put system font_scale 1.3
-home_again --ei resize_wide 2
-sleep 6
+home_again
+sleep 4
 scroll_shots "wide-4x2-bigfont"
-home_again --ei resize_wide 4
-sleep 6
+resize_wide_tall
 scroll_shots "wide-4x4-bigfont"
 adb shell settings put system font_scale 1.0
 
