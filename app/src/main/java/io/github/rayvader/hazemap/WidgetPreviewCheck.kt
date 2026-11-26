@@ -125,7 +125,13 @@ internal object WidgetPreviewCheck {
             return out
         }
 
-        // The event lines.
+        // The Wide's events are a scrolling list fed by a RemoteViewsService. That service only runs inside a
+        // real home-screen host, not when the preview inflates the views in-process, so there are no rows to
+        // check here: the list and its scrolling are checked on the emulator (see the widget smoke test). The
+        // clock, date, picture and PSI above are all still checked.
+        if (shape == WidgetShape.WIDE) return out
+
+        // The event lines (the Small's static single line and "+N more").
         val list = root.findViewById<ViewGroup>(R.id.wEvents)
         val rows = (0 until (list?.childCount ?: 0)).map { list!!.getChildAt(it) }.filter { it.isShown }
         if (rows.size != plan.lines) out += "drew ${rows.size} event lines, the plan has ${plan.lines}"

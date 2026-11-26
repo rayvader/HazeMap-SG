@@ -10,6 +10,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.provider.AlarmClock
 import android.provider.CalendarContract
@@ -119,6 +120,9 @@ object WidgetUpdater {
 
     /** Keeps the clock's tap targets apart from the rest. */
     private const val CLOCK_REQUEST_BASE = 2_000_000
+
+    /** Keeps the Wide event list's row-tap template apart from the rest. */
+    private const val EVENT_ROW_REQUEST_BASE = 3_000_000
 
     private class Docs(
         val forecast: Forecast2h?,
@@ -250,6 +254,29 @@ object WidgetUpdater {
         context.sendBroadcast(Intent(context, WidgetRefreshReceiver::class.java))
     }
 
+    /** One home-screen cell is about this tall, so a widget [cells] tall reports about this height, less margins. */
+    private const val CELL_DP = 70
+    private const val CELL_MARGIN_DP = 14
+
+    /**
+     * Emulator test only: tells every Wide widget it is [cells] cells tall, so the home screen re-measures it
+     * and the event list grows. An app may set the options of its own widgets. Then redraws them.
+     */
+    internal fun forceWideHeightCells(context: Context, cells: Int) {
+        val manager = AppWidgetManager.getInstance(context)
+        val heightDp = cells * CELL_DP - CELL_MARGIN_DP
+        for (id in idsOf(manager, context, WidgetShape.WIDE)) {
+            val options = Bundle().apply {
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, heightDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, heightDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, WidgetFits.USUAL_WIDE_DP)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, WidgetFits.USUAL_WIDE_DP)
+            }
+            manager.updateAppWidgetOptions(id, options)
+        }
+        requestRefreshAll(context)
+    }
+
     /** The answer, or null when there is neither a network nor a saved copy. */
     private suspend fun <T> tryLoad(repo: WeatherRepository, endpoint: Endpoint<T>): Loaded<T>? =
         try {
@@ -320,6 +347,8 @@ object WidgetUpdater {
                     "events=${lines.size} h=$heightDp w=$widthDp"
             )
             manager.updateAppWidget(w.id, views(context, w.shape, model, w.id, lines, now, heightDp, widthDp = widthDp))
+            // The Wide's events are a scrolling list; tell its factory to rebuild the rows on every redraw.
+            if (w.shape == WidgetShape.WIDE) manager.notifyAppWidgetViewDataChanged(w.id, R.id.wEventList)
         }
     }
 
@@ -419,9 +448,48 @@ object WidgetUpdater {
         v.setOnClickPendingIntent(R.id.wRoot, openIntent(context, model, widgetId))
         // The clock and the date open the phone's Clock app; the rest of the widget opens this app.
         v.setOnClickPendingIntent(R.id.wClockTap, clockIntent(context, model, widgetId))
-        // The strip has no event lines in its layout: setting them there would stop it drawing.
-        if (shape.hasEventLine) showEvents(context, v, shape, events, plan, widgetId, model)
+        // The Wide shows a scrolling list of events; the Small keeps its single line and "+N more". The
+        // Strip has no event views in its layout: setting them there would stop it drawing.
+        when {
+            shape == WidgetShape.WIDE -> setupEventList(context, v, widgetId)
+            shape.hasEventLine -> showEvents(context, v, shape, events, plan, widgetId, model)
+        }
         return v
+    }
+
+    /**
+     * Binds the Wide's scrolling event list: the list reads its rows from [WidgetEventsService], shows the
+     * empty note when there are none, and a tap on a row opens that event in the calendar app (the template
+     * intent plus each row's fill-in, see [WidgetEventsFactory]). Each widget's list has its own data URI so
+     * the home screen keeps their adapters apart.
+     */
+    private fun setupEventList(context: Context, v: RemoteViews, widgetId: Int) {
+        val service = Intent(context, WidgetEventsService::class.java).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            // A unique URI per widget, so each ListView gets its own adapter (the extras are ignored otherwise).
+            data = Uri.parse("hazemap://widget/$widgetId/events")
+        }
+        v.setRemoteAdapter(R.id.wEventList, service)
+        v.setEmptyView(R.id.wEventList, R.id.wEventEmpty)
+        v.setPendingIntentTemplate(R.id.wEventList, eventRowTemplate(context, widgetId))
+    }
+
+    /**
+     * The template a tapped event row fills in: VIEW on the calendar's events table. Each row adds its own
+     * event id and begin/end (see [WidgetEventsFactory]). A mutable PendingIntent, as a fill-in template must
+     * be. Its own request code, apart from the clock's, the list-less event line's and the widget's.
+     */
+    private fun eventRowTemplate(context: Context, widgetId: Int): PendingIntent {
+        val view = Intent(Intent.ACTION_VIEW)
+            .setData(Uri.parse(CalendarApps.EVENTS_URI))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // A collection's template must be mutable so each row's fill-in intent can merge into it.
+        return PendingIntent.getActivity(
+            context,
+            EVENT_ROW_REQUEST_BASE + widgetId,
+            view,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
     }
 
     /** The plan a widget of this size is drawn with: the emulator test's preview logs it and checks the drawing against it. */
@@ -455,12 +523,11 @@ object WidgetUpdater {
     }
 
     /**
-     * The Wide's own spacing: the space above the event lines (none beside the clock, 4 dp under the date), and
-     * the sky picture, shrunk towards the top right corner on a short widget so its art stays above the PSI pill.
+     * The Wide's sky picture, shrunk towards the top right corner on a short widget so its art stays above
+     * the PSI pill. The event list sets its own spacing now, so there is nothing to pad here.
      */
     private fun placeWideParts(context: Context, v: RemoteViews, plan: RowPlan, pictureScale: Float) {
         val density = context.resources.displayMetrics.density
-        v.setViewPadding(R.id.wEvents, 0, (WidgetRows.eventsTopDp(plan.dateSpot) * density).roundToInt(), 0, 0)
         v.setFloat(R.id.wPicture, "setPivotX", WidgetRows.PICTURE_BOX_DP * density)
         v.setFloat(R.id.wPicture, "setPivotY", 0f)
         v.setFloat(R.id.wPicture, "setScaleX", pictureScale)

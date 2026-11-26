@@ -165,6 +165,25 @@ object EventLogic {
         return "${whenLabel(e, nowMillis, zone)} $title"
     }
 
+    /** The title on its own, tidied, never empty: the scrolling list shows it beside the bold when-label. */
+    fun titleText(e: CalendarEvent): String =
+        e.title.replace(Regex("\\s+"), " ").trim().ifEmpty { "Event" }
+
+    /**
+     * One row of the Wide widget's scrolling event list: the bold when-label ("15:00", "Tmrw", "Fri 12:30")
+     * and the title, kept apart so the list row can draw the label bold and never cut it. Pure, so it is
+     * tested on the JVM; the widget's list factory turns each [CalendarEvent] into one of these.
+     */
+    data class EventRow(val event: CalendarEvent, val whenLabel: String, val title: String)
+
+    /** The rows for the scrolling list, the next event first (see [pickUpcoming]). */
+    fun rows(events: List<CalendarEvent>, nowMillis: Long, zone: ZoneId): List<EventRow> =
+        pickUpcoming(events, nowMillis, zone).let { rowsFromPicked(it, nowMillis, zone) }
+
+    /** The rows for events already put in order by [pickUpcoming]; maps each to its when-label and title. */
+    fun rowsFromPicked(picked: List<CalendarEvent>, nowMillis: Long, zone: ZoneId): List<EventRow> =
+        picked.map { EventRow(it, whenLabel(it, nowMillis, zone), titleText(it)) }
+
     /**
      * When the line next changes by itself: as the event starts ("Now") or ends, or at midnight,
      * when "Tmrw" turns into today.

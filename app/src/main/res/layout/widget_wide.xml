@@ -215,146 +215,181 @@
     </FrameLayout>
 
     <!--
-      The clock, the date and the next event. It stops short of the picture, so a long event line ends
-      in "…" instead of running under it. Its top space is padding, not margin, because the app trims it
-      on a short widget (see WidgetFit).
+      Everything but the picture, stacked top to bottom: the clock block, then the scrolling event list
+      that fills the room left, then the temperature row. The list grows and shrinks with the widget's
+      height; the top and bottom blocks keep their size. The picture above sits over the top right corner.
     -->
     <LinearLayout
-        android:id="@+id/wTopBlock"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:layout_marginEnd="124dp"
-        android:orientation="vertical"
-        android:paddingStart="16dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <!-- The clock and the date: a tap here opens the phone's Clock app. At least 48 dp tall to tap.
-             The top space is padding here, so it is part of the tap area too (see WidgetFit). -->
+        <!--
+          The clock and the date. It stops short of the picture. Its top space is padding, not margin,
+          because the app trims it on a short widget (see WidgetFit).
+        -->
         <LinearLayout
-            android:id="@+id/wClockTap"
-            android:layout_width="wrap_content"
+            android:id="@+id/wTopBlock"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:layout_marginEnd="124dp"
             android:orientation="vertical"
-            android:paddingTop="12dp">
+            android:paddingStart="16dp">
 
-            <!-- The time and, when there is room, the date beside it: "14:05  Sun 15 Nov". Always 24-hour,
-                 whatever the phone is set to. -->
+            <!-- The clock and the date: a tap here opens the phone's Clock app. At least 48 dp tall to tap.
+                 The top space is padding here, so it is part of the tap area too (see WidgetFit). -->
             <LinearLayout
-                android:id="@+id/wClockRow"
+                android:id="@+id/wClockTap"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:baselineAligned="true"
-                android:orientation="horizontal">
+                android:minHeight="48dp"
+                android:orientation="vertical"
+                android:paddingTop="12dp">
 
-                <TextClock
-                    android:id="@+id/wClock"
-                    style="@style/WidgetText"
-                    android:fontFamily="sans-serif"
-                    android:textStyle="bold"
-                    android:format12Hour="HH:mm"
-                    android:format24Hour="HH:mm"
-                    android:includeFontPadding="false"
-                    android:textSize="44sp" />
+                <!-- The time and, when there is room, the date beside it: "14:05  Sun 15 Nov". Always 24-hour,
+                     whatever the phone is set to. -->
+                <LinearLayout
+                    android:id="@+id/wClockRow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="true"
+                    android:orientation="horizontal">
 
+                    <TextClock
+                        android:id="@+id/wClock"
+                        style="@style/WidgetText"
+                        android:fontFamily="sans-serif"
+                        android:textStyle="bold"
+                        android:format12Hour="HH:mm"
+                        android:format24Hour="HH:mm"
+                        android:includeFontPadding="false"
+                        android:textSize="44sp" />
+
+                    <TextClock
+                        android:id="@+id/wDate"
+                        style="@style/WidgetText"
+                        android:format12Hour="EEE d MMM"
+                        android:format24Hour="EEE d MMM"
+                        android:layout_marginStart="8dp"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Under the clock instead, when the two do not fit on one row (see WidgetRows). -->
                 <TextClock
-                    android:id="@+id/wDate"
+                    android:id="@+id/wDateWrapped"
                     style="@style/WidgetText"
                     android:format12Hour="EEE d MMM"
                     android:format24Hour="EEE d MMM"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginTop="2dp"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!--
+          The upcoming events on the chosen calendars, a scrolling list filling the room between the clock
+          and the temperature (see WidgetEventsFactory). The app shows the list when there are events and the
+          empty note when there are none. The 124 dp end margin keeps the top rows clear of the picture.
+        -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ListView
+                android:id="@+id/wEventList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:divider="@null"
+                android:dividerHeight="3dp"
+                android:scrollbars="none"
+                android:visibility="gone" />
+
+            <!-- Shown instead of the list when there are no upcoming events. -->
+            <TextView
+                android:id="@+id/wEventEmpty"
+                style="@style/WidgetText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
+                android:alpha="0.85"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:text="@string/widget_no_events"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!--
+          The temperature, the weather and the place on one line, and the PSI beside it. Its bottom space is
+          trimmed on a short widget too. The line is as wide as the room left by the pill: the place takes
+          what the temperature and the weather leave and ends in "…", and a long weather phrase stops at
+          maxWidth so that it cannot push the place out.
+        -->
+        <LinearLayout
+            android:id="@+id/wBottomBlock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:baselineAligned="true"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/wTemp"
+                    style="@style/WidgetText"
+                    android:fontFamily="sans-serif-light"
+                    android:text="@string/no_temp"
+                    android:textSize="26sp" />
+
+                <TextView
+                    android:id="@+id/wCondition"
+                    style="@style/WidgetText"
+                    android:layout_marginStart="5dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:maxWidth="120dp"
+                    android:text="--"
                     android:textSize="13sp" />
+
+                <TextView
+                    style="@style/WidgetText"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:alpha="0.8"
+                    android:importantForAccessibility="no"
+                    android:text="·"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/wPlace"
+                    style="@style/WidgetText"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:alpha="0.92"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="--"
+                    android:textSize="11sp" />
             </LinearLayout>
 
-            <!-- Under the clock instead, when the two do not fit on one row (see WidgetRows). -->
-            <TextClock
-                android:id="@+id/wDateWrapped"
-                style="@style/WidgetText"
-                android:format12Hour="EEE d MMM"
-                android:format24Hour="EEE d MMM"
-                android:layout_marginStart="2dp"
-                android:layout_marginTop="2dp"
-                android:textSize="13sp"
-                android:visibility="gone" />
+            <TextView
+                android:id="@+id/wBadge"
+                style="@style/WidgetPill"
+                android:text="@string/widget_psi_none"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
-
-        <!-- The upcoming events on the chosen calendars, one line each (see widget_event_row). The app fills
-             this in and shows it when there is one, and sets the space above it: none beside the clock, 4 dp
-             under the date (see WidgetRows.eventsTopDp). -->
-        <LinearLayout
-            android:id="@+id/wEvents"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone" />
-    </LinearLayout>
-
-    <!--
-      The temperature, the weather and the place on one line, and the PSI beside it. Its bottom space is
-      trimmed on a short widget too. The line is as wide as the room left by the pill: the place takes what
-      the temperature and the weather leave and ends in "…", and a long weather phrase stops at maxWidth
-      so that it cannot push the place out.
-    -->
-    <LinearLayout
-        android:id="@+id/wBottomBlock"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:gravity="bottom"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="12dp">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:baselineAligned="true"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/wTemp"
-                style="@style/WidgetText"
-                android:fontFamily="sans-serif-light"
-                android:text="@string/no_temp"
-                android:textSize="26sp" />
-
-            <TextView
-                android:id="@+id/wCondition"
-                style="@style/WidgetText"
-                android:layout_marginStart="5dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:maxWidth="120dp"
-                android:text="--"
-                android:textSize="13sp" />
-
-            <TextView
-                style="@style/WidgetText"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:alpha="0.8"
-                android:importantForAccessibility="no"
-                android:text="·"
-                android:textSize="13sp" />
-
-            <TextView
-                android:id="@+id/wPlace"
-                style="@style/WidgetText"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:alpha="0.92"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="--"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/wBadge"
-            style="@style/WidgetPill"
-            android:text="@string/widget_psi_none"
-            android:layout_marginStart="8dp" />
     </LinearLayout>
 </FrameLayout>

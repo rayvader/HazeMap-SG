@@ -979,6 +979,69 @@ adb exec-out screencap -p > "$OUT/59-widgets-event-all-day.png"
 say "--- widgets, Holidays ticked (an all-day event) ---"
 python3 .github/scripts/ui_probe.py widgets "$OUT/ui.xml" | tee -a "$LOG"
 
+# ---- Wide widget: the scrolling event list at 4x2 and 4x4, light and dark, 100% and big font ----
+# Tick every test calendar, and add a few more events, so the list has enough rows to overflow a 4x2 and
+# scroll. The app resizes its own Wide widget (MainActivity EXTRA_RESIZE_WIDE) so the launcher re-measures it.
+calendars_screen
+tap Family
+tap Gym
+back_home
+MORE_BASE=$(( NOW_MS + 200 * 60000 ))
+event_insert "$FAMILY" Standup   $(( MORE_BASE + 0 ))          $(( MORE_BASE + 30 * 60000 ))
+event_insert "$GYM"    Physio    $(( MORE_BASE + 180 * 60000 )) $(( MORE_BASE + 210 * 60000 ))
+event_insert "$FAMILY" "Parent teacher evening at the school hall" $(( MORE_BASE + 1500 * 60000 )) $(( MORE_BASE + 1560 * 60000 ))
+event_insert "$GYM"    Swim      $(( MORE_BASE + 3000 * 60000 )) $(( MORE_BASE + 3060 * 60000 ))
+event_insert "$FAMILY" Dinner    $(( MORE_BASE + 4000 * 60000 )) $(( MORE_BASE + 4060 * 60000 ))
+
+# scroll_shots <tag>: the Wide's list before and after a scroll, and a check that it moved and nothing is cut.
+scroll_shots() {
+  local tag="$1"
+  show_widgets || return 0
+  dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-before.xml"
+  adb exec-out screencap -p > "$OUT/80-$tag-before.png"
+  local before after rows
+  before=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-$tag-before.xml" | grep -o -m1 "eventtext='[^']*'")
+  rows=$(python3 .github/scripts/ui_probe.py all "$OUT/ui-$tag-before.xml" wEventWhen text | tr '|' '\n' | grep -c '[0-9A-Za-z]')
+  say "$tag: $rows rows shown, before scroll $before"
+  # Scroll the list: swipe up inside the Wide's event list, if it is on screen.
+  local xy
+  if xy=$(python3 .github/scripts/ui_probe.py bounds "$OUT/ui-$tag-before.xml" wEventList 2>/dev/null); then
+    adb shell input swipe $(echo "$xy" | awk '{print $1, $2+120, $1, $2-120}') 400
+    sleep 2
+    dump && cp "$OUT/ui.xml" "$OUT/ui-$tag-after.xml"
+    adb exec-out screencap -p > "$OUT/81-$tag-after.png"
+    after=$(python3 .github/scripts/ui_probe.py widgets "$OUT/ui-$tag-after.xml" | grep -o -m1 "eventtext='[^']*'")
+    say "$tag: after scroll $after"
+    [ "$before" = "$after" ] && say "FAIL $tag: the event list did not scroll (same rows before and after)"
+  else
+    say "FAIL $tag: no wEventList on the home screen"
+  fi
+  # Nothing of the list may stick out of the widget, and the when-labels must not be cut.
+  python3 .github/scripts/ui_probe.py widget_scroll "$OUT/ui-$tag-before.xml" | tee -a "$LOG"
+}
+
+for mode in light dark; do
+  [ "$mode" = dark ] && { home_again --es tab now; tap btnTheme; sleep 6; adb shell input keyevent KEYCODE_HOME; sleep 18; }
+  home_again --ei resize_wide 2
+  sleep 6
+  scroll_shots "wide-4x2-$mode"
+  home_again --ei resize_wide 4
+  sleep 6
+  scroll_shots "wide-4x4-$mode"
+done
+# Back to light for the rest of the run.
+dump && grep -q "Switch to light theme" "$OUT/ui.xml" 2>/dev/null && { tap btnTheme; sleep 6; adb shell input keyevent KEYCODE_HOME; sleep 12; }
+
+# Bigger font: the list at 4x2 and 4x4 again, so big rows still fit and scroll.
+adb shell settings put system font_scale 1.3
+home_again --ei resize_wide 2
+sleep 6
+scroll_shots "wide-4x2-bigfont"
+home_again --ei resize_wide 4
+sleep 6
+scroll_shots "wide-4x4-bigfont"
+adb shell settings put system font_scale 1.0
+
 # ---- Rain replay: with animations on, the map plays by itself and starts over ----
 adb shell settings put global animator_duration_scale 1
 adb shell settings put global transition_animation_scale 1

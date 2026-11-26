@@ -36,4 +36,19 @@ object CalendarApps {
         val pkg = PACKAGES.firstOrNull { it in launchable } ?: return CalendarTap.App
         return CalendarTap.Package(pkg)
     }
+
+    /** The events table URI, so the widget opens one event's page: content://com.android.calendar/events. */
+    const val EVENTS_URI = "content://com.android.calendar/events"
+
+    /**
+     * Where a tapped row in the Wide's scrolling list points: that event's page in the calendar app. The row
+     * reuses one template intent ([CalendarContract.ACTION_VIEW] on the events table) and each row fills in
+     * its own event id and begin/end time; this returns those three parts, with no Android, so they are
+     * tested on the JVM.
+     */
+    data class EventTarget(val uri: String, val beginMillis: Long, val endMillis: Long)
+
+    /** The event's own page target: content://com.android.calendar/events/<id>, with its begin and end. */
+    fun eventTarget(e: CalendarEvent): EventTarget =
+        EventTarget("$EVENTS_URI/${e.eventId}", e.beginMillis, e.endMillis)
 }
