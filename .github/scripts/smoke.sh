@@ -860,10 +860,13 @@ adb exec-out screencap -p > "$OUT/48-widget-opens-city.png"
 # ---- Widget calendar line: the next event from the ticked calendars ----
 # Four phone calendars: one the Calendar app shows, two it hides, and one switched off in its account.
 # The shell user may write calendars, so no root is needed.
-cal_insert() {  # cal_insert <name> <account> <account type> <visible> <sync>
+cal_insert() {  # cal_insert <name> <account> <account type> <visible> <sync> [colour int]
+  # A distinct colour per calendar, so the Wide widget's pills come out in different colours. The value is a
+  # signed 32-bit ARGB; default is the old green if none is given.
+  local colour="${6:--16744448}"
   adb shell "content insert --uri 'content://com.android.calendar/calendars?caller_is_syncadapter=true&account_name=$2&account_type=$3'" \
     "--bind account_name:s:$2 --bind account_type:s:$3 --bind name:s:$1 --bind calendar_displayName:s:$1" \
-    "--bind calendar_color:i:-16744448 --bind calendar_access_level:i:700 --bind ownerAccount:s:$2" \
+    "--bind calendar_color:i:$colour --bind calendar_access_level:i:700 --bind ownerAccount:s:$2" \
     "--bind visible:i:$4 --bind sync_events:i:$5"
 }
 cal_id() {  # cal_id <name>: the calendar's id in the provider
@@ -911,9 +914,11 @@ back_home() {
 }
 adb shell input keyevent KEYCODE_HOME
 NOW_MS=$(( $(adb shell date +%s | tr -d '\r') * 1000 ))
-cal_insert Family smoke LOCAL 1 1
-cal_insert Gym smoke LOCAL 0 1
-cal_insert Holidays smoke LOCAL 0 1
+# Distinct colours per calendar, so the Wide widget's event pills come out in different colours: Family red,
+# Gym blue, Holidays a pale yellow (to exercise the darken-for-readable-text path), Work the default green.
+cal_insert Family smoke LOCAL 1 1 -2818048
+cal_insert Gym smoke LOCAL 0 1 -13408564
+cal_insert Holidays smoke LOCAL 0 1 -2360
 cal_insert Work work@example.com com.example 1 0
 FAMILY=$(cal_id Family)
 GYM=$(cal_id Gym)

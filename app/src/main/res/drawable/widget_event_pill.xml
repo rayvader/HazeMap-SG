@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The pill behind one row of the Wide widget's scrolling event list. The shape is opaque white so the
+     app can tint it the event's colour with a SRC_IN background tint (see WidgetEventColour): the tint
+     carries both the colour and the see-through amount (the old 0x4D alpha), and the rounded corners stay.
+     Only the Wide list row uses this; the Small/Strip chips keep widget_event_bg (a fixed dark tint). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FFFFFFFF" />
+    <corners android:radius="10dp" />
+</shape>
